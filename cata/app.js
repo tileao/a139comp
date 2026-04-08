@@ -147,14 +147,51 @@ async function waitForTruthy(readFn, timeoutMs = 5000) {
   return null;
 }
 
+async function syncDepartureOptionsFromADC(baseId, preferredDeparture = null) {
+  const doc = await waitForIframe(adcFrame, ['baseSelect', 'departureEndSelect']);
+  setField(doc, 'baseSelect', baseId);
+  await sleep(120);
+  const depSelect = doc.getElementById('departureEndSelect');
+  const wanted = preferredDeparture ?? els.departure.value;
+  els.departure.innerHTML = depSelect.innerHTML;
+  const values = [...depSelect.options].map(opt => opt.value);
+  if (values.includes(wanted)) els.departure.value = wanted;
+  else if (depSelect.value) els.departure.value = depSelect.value;
+}
+
 async function populateBaseOptions() {
   const doc = await waitForIframe(adcFrame, ['baseSelect', 'departureEndSelect']);
   const baseSelect = doc.getElementById('baseSelect');
-  const depSelect = doc.getElementById('departureEndSelect');
   els.base.innerHTML = baseSelect.innerHTML;
-  els.departure.innerHTML = depSelect.innerHTML;
   if (!els.base.value) els.base.value = baseSelect.value;
-  if (!els.departure.value) els.departure.value = depSelect.value;
+  await syncDepartureOptionsFromADC(els.base.value, els.departure.value);
+}
+
+async function waitForADCChartReady(doc, timeoutMs = 5000) {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    try {
+      const win = doc.defaultView;
+      const canvas = doc.getElementById('vizCanvas');
+      const subtitle = text(doc, 'vizSubtitle');
+      const rect = canvas?.getBoundingClientRect();
+      const chartReady = !!(canvas && rect && rect.width > 150 && rect.height > 150);
+      const imageReady = !!win?.document?.querySelector('#vizCanvas');
+      if (chartReady || (imageReady && !/falha ao carregar/i.test(subtitle))) return true;
+    } catch {}
+    await sleep(120);
+  }
+  return false;
+}
+
+function scheduleViewerRefresh(mode) {
+  [80, 220, 500, 900, 1500].forEach(delay => {
+    setTimeout(() => {
+      try { resizeActiveFrame(mode); } catch {}
+      try { renderVisualizationMeta(mode); } catch {}
+      try { frameMap[mode]?.contentWindow?.postMessage?.({ type: 'aw139-cata-force-resize' }, '*'); } catch {}
+    }, delay);
+  });
 }
 
 function collectInputs() {
@@ -277,11 +314,14 @@ async function runADC(input, rtoResult) {
 
   setField(doc, 'baseSelect', input.base);
   await sleep(120);
-  setField(doc, 'departureEndSelect', input.departureEnd);
+  await syncDepartureOptionsFromADC(input.base, input.departureEnd);
+  setField(doc, 'departureEndSelect', els.departure.value || input.departureEnd);
   if (rtoResult?.rtoMeters != null) setField(doc, 'rtoInput', rtoResult.rtoMeters);
-  await sleep(60);
+  await waitForADCChartReady(doc, 3500);
+  await sleep(80);
   try { doc.defaultView?.analyze?.(); } catch { clickField(doc, 'analyzeBtn'); }
   await waitForTruthy(() => doc.querySelectorAll('#decisionTable tr').length > 0, 4500);
+  scheduleViewerRefresh('adc');
 
   const rows = [...doc.querySelectorAll('#decisionTable tr')].map(tr => {
     const tds = tr.querySelectorAll('td');
@@ -683,6 +723,7 @@ function setVisualization(mode, forceShow = true) {
     await sleep(80);
     resizeActiveFrame(mode);
     renderVisualizationMeta(mode);
+    scheduleViewerRefresh(mode);
   });
 }
 
@@ -756,6 +797,11 @@ function saveCurrentInputsForModuleOpen() {
 
 function bindEvents() {
   els.runBtn.addEventListener('click', runFlow);
+  els.base.addEventListener('change', async () => {
+    await syncDepartureOptionsFromADC(els.base.value);
+    renderVisualizationMeta(els.visualSelect.value || '');
+    if ((els.visualSelect.value || '') === 'adc') scheduleViewerRefresh('adc');
+  });
   els.visualSelect.addEventListener('change', e => setVisualization(e.target.value, !!e.target.value));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.addEventListener('click', () => setVisualization(btn.dataset.viz, true)));
   els.openWATBtn.addEventListener('click', () => {

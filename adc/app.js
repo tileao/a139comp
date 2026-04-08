@@ -730,7 +730,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     const captureBanner = document.getElementById('captureBanner');
     const chartImg = new Image();
     const mainView = document.querySelector('.right');
-    chartImg.onload = () => { resizeCanvas(); draw(); };
+    chartImg.onload = () => { resizeCanvas(); draw(); updateEmbedMetrics(); };
     chartImg.onerror = () => {
       const base = currentBase();
       const runway = currentRunway(base);
@@ -766,6 +766,25 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       state.offsetX = fit.offsetX;
       state.offsetY = fit.offsetY;
       draw();
+      updateEmbedMetrics();
+    }
+    function updateEmbedMetrics() {
+      if (!EMBED_MODE) return;
+      try {
+        const base = currentBase();
+        const runway = currentRunway(base);
+        const chart = currentDisplayChart(base, runway);
+        const wrapWidth = Math.max(vizWrap.clientWidth || 0, 320);
+        const ratioHeight = chart?.size?.width ? Math.round((wrapWidth * chart.size.height) / chart.size.width) : 0;
+        const measuredHeight = Math.ceil(canvas.getBoundingClientRect().height || vizWrap.getBoundingClientRect().height || 0);
+        const h = Math.max(ratioHeight || 0, measuredHeight || 0, 320);
+        vizWrap.style.setProperty('height', `${h}px`, 'important');
+        vizWrap.style.setProperty('min-height', `${h}px`, 'important');
+        canvas.style.setProperty('height', `${h}px`, 'important');
+        canvas.style.setProperty('max-height', 'none', 'important');
+        window.__cataEmbedContentHeight = h;
+        try { parent?.postMessage?.({ type: 'aw139-adc-embed-resize', height: h }, '*'); } catch {}
+      } catch {}
     }
     function toScreen(p) { return { x: p.x * state.scale + state.offsetX, y: p.y * state.scale + state.offsetY }; }
     function fromScreen(x, y) { return { x: (x - state.offsetX) / state.scale, y: (y - state.offsetY) / state.scale }; }
@@ -828,6 +847,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       if (chartImg.src !== src) chartImg.src = src; else if (src) chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
       const modeText = state.vizPage === 'P2' ? 'consulta da página 2 da ADC' : `overlay ${runway.label} • ${state.departureEnd}`;
       document.getElementById('vizSubtitle').textContent = `${base.id} • ${chart.label} • ${modeText} • toque na carta para abrir em tela cheia.`;
+      updateEmbedMetrics();
     }
 
     function analyze() {
@@ -1783,11 +1803,17 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const base = currentBase();
       const runway = currentRunway(base);
       const chart = currentDisplayChart(base, runway);
-      if (!chartImg.complete || !chartImg.naturalWidth) return;
+      if (!chartImg.complete || !chartImg.naturalWidth) {
+        updateEmbedMetrics();
+        return;
+      }
       ctx.imageSmoothingEnabled = true;
       try { ctx.imageSmoothingQuality = 'high'; } catch (e) {}
       ctx.drawImage(chartImg, state.offsetX, state.offsetY, chart.size.width * state.scale, chart.size.height * state.scale);
-      if (state.vizPage === 'P2') return;
+      if (state.vizPage === 'P2') {
+        updateEmbedMetrics();
+        return;
+      }
       drawReferenceAxis(runway);
       drawOperationalRestriction(runway, state.departureEnd);
       drawRunwayOverlay(runway, state.analysis);
@@ -1797,6 +1823,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       drawOperationalStartLabel(runway);
       runway.intersections.forEach(it => drawIntersection(runway, it));
       drawSelectedGuide(runway);
+      updateEmbedMetrics();
     }
 
     function readExternalInbox() {
@@ -1826,6 +1853,10 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     }
 
     window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('message', e => {
+      if (!e?.data || e.data.type !== 'aw139-cata-force-resize') return;
+      setTimeout(() => { try { resizeCanvas(); } catch {} }, 30);
+    });
     chartImg.addEventListener('load', resizeCanvas);
     document.getElementById('analyzeBtn').addEventListener('click', analyze);
     document.getElementById('baseSelect').addEventListener('change', e => setCurrentBase(e.target.value));
