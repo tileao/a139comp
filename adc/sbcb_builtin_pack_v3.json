@@ -1,0 +1,93 @@
+{
+  "id": "SBCB",
+  "code": "SBCB",
+  "name": "Cabo Frio / Cabo Frio, INTL",
+  "city": "RJ - Brasil",
+  "adcTitle": "SBCB ADC 16 JUN 22",
+  "engineId": "adc_sbcb_v1",
+  "stability": "draft",
+  "locked": true,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_10_28",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbcb_chart_p1.png",
+      "assetName": "sbcb_chart_p1.png",
+      "size": {
+        "width": 863,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_10_28",
+      "label": "10/28",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "10",
+      "ends": [
+        "28",
+        "10"
+      ],
+      "lengthM": 2550,
+      "widthM": 45,
+      "widthPx": 29,
+      "pavementRef": {
+        "x": 448.06,
+        "y": 208.19
+      },
+      "pavementOpp": {
+        "x": 652.07,
+        "y": 1153.82
+      },
+      "thresholdRef": {
+        "x": 454.4,
+        "y": 241.4
+      },
+      "thresholdOpp": {
+        "x": 643.63,
+        "y": 1120.07
+      },
+      "declaredDistances": {
+        "10": {
+          "tora": 2460,
+          "toda": 2550,
+          "asda": 2460,
+          "lda": 2370
+        },
+        "28": {
+          "tora": 2460,
+          "toda": 2550,
+          "asda": 2460,
+          "lda": 2370
+        }
+      },
+      "intersections": [
+        {
+          "id": "B",
+          "name": "TWY B",
+          "metersFromRef": 421,
+          "labelPoint": {
+            "x": 457,
+            "y": 377
+          }
+        }
+      ],
+      "endFeatures": {
+        "10": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "28": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    }
+  ]
+}

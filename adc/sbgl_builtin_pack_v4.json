@@ -1,0 +1,192 @@
+{
+  "id": "SBGL_DRAFT_20260407_093227",
+  "code": "SBGL",
+  "name": "Rio de Janeiro / Galeão - Antônio Carlos Jobim, INTL",
+  "city": "RJ - Brasil",
+  "adcTitle": "SBGL ADC 05 SEP 24",
+  "engineId": "adc_sbgl_v1",
+  "stability": "draft",
+  "locked": false,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_10_28",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbgl_chart_p1.png",
+      "assetName": "sbgl_chart_p1.png",
+      "size": {
+        "width": 863,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_10_28",
+      "label": "10/28",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "28",
+      "ends": [
+        "10",
+        "28"
+      ],
+      "lengthM": 4000,
+      "widthM": 45,
+      "widthPx": 27,
+      "pavementRef": {
+        "x": 120.53,
+        "y": 304.08
+      },
+      "pavementOpp": {
+        "x": 282.04,
+        "y": 885.64
+      },
+      "thresholdRef": {
+        "x": 120.53,
+        "y": 304.08
+      },
+      "thresholdOpp": {
+        "x": 282.04,
+        "y": 885.64
+      },
+      "declaredDistances": {
+        "10": {
+          "tora": 4000,
+          "toda": 4000,
+          "asda": 4000,
+          "lda": 4000
+        },
+        "28": {
+          "tora": 4000,
+          "toda": 4000,
+          "asda": 4000,
+          "lda": 4000
+        }
+      },
+      "intersections": [
+        {
+          "id": "DD",
+          "name": "TWY DD",
+          "metersFromRef": 1329,
+          "labelPoint": {
+            "x": 187,
+            "y": 523
+          }
+        },
+        {
+          "id": "CC",
+          "name": "TWY CC",
+          "metersFromRef": 1750,
+          "labelPoint": {
+            "x": 196,
+            "y": 585
+          }
+        },
+        {
+          "id": "BB",
+          "name": "TWY BB",
+          "metersFromRef": 2269,
+          "labelPoint": {
+            "x": 224,
+            "y": 656
+          }
+        },
+        {
+          "id": "AA",
+          "name": "TWY AA",
+          "metersFromRef": 2679,
+          "labelPoint": {
+            "x": 243,
+            "y": 713
+          }
+        }
+      ]
+    },
+    {
+      "id": "RWY_15_33",
+      "label": "15/33",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "33",
+      "ends": [
+        "15",
+        "33"
+      ],
+      "lengthM": 3180,
+      "widthM": 47,
+      "widthPx": 27,
+      "pavementRef": {
+        "x": 736.85,
+        "y": 627.45
+      },
+      "pavementOpp": {
+        "x": 459.22,
+        "y": 1016.41
+      },
+      "thresholdRef": {
+        "x": 727.36,
+        "y": 642.96
+      },
+      "thresholdOpp": {
+        "x": 470.08,
+        "y": 1001.68
+      },
+      "declaredDistances": {
+        "15": {
+          "tora": 3060,
+          "toda": 3180,
+          "asda": 3060,
+          "lda": 2930
+        },
+        "33": {
+          "tora": 3050,
+          "toda": 3180,
+          "asda": 3050,
+          "lda": 2930
+        }
+      },
+      "intersections": [
+        {
+          "id": "J",
+          "name": "TWY J",
+          "metersFromRef": 460,
+          "labelPoint": {
+            "x": 650,
+            "y": 690
+          }
+        },
+        {
+          "id": "E",
+          "name": "TWY E",
+          "metersFromRef": 1057,
+          "labelPoint": {
+            "x": 617,
+            "y": 743
+          }
+        },
+        {
+          "id": "D",
+          "name": "TWY D",
+          "metersFromRef": 1629,
+          "labelPoint": {
+            "x": 487,
+            "y": 933
+          }
+        }
+      ],
+      "endFeatures": {
+        "15": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "33": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    }
+  ]
+}

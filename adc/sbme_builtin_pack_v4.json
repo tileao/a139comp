@@ -1,0 +1,177 @@
+{
+  "id": "SBME",
+  "code": "SBME",
+  "name": "Macaé / Joaquim de Azevedo Mancebo",
+  "city": "RJ - Brasil",
+  "adcTitle": "SBME ADC 10 JUL 25",
+  "engineId": "adc_sbme_v1",
+  "stability": "stable",
+  "locked": true,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_05_23",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbme_chart_p1.png",
+      "assetName": "sbme_chart_p1.png",
+      "size": {
+        "width": 862,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_05_23",
+      "label": "05/23",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "23",
+      "ends": [
+        "05",
+        "23"
+      ],
+      "lengthM": 1410,
+      "widthM": 30,
+      "widthPx": 27,
+      "pavementRef": {
+        "x": 617.68,
+        "y": 268.22
+      },
+      "pavementOpp": {
+        "x": 182.56,
+        "y": 1068.5
+      },
+      "thresholdRef": {
+        "x": 617.68,
+        "y": 268.22
+      },
+      "thresholdOpp": {
+        "x": 182.56,
+        "y": 1068.5
+      },
+      "declaredDistances": {
+        "23": {
+          "tora": 1410,
+          "toda": 1410,
+          "asda": 1410,
+          "lda": 1410
+        },
+        "05": {
+          "tora": 1410,
+          "toda": 1410,
+          "asda": 1410,
+          "lda": 1410
+        }
+      },
+      "intersections": [
+        {
+          "id": "D",
+          "name": "TWY D",
+          "metersFromRef": 216,
+          "labelPoint": {
+            "x": 573.15,
+            "y": 404.58
+          }
+        },
+        {
+          "id": "B",
+          "name": "TWY B",
+          "metersFromRef": 623,
+          "labelPoint": {
+            "x": 454,
+            "y": 633
+          }
+        },
+        {
+          "id": "A",
+          "name": "TWY A",
+          "metersFromRef": 1101,
+          "labelPoint": {
+            "x": 294.69,
+            "y": 899.21
+          }
+        }
+      ],
+      "endFeatures": {
+        "23": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "05": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    },
+    {
+      "id": "RWY_06_24",
+      "label": "06/24",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "24",
+      "ends": [
+        "06",
+        "24"
+      ],
+      "lengthM": 899,
+      "widthM": 30,
+      "widthPx": 25,
+      "pavementRef": {
+        "x": 623.03,
+        "y": 425.75
+      },
+      "pavementOpp": {
+        "x": 311.18,
+        "y": 916.06
+      },
+      "thresholdRef": {
+        "x": 623.03,
+        "y": 425.75
+      },
+      "thresholdOpp": {
+        "x": 311.18,
+        "y": 916.06
+      },
+      "declaredDistances": {
+        "24": {
+          "tora": 899,
+          "toda": 899,
+          "asda": 899,
+          "lda": 899
+        },
+        "06": {
+          "tora": 899,
+          "toda": 899,
+          "asda": 899,
+          "lda": 899
+        }
+      },
+      "intersections": [
+        {
+          "id": "B",
+          "name": "TWY B",
+          "metersFromRef": 415,
+          "labelPoint": {
+            "x": 502,
+            "y": 680
+          }
+        }
+      ],
+      "endFeatures": {
+        "24": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "06": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    }
+  ]
+}

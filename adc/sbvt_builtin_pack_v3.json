@@ -1,0 +1,195 @@
+{
+  "id": "SBVT_DRAFT_20260407_104549",
+  "code": "SBVT",
+  "name": "Vitória / Eurico de Aguiar Salles, INTL",
+  "city": "ES - Brasil",
+  "adcTitle": "SBVT ADC 23 MAR 23",
+  "engineId": "adc_sbvt_v1",
+  "stability": "draft",
+  "locked": false,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_06_24",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbvt_chart_p1.png",
+      "assetName": "sbvt_chart_p1.png",
+      "size": {
+        "width": 863,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_06_24",
+      "label": "06/24",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "24",
+      "ends": [
+        "06",
+        "24"
+      ],
+      "lengthM": 1750,
+      "widthM": 45,
+      "widthPx": 26,
+      "pavementRef": {
+        "x": 541.89,
+        "y": 396.93
+      },
+      "pavementOpp": {
+        "x": 238.65,
+        "y": 885.03
+      },
+      "thresholdRef": {
+        "x": 541.89,
+        "y": 396.93
+      },
+      "thresholdOpp": {
+        "x": 238.65,
+        "y": 885.03
+      },
+      "declaredDistances": {
+        "24": {
+          "tora": 1750,
+          "toda": 1750,
+          "asda": 1750,
+          "lda": 1750
+        },
+        "06": {
+          "tora": 1750,
+          "toda": 1750,
+          "asda": 1750,
+          "lda": 1750
+        }
+      },
+      "intersections": [
+        {
+          "id": "PP",
+          "name": "TWY PP",
+          "metersFromRef": 668,
+          "labelPoint": {
+            "x": 404,
+            "y": 577
+          }
+        },
+        {
+          "id": "C",
+          "name": "TWY C",
+          "metersFromRef": 855,
+          "labelPoint": {
+            "x": 382,
+            "y": 626
+          }
+        },
+        {
+          "id": "B",
+          "name": "TWY B",
+          "metersFromRef": 1196,
+          "labelPoint": {
+            "x": 309,
+            "y": 695
+          }
+        }
+      ],
+      "endFeatures": {
+        "24": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "06": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    },
+    {
+      "id": "RWY_02_20",
+      "label": "02/20",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "20",
+      "ends": [
+        "02",
+        "20"
+      ],
+      "lengthM": 2058,
+      "widthM": 45,
+      "widthPx": 28,
+      "pavementRef": {
+        "x": 582.16,
+        "y": 272.74
+      },
+      "pavementOpp": {
+        "x": 677.41,
+        "y": 942.66
+      },
+      "thresholdRef": {
+        "x": 582.16,
+        "y": 272.74
+      },
+      "thresholdOpp": {
+        "x": 677.41,
+        "y": 942.66
+      },
+      "declaredDistances": {
+        "20": {
+          "tora": 2058,
+          "toda": 2058,
+          "asda": 2058,
+          "lda": 2058
+        },
+        "02": {
+          "tora": 2058,
+          "toda": 2058,
+          "asda": 2058,
+          "lda": 2058
+        }
+      },
+      "intersections": [
+        {
+          "id": "M",
+          "name": "TWY M",
+          "metersFromRef": 209,
+          "labelPoint": {
+            "x": 582,
+            "y": 348
+          }
+        },
+        {
+          "id": "K",
+          "name": "TWY K",
+          "metersFromRef": 509,
+          "labelPoint": {
+            "x": 574,
+            "y": 448
+          }
+        },
+        {
+          "id": "J",
+          "name": "TWY J",
+          "metersFromRef": 1282,
+          "labelPoint": {
+            "x": 615,
+            "y": 690
+          }
+        }
+      ],
+      "endFeatures": {
+        "20": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "02": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    }
+  ]
+}

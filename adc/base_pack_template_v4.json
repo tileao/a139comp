@@ -1,0 +1,74 @@
+{
+  "id": "SBXX",
+  "code": "SBXX",
+  "name": "Nome da base",
+  "city": "UF - Brasil",
+  "adcTitle": "SBXX ADC DD MON YY",
+  "engineId": "adc_generic_v1",
+  "stability": "draft",
+  "locked": false,
+  "schemaVersion": 4,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_00_00",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbxx_chart_p1.png",
+      "assetName": "sbxx_chart_p1.png",
+      "size": {
+        "width": 863,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_00_00",
+      "label": "00/00",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "00",
+      "ends": [
+        "00",
+        "00"
+      ],
+      "lengthM": 1000,
+      "widthM": 30,
+      "widthPx": 24,
+      "thresholdRef": {
+        "x": 100,
+        "y": 100
+      },
+      "thresholdOpp": {
+        "x": 700,
+        "y": 900
+      },
+      "declaredDistances": {
+        "00": {
+          "tora": 1000,
+          "toda": 1000,
+          "asda": 1000,
+          "lda": 1000
+        }
+      },
+      "endFeatures": {
+        "00": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      },
+      "intersections": [
+        {
+          "id": "A",
+          "name": "TWY A",
+          "metersFromRef": 300,
+          "labelPoint": {
+            "x": 280,
+            "y": 420
+          }
+        }
+      ]
+    }
+  ]
+}

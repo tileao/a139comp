@@ -1,0 +1,67 @@
+{
+  "id": "XXXX",
+  "code": "XXXX",
+  "name": "Nome da base",
+  "city": "UF - Brasil",
+  "adcTitle": "ADC dd mmm aa",
+  "engineId": "adc_generic_v1",
+  "stability": "draft",
+  "locked": false,
+  "schemaVersion": 3,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_00_00",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "arquivo_da_carta.png",
+      "assetName": "arquivo_da_carta.png",
+      "size": {
+        "width": 1000,
+        "height": 1400
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_00_00",
+      "label": "00/00",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "00",
+      "ends": [
+        "00",
+        "00"
+      ],
+      "lengthM": 1000,
+      "widthM": 30,
+      "widthPx": 24,
+      "thresholdRef": {
+        "x": 120,
+        "y": 200
+      },
+      "thresholdOpp": {
+        "x": 800,
+        "y": 1200
+      },
+      "declaredDistances": {
+        "00": {
+          "tora": 1000,
+          "toda": 1000,
+          "asda": 1000,
+          "lda": 1000
+        }
+      },
+      "intersections": [
+        {
+          "id": "A",
+          "name": "TWY A",
+          "metersFromRef": 700,
+          "labelPoint": {
+            "x": 640,
+            "y": 820
+          }
+        }
+      ]
+    }
+  ]
+}

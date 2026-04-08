@@ -1,0 +1,93 @@
+{
+  "id": "SBFS",
+  "code": "SBFS",
+  "name": "Campo dos Goytacazes / Farol de São Tomé",
+  "city": "RJ - Brasil",
+  "adcTitle": "SBFS ADC 19 FEB 26",
+  "engineId": "adc_sbfs_v1",
+  "stability": "draft",
+  "locked": true,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_15_33",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbfs_chart_p1.png",
+      "assetName": "sbfs_chart_p1.png",
+      "size": {
+        "width": 863,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_15_33",
+      "label": "15/33",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "15",
+      "ends": [
+        "33",
+        "15"
+      ],
+      "lengthM": 580,
+      "widthM": 31.5,
+      "widthPx": 24,
+      "pavementRef": {
+        "x": 208.82,
+        "y": 544.88
+      },
+      "pavementOpp": {
+        "x": 684.03,
+        "y": 855.5
+      },
+      "thresholdRef": {
+        "x": 208.82,
+        "y": 544.88
+      },
+      "thresholdOpp": {
+        "x": 684.03,
+        "y": 855.5
+      },
+      "declaredDistances": {
+        "15": {
+          "tora": 580,
+          "toda": 580,
+          "asda": 580,
+          "lda": 580
+        },
+        "33": {
+          "tora": 580,
+          "toda": 580,
+          "asda": 580,
+          "lda": 580
+        }
+      },
+      "intersections": [
+        {
+          "id": "A",
+          "name": "TWY A",
+          "metersFromRef": 291,
+          "labelPoint": {
+            "x": 475,
+            "y": 649
+          }
+        }
+      ],
+      "endFeatures": {
+        "15": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "33": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "id": "SBJR",
+  "code": "SBJR",
+  "name": "Rio de Janeiro / Jacarepaguá - Roberto Marinho",
+  "city": "RJ - Brasil",
+  "adcTitle": "SBJR ADC 27 NOV 25",
+  "engineId": "adc_sbjr_v1",
+  "stability": "draft",
+  "locked": false,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_03_21",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbjr_chart_p1.png",
+      "assetName": "sbjr_chart_p1.png",
+      "size": {
+        "width": 863,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_03_21",
+      "label": "03/21",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "21",
+      "ends": [
+        "03",
+        "21"
+      ],
+      "lengthM": 900,
+      "widthM": 30,
+      "widthPx": 18,
+      "pavementRef": {
+        "x": 344.33,
+        "y": 358.79
+      },
+      "pavementOpp": {
+        "x": 309,
+        "y": 995
+      },
+      "thresholdRef": {
+        "x": 344.33,
+        "y": 358.79
+      },
+      "thresholdOpp": {
+        "x": 309,
+        "y": 995
+      },
+      "declaredDistances": {
+        "21": {
+          "tora": 900,
+          "toda": 900,
+          "asda": 900,
+          "lda": 900
+        },
+        "03": {
+          "tora": 900,
+          "toda": 900,
+          "asda": 900,
+          "lda": 900
+        }
+      },
+      "intersections": [
+        {
+          "id": "D",
+          "name": "TWY D",
+          "metersFromRef": 372,
+          "labelPoint": {
+            "x": 364,
+            "y": 580
+          }
+        },
+        {
+          "id": "C",
+          "name": "TWY C",
+          "metersFromRef": 549,
+          "labelPoint": {
+            "x": 365.79,
+            "y": 751.14
+          }
+        }
+      ],
+      "endFeatures": {
+        "21": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "03": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    }
+  ]
+}

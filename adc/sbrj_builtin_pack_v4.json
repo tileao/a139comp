@@ -1,0 +1,195 @@
+{
+  "id": "SBRJ",
+  "code": "SBRJ",
+  "name": "Rio de Janeiro / Santos Dumont",
+  "city": "RJ - Brasil",
+  "adcTitle": "SBRJ ADC 27 NOV 25",
+  "engineId": "adc_sbrj_v1",
+  "stability": "draft",
+  "locked": true,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_02L_20R",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbrj_chart_p1.png",
+      "assetName": "sbrj_chart_p1.png",
+      "size": {
+        "width": 863,
+        "height": 1300
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_02L_20R",
+      "label": "02L/20R",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "20R",
+      "ends": [
+        "02L",
+        "20R"
+      ],
+      "lengthM": 1260,
+      "widthM": 30,
+      "widthPx": 24,
+      "pavementRef": {
+        "x": 368.82,
+        "y": 314.92
+      },
+      "pavementOpp": {
+        "x": 402.57,
+        "y": 1056.19
+      },
+      "thresholdRef": {
+        "x": 368.82,
+        "y": 314.92
+      },
+      "thresholdOpp": {
+        "x": 402.57,
+        "y": 1056.19
+      },
+      "declaredDistances": {
+        "02L": {
+          "tora": 1260,
+          "toda": 1260,
+          "asda": 1260,
+          "lda": 1260
+        },
+        "20R": {
+          "tora": 1260,
+          "toda": 1260,
+          "asda": 1260,
+          "lda": 1260
+        }
+      },
+      "intersections": [
+        {
+          "id": "B",
+          "name": "TWY B",
+          "metersFromRef": 377,
+          "labelPoint": {
+            "x": 365,
+            "y": 543
+          }
+        },
+        {
+          "id": "C",
+          "name": "TWY C",
+          "metersFromRef": 973,
+          "labelPoint": {
+            "x": 398,
+            "y": 955
+          }
+        },
+        {
+          "id": "D",
+          "name": "TWY D",
+          "metersFromRef": 1182,
+          "labelPoint": {
+            "x": 392,
+            "y": 1063
+          }
+        }
+      ],
+      "endFeatures": {
+        "02L": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "20R": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    },
+    {
+      "id": "RWY_02R_20L",
+      "label": "02R/20L",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "20L",
+      "ends": [
+        "02R",
+        "20L"
+      ],
+      "lengthM": 1323,
+      "widthM": 42,
+      "widthPx": 30,
+      "pavementRef": {
+        "x": 413.42,
+        "y": 311.31
+      },
+      "pavementOpp": {
+        "x": 449.58,
+        "y": 1090.54
+      },
+      "thresholdRef": {
+        "x": 413.42,
+        "y": 311.31
+      },
+      "thresholdOpp": {
+        "x": 449.58,
+        "y": 1090.54
+      },
+      "declaredDistances": {
+        "02R": {
+          "tora": 1323,
+          "toda": 1323,
+          "asda": 1323,
+          "lda": 1323
+        },
+        "20L": {
+          "tora": 1323,
+          "toda": 1323,
+          "asda": 1323,
+          "lda": 1323
+        }
+      },
+      "intersections": [
+        {
+          "id": "H",
+          "name": "TWY H",
+          "metersFromRef": 379,
+          "labelPoint": {
+            "x": 410,
+            "y": 543
+          }
+        },
+        {
+          "id": "G",
+          "name": "TWY G",
+          "metersFromRef": 972,
+          "labelPoint": {
+            "x": 432,
+            "y": 957
+          }
+        },
+        {
+          "id": "F",
+          "name": "TWY F",
+          "metersFromRef": 1176,
+          "labelPoint": {
+            "x": 439,
+            "y": 1061
+          }
+        }
+      ],
+      "endFeatures": {
+        "02R": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "20L": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      }
+    }
+  ]
+}

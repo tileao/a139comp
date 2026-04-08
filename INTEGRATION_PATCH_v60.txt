@@ -1,0 +1,16 @@
+AW139 Companion v60
+
+Base:
+- Companion from aw139-adc-preview-direct-v41
+- ADC functional base from adc_v58
+
+Applied integration patch:
+- Replaced cata/app.js with the refreshed integration logic from v59
+- Replaced adc/app.js with the v58-compatible bridge/embed shim from v59
+- Preserved ADC assets/data from adc_v58
+
+Intent:
+- Keep ADC v58 behavior intact in standalone use
+- Fix CAT A Clear Area -> ADC embedded flow
+- Force embedded ADC preview to Page 1
+- Provide stable bridge payload for preview/interpolation fallback

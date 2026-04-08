@@ -1,0 +1,104 @@
+{
+  "id": "SBMI",
+  "code": "SBMI",
+  "name": "Maricá / Maricá",
+  "city": "RJ - Brasil",
+  "adcTitle": "SBMI ADC / AVOP 2026",
+  "engineId": "adc_sbmi_v1",
+  "stability": "stable",
+  "locked": true,
+  "schemaVersion": 6,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_09_27",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbmi_chart_p1.png",
+      "assetName": "sbmi_chart_p1.png",
+      "size": {
+        "width": 3308,
+        "height": 4678
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_09_27",
+      "label": "09/27",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "27",
+      "ends": [
+        "09",
+        "27"
+      ],
+      "lengthM": 1190,
+      "widthM": 30,
+      "widthPx": 26,
+      "pavementRef": {
+        "x": 2427.49,
+        "y": 3617.34
+      },
+      "pavementOpp": {
+        "x": 1335.21,
+        "y": 943.73
+      },
+      "thresholdRef": {
+        "x": 2351.64,
+        "y": 3431.66
+      },
+      "thresholdOpp": {
+        "x": 1575.46,
+        "y": 1530.48
+      },
+      "declaredDistances": {
+        "27": {
+          "tora": 900,
+          "toda": 900,
+          "asda": 900,
+          "lda": 900
+        },
+        "09": {
+          "tora": 1110,
+          "toda": 1110,
+          "asda": 1190,
+          "lda": 930
+        }
+      },
+      "intersections": [
+        {
+          "id": "A",
+          "name": "TWY A",
+          "metersFromRef": 375,
+          "labelPoint": {
+            "x": 1960,
+            "y": 2780
+          }
+        },
+        {
+          "id": "C",
+          "name": "TWY C",
+          "metersFromRef": 621,
+          "labelPoint": {
+            "x": 1845,
+            "y": 2315
+          }
+        }
+      ],
+      "endFeatures": {
+        "27": {
+          "displacedThresholdM": 80,
+          "stopwayM": 0,
+          "clearwayM": 0,
+          "operationalStartM": 290
+        },
+        "09": {
+          "displacedThresholdM": 260,
+          "stopwayM": 0,
+          "clearwayM": 0,
+          "operationalStartM": 0
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <title>AW139 Companion</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="home-shell">
+    <header class="home-topbar">
+      <div class="home-brand">
+        <div class="brand-mark" aria-hidden="true">AW</div>
+        <div>
+          <div class="brand-title">AW139 Companion</div>
+          <div class="brand-subtitle">Operational performance tools</div>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero-panel">
+      <div class="hero-copy">
+        <span class="eyebrow">Fluxo principal</span>
+        <h1>Operational performance tools for AW139.</h1>
+        <p>Abra o fluxo principal, retome o último contexto salvo ou acesse diretamente os módulos disponíveis.</p>
+        <div class="hero-actions">
+          <a class="hero-btn primary" href="cata/">Abrir Cat A Clear Area</a>
+          <a class="hero-btn" href="#modules">Abrir módulos</a>
+        </div>
+      </div>
+      <aside class="resume-card" id="resumeCard">
+        <span class="resume-tag">Último contexto</span>
+        <h2 id="resumeTitle">Sem contexto salvo</h2>
+        <p id="resumeSummary">Abra um fluxo ou módulo para começar.</p>
+        <div class="resume-chips" id="resumeChips"></div>
+      </aside>
+    </section>
+
+    <section class="home-section">
+      <div class="section-head">
+        <div>
+          <span class="section-kicker">Fluxo operacional</span>
+          <h2>Comece pelo Cat A Clear Area</h2>
+        </div>
+      </div>
+      <div class="flow-grid single-flow">
+        <a class="flow-card featured" href="cata/">
+          <span class="card-tag">Fluxo principal</span>
+          <h3>Cat A Clear Area</h3>
+          <p>WAT, RTO e decisão por ponto em um único fluxo operacional integrado.</p>
+          <span class="card-cta">Abrir fluxo</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="home-section" id="modules">
+      <div class="section-head split">
+        <div>
+          <span class="section-kicker">Módulos</span>
+          <h2>Abra uma ferramenta específica</h2>
+        </div>
+        <button id="clearContextBtn" class="ghost-btn" type="button">Limpar contexto</button>
+      </div>
+      <div class="module-grid">
+        <a class="module-card" href="wat/?back=1&return=../index.html">
+          <span class="card-tag">Módulo</span>
+          <h3>WAT</h3>
+          <p>Peso máximo disponível e margem operacional com visualização por gráfico.</p>
+        </a>
+        <a class="module-card" href="rto/?back=1&return=../index.html">
+          <span class="card-tag">Módulo</span>
+          <h3>RTO / CTO</h3>
+          <p>Distância requerida e apoio à decisão por ponto de decolagem.</p>
+        </a>
+        <a class="module-card" href="adc/?back=1&return=../index.html">
+          <span class="card-tag">Módulo</span>
+          <h3>ADC</h3>
+          <p>Carta operacional e análise de viabilidade por pista e cabeceira.</p>
+        </a>
+      </div>
+    </section>
+
+    <section class="home-section utility-grid">
+      <article class="utility-card">
+        <span class="card-tag">Retomada</span>
+        <h3>Continuar de onde parou</h3>
+        <p id="continueText">Ainda não há um último módulo salvo.</p>
+        <a id="continueLink" class="utility-link disabled" href="cata/" aria-disabled="true">Abrir</a>
+      </article>
+      <article class="utility-card">
+        <span class="card-tag">Preferências rápidas</span>
+        <h3>Valores mais usados</h3>
+        <div class="preference-list" id="preferenceList">
+          <span class="empty-state">Sem preferências detectadas ainda.</span>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script src="shared/home.js"></script>
+</body>
+</html>

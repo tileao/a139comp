@@ -1,0 +1,102 @@
+{
+  "id": "SBNF",
+  "code": "SBNF",
+  "name": "Navegantes / Ministro Victor Konder, INTL",
+  "city": "SC - Brasil",
+  "adcTitle": "SBNF ADC 15 MAY 25",
+  "engineId": "adc_sbnf_v1",
+  "stability": "stable",
+  "locked": true,
+  "schemaVersion": 5,
+  "defaultChartId": "ADC_MAIN",
+  "defaultRunwayId": "RWY_08_26",
+  "charts": [
+    {
+      "id": "ADC_MAIN",
+      "label": "ADC principal",
+      "asset": "sbnf_chart_p1.png",
+      "assetName": "sbnf_chart_p1.png",
+      "size": {
+        "width": 1191,
+        "height": 1684
+      }
+    }
+  ],
+  "runways": [
+    {
+      "id": "RWY_08_26",
+      "label": "08/26",
+      "chartId": "ADC_MAIN",
+      "referenceEnd": "26",
+      "ends": [
+        "08",
+        "26"
+      ],
+      "lengthM": 1800,
+      "widthM": 45,
+      "widthPx": 45,
+      "thresholdRef": {
+        "x": 187.91,
+        "y": 285.01
+      },
+      "thresholdOpp": {
+        "x": 952.76,
+        "y": 1383.23
+      },
+      "declaredDistances": {
+        "26": {
+          "tora": 1800,
+          "toda": 1800,
+          "asda": 1800,
+          "lda": 1800
+        },
+        "08": {
+          "tora": 1800,
+          "toda": 1800,
+          "asda": 1800,
+          "lda": 1800
+        }
+      },
+      "intersections": [
+        {
+          "id": "B",
+          "name": "TWY B",
+          "metersFromRef": 739,
+          "labelPoint": {
+            "x": 545.2,
+            "y": 707.89
+          }
+        },
+        {
+          "id": "A",
+          "name": "TWY A",
+          "metersFromRef": 891,
+          "labelPoint": {
+            "x": 608.08,
+            "y": 799.51
+          }
+        }
+      ],
+      "endFeatures": {
+        "26": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        },
+        "08": {
+          "displacedThresholdM": 0,
+          "stopwayM": 0,
+          "clearwayM": 0
+        }
+      },
+      "pavementRef": {
+        "x": 187.91,
+        "y": 285.01
+      },
+      "pavementOpp": {
+        "x": 952.76,
+        "y": 1383.23
+      }
+    }
+  ]
+}
