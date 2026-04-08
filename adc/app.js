@@ -312,7 +312,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       return pack;
     }
 
-    const PAGE2_ASSETS = {"SBCB":{"asset":"sbcb_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBFS":{"asset":"sbfs_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBGL":{"asset":"sbgl_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBJR":{"asset":"sbjr_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBME":{"asset":"sbme_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBNF":{"asset":"sbnf_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBRJ":{"asset":"sbrj_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBVT":{"asset":"sbvt_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBMI":{"asset":"sbmi_chart_p2.png","label":"ADC pág. 2","size":{"width":3308,"height":4678}}};
+    const PAGE2_ASSETS = {};
 
     const QUERY_PARAMS = new URLSearchParams(location.search);
     const EMBED_MODE = QUERY_PARAMS.get('embed') === '1';
@@ -2029,7 +2029,8 @@ window.addEventListener('resize', resizeCanvas);
     appbarHomeBtn && (appbarHomeBtn.style.cursor = 'pointer');
     appbarTitleEl && (appbarTitleEl.style.cursor = 'pointer');
     document.getElementById('page1Btn').addEventListener('click', e => { e.stopPropagation(); setVizPage('P1'); });
-    document.getElementById('page2Btn').addEventListener('click', e => { e.stopPropagation(); setVizPage('P2'); });
+    const page2Btn = document.getElementById('page2Btn');
+    if (page2Btn) page2Btn.addEventListener('click', e => { e.stopPropagation(); setVizPage('P2'); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleChartFullscreen(false); });
 
     const advancedToggle = document.getElementById('advancedToggle');
