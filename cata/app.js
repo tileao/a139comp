@@ -127,8 +127,10 @@ async function renderAdcPreviewToCanvas(out) {
   const imgSrc = resolveFrameAssetSrc(adcFrame, payload.chart.src);
   const img = await loadImage(imgSrc);
   if (!img) return false;
-  const width = img.naturalWidth || payload.chart.size?.width || 1000;
-  const height = img.naturalHeight || payload.chart.size?.height || 1400;
+  const canonicalWidth = Number(payload.chart.size?.width || 0);
+  const canonicalHeight = Number(payload.chart.size?.height || 0);
+  const width = canonicalWidth > 0 ? canonicalWidth : (img.naturalWidth || 1000);
+  const height = canonicalHeight > 0 ? canonicalHeight : (img.naturalHeight || 1400);
   const labelScale = Math.max(1.15, Math.min(2.4, width / 1000));
   out.width = width;
   out.height = height;
