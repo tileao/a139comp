@@ -1,0 +1,110 @@
+{
+  "figure": "Figure 4-7",
+  "pageRef": "S90-30",
+  "pageImage": "docs/page-20.png",
+  "page": {
+    "width": 1323,
+    "height": 1872
+  },
+  "main": {
+    "xMin": 374,
+    "xMax": 856,
+    "kgMin": 6800,
+    "kgMax": 7100,
+    "yTopFt": 651,
+    "yBottomFt": 1304,
+    "yMinFt": -1000,
+    "yMaxFt": 2500
+  },
+  "tempCurves": {
+    "0": [
+      [
+        695,
+        651
+      ],
+      [
+        695,
+        1304
+      ]
+    ],
+    "10": [
+      [
+        642,
+        651
+      ],
+      [
+        695,
+        743
+      ],
+      [
+        695,
+        1304
+      ]
+    ],
+    "20": [
+      [
+        642,
+        827
+      ],
+      [
+        695,
+        919
+      ],
+      [
+        695,
+        1304
+      ]
+    ],
+    "30": [
+      [
+        642,
+        1000
+      ],
+      [
+        695,
+        1093
+      ],
+      [
+        695,
+        1304
+      ]
+    ]
+  },
+  "limits": {
+    "zeroAndBelowBoundary": [
+      [
+        695,
+        651
+      ],
+      [
+        695,
+        1304
+      ]
+    ],
+    "oatLimit": [
+      [
+        642,
+        1077
+      ],
+      [
+        692,
+        1185
+      ],
+      [
+        695,
+        1304
+      ]
+    ],
+    "hdLimit": [
+      [
+        640,
+        651
+      ],
+      [
+        640,
+        1077
+      ]
+    ]
+  },
+  "note": "v16.7.5 render alignment hotfix for Figure 4-7: coordinates re-anchored to the official PDF page."
+}

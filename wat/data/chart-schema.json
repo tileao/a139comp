@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0",
+  "notes": "Schema inicial para digitalização dos charts WAC 6800.",
+  "procedures": {
+    "offshore": {
+      "eaps_off": {
+        "x_axis": {"name": "gross_weight_kg", "min": 6400, "max": 6800},
+        "y_axis": {"name": "pressure_altitude_ft", "min": 0, "max": 4000},
+        "curves_by_oat": [],
+        "headwind_block": {
+          "enabled": true,
+          "x_axis": {"name": "gross_weight_kg", "min": 6400, "max": 6800},
+          "y_axis": {"name": "headwind_kt", "min": 0, "max": 40},
+          "curves": []
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "figure": "Figure 4-8",
+  "pageRef": "S90-31",
+  "pageImage": "docs/page-21.png",
+  "page": {
+    "width": 1323,
+    "height": 1872
+  },
+  "main": {
+    "xMin": 458,
+    "xMax": 940,
+    "kgMin": 6800,
+    "kgMax": 7100,
+    "yTopFt": 651,
+    "yBottomFt": 1304,
+    "yMinFt": -1000,
+    "yMaxFt": 2500
+  },
+  "tempCurves": {
+    "10": [
+      [
+        726,
+        652
+      ],
+      [
+        778,
+        743
+      ]
+    ],
+    "20": [
+      [
+        726,
+        827
+      ],
+      [
+        777,
+        919
+      ]
+    ],
+    "30": [
+      [
+        726,
+        1002
+      ],
+      [
+        778,
+        1093
+      ]
+    ],
+    "40": [
+      [
+        707,
+        1082
+      ],
+      [
+        774,
+        1220
+      ]
+    ]
+  },
+  "limits": {
+    "zeroAndBelowBoundary": [
+      [
+        778,
+        743
+      ],
+      [
+        778,
+        1295
+      ]
+    ],
+    "hdLimit": [],
+    "oatLimit": []
+  },
+  "note": "Stage B exact extraction audit file from rendered PDF page. Curves hand-traced from PDF image; not yet wired into active engine."
+}

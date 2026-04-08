@@ -1,0 +1,70 @@
+{
+  "module": "wat_sup90_cleararea_stageA",
+  "sourcePdf": "docs/wat7000.pdf",
+  "supplement": "Supplement 90",
+  "document": "AW139 - RFM - 4D Weight Extension 7000 kg 139G0290X002",
+  "sourceOfTruth": "PDF pages rendered at 160 dpi for stage A anchoring",
+  "note": "Prepared assets and page references for stage A only. Not wired into active engine yet.",
+  "profiles": [
+    {
+      "id": "clear7000_standard",
+      "figure": "Figure 4-5",
+      "page": "S90-28",
+      "pageImage": "docs/page-18.png",
+      "config": "Standard",
+      "nr": "102%",
+      "procedure": "Cat.A Clear Area Procedure",
+      "axes": {
+        "kgMin": 6800,
+        "kgMax": 7100,
+        "paFtMin": -1000,
+        "paFtMax": 2500
+      }
+    },
+    {
+      "id": "clear7000_eaps_off",
+      "figure": "Figure 4-6",
+      "page": "S90-29",
+      "pageImage": "docs/page-19.png",
+      "config": "EAPS OFF",
+      "nr": "102%",
+      "procedure": "Cat.A Clear Area Procedure",
+      "axes": {
+        "kgMin": 6800,
+        "kgMax": 7100,
+        "paFtMin": -1000,
+        "paFtMax": 2500
+      }
+    },
+    {
+      "id": "clear7000_eaps_on",
+      "figure": "Figure 4-7",
+      "page": "S90-30",
+      "pageImage": "docs/page-20.png",
+      "config": "EAPS ON",
+      "nr": "102%",
+      "procedure": "Cat.A Clear Area Procedure",
+      "axes": {
+        "kgMin": 6800,
+        "kgMax": 7100,
+        "paFtMin": -1000,
+        "paFtMax": 2500
+      }
+    },
+    {
+      "id": "clear7000_ibf",
+      "figure": "Figure 4-8",
+      "page": "S90-31",
+      "pageImage": "docs/page-21.png",
+      "config": "IBF installed",
+      "nr": "102%",
+      "procedure": "Cat.A Clear Area Procedure",
+      "axes": {
+        "kgMin": 6800,
+        "kgMax": 7100,
+        "paFtMin": -1000,
+        "paFtMax": 2500
+      }
+    }
+  ]
+}

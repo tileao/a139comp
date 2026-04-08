@@ -1,0 +1,42 @@
+{
+  "module": "wat_sup90_cleararea_stageB",
+  "sourcePdf": "docs/wat7000.pdf",
+  "supplement": "Supplement 90",
+  "document": "AW139 - RFM - 4D Weight Extension 7000 kg 139G0290X002",
+  "sourceOfTruth": "PDF pages rendered at 160 dpi, then hand-traced into audit JSON for stage B",
+  "note": "Stage B exact extraction prepared. Not yet wired into active engine.",
+  "profiles": [
+    {
+      "id": "clear7000_standard",
+      "figure": "Figure 4-5",
+      "page": "S90-28",
+      "pageImage": "docs/page-18.png",
+      "auditData": "data/sup90-clear-standard-exact.json",
+      "config": "Standard"
+    },
+    {
+      "id": "clear7000_eapsoff",
+      "figure": "Figure 4-6",
+      "page": "S90-29",
+      "pageImage": "docs/page-19.png",
+      "auditData": "data/sup90-clear-eapsoff-exact.json",
+      "config": "EAPS OFF"
+    },
+    {
+      "id": "clear7000_eapson",
+      "figure": "Figure 4-7",
+      "page": "S90-30",
+      "pageImage": "docs/page-20.png",
+      "auditData": "data/sup90-clear-eapson-exact.json",
+      "config": "EAPS ON"
+    },
+    {
+      "id": "clear7000_ibf",
+      "figure": "Figure 4-8",
+      "page": "S90-31",
+      "pageImage": "docs/page-21.png",
+      "auditData": "data/sup90-clear-ibf-exact.json",
+      "config": "IBF installed"
+    }
+  ]
+}
