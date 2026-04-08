@@ -48,6 +48,17 @@ function loadCtx() { try { return JSON.parse(localStorage.getItem(SHARED_KEY) ||
 function saveCtx(patch) { localStorage.setItem(SHARED_KEY, JSON.stringify({ ...loadCtx(), ...patch, updatedAt: new Date().toISOString(), lastModule: 'cata' })); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function resolveFrameAssetSrc(frame, src) {
+  if (!src) return '';
+  if (/^(?:[a-z]+:)?\/\//i.test(src) || /^(?:data|blob):/i.test(src)) return src;
+  try {
+    const baseHref = frame?.contentWindow?.location?.href || frame?.src || window.location.href;
+    return new URL(src, baseHref).href;
+  } catch {
+    return src;
+  }
+}
+
 async function loadImage(src) {
   if (!src) return null;
   if (imageCache.has(src)) return imageCache.get(src);
@@ -107,7 +118,8 @@ function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
 async function renderAdcPreviewToCanvas(out) {
   const payload = adcPreviewState.payload;
   if (!payload?.chart?.src || !payload?.runway) return false;
-  const img = await loadImage(payload.chart.src);
+  const imgSrc = resolveFrameAssetSrc(adcFrame, payload.chart.src);
+  const img = await loadImage(imgSrc);
   if (!img) return false;
   const width = img.naturalWidth || payload.chart.size?.width || 1000;
   const height = img.naturalHeight || payload.chart.size?.height || 1400;
@@ -856,45 +868,42 @@ function syncViewerStageHeight(px = null) {
 async function renderPreview(mode) {
   const out = els.vizPreviewCanvas;
 
-  if (mode === 'adc') {
-    const ok = await renderAdcPreviewToCanvas(out);
-    if (!ok) {
-      out.hidden = true;
-      syncViewerStageHeight(null);
-      return false;
-    }
-    const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
-    const scale = stageWidth / out.width;
-    const displayHeight = Math.round(out.height * scale);
+  const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
+  const source = getSourceCanvas(mode);
+  if (source) {
+    const crop = getCanvasCrop(source, mode);
+    const scale = stageWidth / crop.w;
+    const displayHeight = Math.round(crop.h * scale);
+    out.width = crop.w;
+    out.height = crop.h;
     out.style.width = stageWidth + 'px';
     out.style.height = displayHeight + 'px';
+    const ctx = out.getContext('2d');
+    ctx.clearRect(0, 0, out.width, out.height);
+    ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
     out.hidden = false;
     out.dataset.mode = mode;
     syncViewerStageHeight(displayHeight);
     return true;
   }
 
-  const source = getSourceCanvas(mode);
-  if (!source) {
-    out.hidden = true;
-    syncViewerStageHeight(null);
-    return false;
+  if (mode === 'adc') {
+    const ok = await renderAdcPreviewToCanvas(out);
+    if (ok) {
+      const scale = stageWidth / out.width;
+      const displayHeight = Math.round(out.height * scale);
+      out.style.width = stageWidth + 'px';
+      out.style.height = displayHeight + 'px';
+      out.hidden = false;
+      out.dataset.mode = mode;
+      syncViewerStageHeight(displayHeight);
+      return true;
+    }
   }
-  const crop = getCanvasCrop(source, mode);
-  const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
-  const scale = stageWidth / crop.w;
-  const displayHeight = Math.round(crop.h * scale);
-  out.width = crop.w;
-  out.height = crop.h;
-  out.style.width = stageWidth + 'px';
-  out.style.height = displayHeight + 'px';
-  const ctx = out.getContext('2d');
-  ctx.clearRect(0,0,out.width,out.height);
-  ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
-  out.hidden = false;
-  out.dataset.mode = mode;
-  syncViewerStageHeight(displayHeight);
-  return true;
+
+  out.hidden = true;
+  syncViewerStageHeight(null);
+  return false;
 }
 
 function resizeActiveFrame(mode) {
@@ -1041,9 +1050,9 @@ function setVisualization(mode, forceShow = true) {
   saveCtx({ cataVizMode: mode });
   els.vizSubtitle.textContent = mapVizLabel(mode);
   renderVisualizationMeta(mode);
-  const prep = mode === 'adc' ? Promise.resolve() : prepareEmbeddedView(mode);
+  const prep = prepareEmbeddedView(mode);
   prep.then(async () => {
-    await sleep(mode === 'adc' ? 40 : 120);
+    await sleep(mode === 'adc' ? 90 : 120);
     await renderPreview(mode);
     renderVisualizationMeta(mode);
   });
