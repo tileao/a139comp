@@ -1,0 +1,26 @@
+{
+  "source": {
+    "pdf": "RTO e CTO.pdf",
+    "supplement": "90",
+    "page": "S90-135",
+    "figure": "4-98",
+    "title": "Rejected Take Off Distance OEI Clear Area Procedure, IBF Installed",
+    "metric": "RTO",
+    "configuration": "IBF Installed / Clear Area",
+    "rfm_source": "Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32"
+  },
+  "status": "reference-assets-staged-only",
+  "notes": [
+    "Figure 4-98 staged from direct vector extraction of the correct PDF page S90-135.",
+    "Semantic audit approved before rebuilding the 7000 kg IBF engine.",
+    "No 4-98 calculation logic is enabled in this build."
+  ],
+  "assets": {
+    "page_image": "docs/page_s90_135_figure_4_98.png",
+    "vector_audit": "docs/figure_4_98_vector_exact_v62.png",
+    "semantic_sheet": "docs/figure_4_98_semantic_audit_sheet_v62.png",
+    "left_semantic": "docs/figure_4_98_left_semantic_audit_v62.png",
+    "center_semantic": "docs/figure_4_98_center_semantic_audit_v62.png",
+    "right_semantic": "docs/figure_4_98_right_semantic_audit_v62.png"
+  }
+}

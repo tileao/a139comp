@@ -1,0 +1,24 @@
+{
+  "source": {
+    "pdf": "RTO e CTO.pdf",
+    "supplement": "90",
+    "page": "S90-127",
+    "figure": "4-94",
+    "title": "Rejected Take Off Distance OEI Clear Area Procedure, EAPS OFF",
+    "metric": "RTO",
+    "configuration": "EAPS OFF / Clear Area",
+    "rfm_source": "Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32"
+  },
+  "status": "reference-assets-staged-only",
+  "notes": [
+    "Clean restart baseline created from V39.",
+    "Figure 4-94 assets are staged for future overlay and engine rebuild.",
+    "No 4-94 logic is wired into the app in this build."
+  ],
+  "assets": {
+    "page_image": "docs/page_s90_127_figure_4_94.png",
+    "semantic_audit": "docs/figure_4_94_semantic_fresh_v46.png",
+    "vector_audit": "docs/figure_4_94_vector_only_fresh_v46.png",
+    "combined_audit": "docs/figure_4_94_combined_fresh_v46.png"
+  }
+}
