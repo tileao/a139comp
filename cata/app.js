@@ -1024,23 +1024,8 @@ function syncViewerStageHeight(px = null) {
 async function renderPreview(mode) {
   const out = els.vizPreviewCanvas;
 
-  if (mode === 'adc') {
-    if (!hasUsableAdcPayload(adcPreviewState.payload)) syncAdcPreviewStateFromIframe();
-    const ok = await renderAdcPreviewToCanvas(out);
-    if (!ok) {
-      out.hidden = true;
-      syncViewerStageHeight(null);
-      return false;
-    }
-    const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
-    const scale = stageWidth / out.width;
-    const displayHeight = Math.round(out.height * scale);
-    out.style.width = stageWidth + 'px';
-    out.style.height = displayHeight + 'px';
-    out.hidden = false;
-    out.dataset.mode = mode;
-    syncViewerStageHeight(displayHeight);
-    return true;
+  if (mode === 'adc' && !hasUsableAdcPayload(adcPreviewState.payload)) {
+    syncAdcPreviewStateFromIframe();
   }
 
   const source = getSourceCanvas(mode);

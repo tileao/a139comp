@@ -1,0 +1,1 @@
+v61: ADC preview in CAT A now uses the actual embedded ADC vizCanvas instead of a synthetic redraw. Page 2 remains supported; embed mode still forces Page 1 only when called from CAT A.
