@@ -237,6 +237,29 @@ function parseLocaleNumber(raw) {
 function numberFromText(value) {
   return parseLocaleNumber(value);
 }
+function parseDepartureSelection(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return { token: '', runwayId: '', dep: '' };
+  if (raw.includes('::')) {
+    const [runwayId, dep] = raw.split('::');
+    return { token: raw, runwayId: runwayId || '', dep: dep || '' };
+  }
+  return { token: raw, runwayId: '', dep: raw };
+}
+
+function selectDepartureOption(select, preferredToken = '', preferredDep = '') {
+  if (!select) return '';
+  const options = [...select.options];
+  const token = String(preferredToken || '').trim();
+  const dep = String(preferredDep || '').trim();
+  let match = token ? options.find(opt => opt.value === token) : null;
+  if (!match && dep) {
+    match = options.find(opt => String(opt.value || '').split('::')[1] === dep || String(opt.textContent || '').trim() === dep);
+  }
+  if (!match) match = options[0] || null;
+  if (match) select.value = match.value;
+  return match?.value || '';
+}
 function mapRtoConfig(config) {
   return ({ standard: 'standard', eaps_off: 'eapsOff', eaps_on: 'eapsOn', ibf: 'ibfInstalled' })[config] || 'standard';
 }
@@ -325,10 +348,54 @@ async function populateBaseOptions() {
   if (!els.departure.value) els.departure.value = depSelect.value;
 }
 
+async function syncAdcSelection({ renderPreviewIfActive = false } = {}) {
+  const doc = await waitForIframe(adcFrame, ['baseSelect', 'departureEndSelect']);
+  const baseSelect = doc.getElementById('baseSelect');
+  const depSelect = doc.getElementById('departureEndSelect');
+  const desired = parseDepartureSelection(els.departure.value);
+  const bridge = adcFrame.contentWindow?.__adcBridge;
+  let selectedToken = desired.token;
+
+  if (bridge?.analyzeFromBridge) {
+    const payload = await bridge.analyzeFromBridge({
+      baseId: els.base.value,
+      runwayId: desired.runwayId || undefined,
+      departureEnd: desired.dep || undefined,
+      departureToken: desired.token || undefined,
+      rto: numberFromText(els.rtoMetric.textContent) ?? loadCtx().rtoMeters ?? 0,
+    });
+    adcPreviewState.payload = payload || null;
+  } else {
+    setField(doc, 'baseSelect', els.base.value);
+    await sleep(80);
+    selectedToken = selectDepartureOption(depSelect, desired.token, desired.dep);
+    if (selectedToken) setField(doc, 'departureEndSelect', selectedToken);
+    await sleep(80);
+    try { doc.defaultView?.analyze?.(); } catch { clickField(doc, 'analyzeBtn'); }
+  }
+
+  els.base.innerHTML = baseSelect.innerHTML;
+  if (baseSelect.value) els.base.value = baseSelect.value;
+  els.departure.innerHTML = depSelect.innerHTML;
+  selectedToken = selectDepartureOption(els.departure, depSelect.value || desired.token, desired.dep);
+
+  if (renderPreviewIfActive && els.visualSelect.value === 'adc') {
+    await prepareEmbeddedView('adc');
+    await renderPreview('adc');
+    renderVisualizationMeta('adc');
+  }
+
+  pushSharedContext(collectInputs());
+  return selectedToken;
+}
+
 function collectInputs() {
+  const departure = parseDepartureSelection(els.departure.value);
   return {
     base: els.base.value,
-    departureEnd: els.departure.value,
+    departureToken: departure.token,
+    runwayId: departure.runwayId,
+    departureEnd: departure.dep || els.departure.options[els.departure.selectedIndex]?.text || '',
     aircraftSet: els.aircraftSet.value || '7000',
     configuration: els.config.value,
     pressureAltitudeFt: Number(els.pa.value || 0),
@@ -347,6 +414,8 @@ function pushSharedContext(input, patch = {}) {
     headwindKt: input.headwindKt,
     adcBase: input.base,
     adcDepartureEnd: input.departureEnd,
+    adcDepartureToken: input.departureToken || '',
+    adcRunwayId: input.runwayId || '',
     cataAircraftSet: input.aircraftSet,
     cataConfiguration: input.configuration,
     aircraftRegistration: input.registration || '',
@@ -359,7 +428,7 @@ function pushSharedContext(input, patch = {}) {
 function restoreInputsFromContext() {
   const ctx = loadCtx();
   if (ctx.adcBase) els.base.value = ctx.adcBase;
-  if (ctx.adcDepartureEnd) els.departure.value = ctx.adcDepartureEnd;
+  selectDepartureOption(els.departure, ctx.adcDepartureToken || ctx.adcDepartureEnd || '', ctx.adcDepartureEnd || '');
   if (ctx.cataAircraftSet) els.aircraftSet.value = ctx.cataAircraftSet;
   if (ctx.cataConfiguration) els.config.value = ctx.cataConfiguration;
   if (ctx.aircraftRegistration && els.registration) els.registration.value = ctx.aircraftRegistration;
@@ -377,14 +446,15 @@ async function runWAT(input) {
   setField(doc, 'configuration', input.configuration);
   await waitForFieldValue(doc, 'procedure', 'clear');
   await waitForFieldValue(doc, 'configuration', input.configuration);
+  setField(doc, 'headwind', input.headwindKt);
   setField(doc, 'pressureAltitude', input.pressureAltitudeFt);
   setField(doc, 'oat', input.oatC);
   setField(doc, 'actualWeight', input.weightKg);
-  setField(doc, 'headwind', input.headwindKt);
   await waitForFieldValue(doc, 'pressureAltitude', input.pressureAltitudeFt);
   await waitForFieldValue(doc, 'oat', input.oatC);
   await waitForFieldValue(doc, 'actualWeight', input.weightKg);
   await waitForFieldValue(doc, 'headwind', input.headwindKt);
+  await sleep(120);
   try { await doc.defaultView?.runCalculation?.(); } catch { clickField(doc, 'runBtn'); }
 
   const maxText = await waitForTruthy(() => {
@@ -427,15 +497,16 @@ async function runRTO(input) {
   await waitForNoPendingRto(doc, 2500);
   try { await doc.defaultView?.clearResultsOnly?.(); } catch {}
 
+  setField(doc, 'headwind', input.headwindKt);
   setField(doc, 'pressureAltitude', input.pressureAltitudeFt);
   setField(doc, 'oat', input.oatC);
   setField(doc, 'actualWeight', input.weightKg);
-  setField(doc, 'headwind', input.headwindKt);
 
   await waitForFieldValue(doc, 'pressureAltitude', input.pressureAltitudeFt);
   await waitForFieldValue(doc, 'oat', input.oatC);
   await waitForFieldValue(doc, 'actualWeight', input.weightKg);
   await waitForFieldValue(doc, 'headwind', input.headwindKt);
+  await sleep(120);
 
   try { await doc.defaultView?.refreshWeightSensitiveProfileIfNeeded?.(); } catch {}
   try { await doc.defaultView?.ensureEffectiveProfileLoaded?.({ preserveInputs: true, autoRun: false }); } catch {}
@@ -479,7 +550,9 @@ async function runADC(input, rtoResult) {
   if (bridge?.analyzeFromBridge) {
     const payload = await bridge.analyzeFromBridge({
       baseId: input.base,
+      runwayId: input.runwayId || undefined,
       departureEnd: input.departureEnd,
+      departureToken: input.departureToken || undefined,
       rto: rtoResult?.rtoMeters ?? 0,
     });
     adcPreviewState.payload = payload;
@@ -535,6 +608,7 @@ async function runADC(input, rtoResult) {
 }
 
 function renderResults(wat, rto, adc) {
+  els.resultCard.classList.remove('pending');
   const decisionRows = adc?.rows || [];
   const basisMetric = adc?.basisMetric || 'ASDA';
   const watOk = wat?.marginKg != null ? wat.marginKg >= 0 : false;
@@ -595,6 +669,41 @@ function renderResults(wat, rto, adc) {
       <td class="${row.go ? 'td-ok' : 'td-bad'}">${row.go ? 'OK' : 'NO'}</td>
     </tr>
   `).join('');
+}
+
+function saveResultSnapshot(input, wat, rto, adc) {
+  pushSharedContext(input, {
+    cataLastResults: {
+      input,
+      wat: wat || null,
+      rto: rto || null,
+      adc: adc || null,
+      savedAt: new Date().toISOString()
+    }
+  });
+}
+
+function restoreSavedResults() {
+  const ctx = loadCtx();
+  const snap = ctx?.cataLastResults;
+  if (!snap?.wat || !snap?.rto || !snap?.adc) return false;
+  const current = collectInputs();
+  const saved = snap.input || {};
+  const sameInput = [
+    current.base === saved.base,
+    current.departureEnd === saved.departureEnd,
+    current.runwayId === saved.runwayId,
+    current.aircraftSet === saved.aircraftSet,
+    current.configuration === saved.configuration,
+    Number(current.pressureAltitudeFt || 0) === Number(saved.pressureAltitudeFt || 0),
+    Number(current.oatC || 0) === Number(saved.oatC || 0),
+    Number(current.weightKg || 0) === Number(saved.weightKg || 0),
+    Number(current.headwindKt || 0) === Number(saved.headwindKt || 0)
+  ].every(Boolean);
+  if (!sameInput) return false;
+  adcPreviewState.payload = snap?.adc?.payload || null;
+  renderResults(snap.wat, snap.rto, snap.adc);
+  return true;
 }
 
 function toggleVizFullscreen(force = null) {
@@ -1150,6 +1259,7 @@ async function runFlow() {
     const rto = await runRTO(input);
     const adc = await runADC(input, rto);
     renderResults(wat, rto, adc);
+    saveResultSnapshot(input, wat, rto, adc);
     setVisualization(els.visualSelect.value || 'adc');
   } catch (error) {
     console.error(error);
@@ -1170,6 +1280,8 @@ function bindEvents() {
   els.runBtn.addEventListener('click', runFlow);
   els.visualSelect.addEventListener('change', e => setVisualization(e.target.value, !!e.target.value));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.addEventListener('click', () => setVisualization(btn.dataset.viz, true)));
+  els.base.addEventListener('change', () => { syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
+  els.departure.addEventListener('change', () => { syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
   els.openWATBtn.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../wat/?back=1&return=' + encodeURIComponent('../cata/');
@@ -1267,8 +1379,11 @@ window.addEventListener('load', async () => {
     ]);
     await populateBaseOptions();
     restoreInputsFromContext();
+    await syncAdcSelection({ renderPreviewIfActive: false });
+    const hadSavedResults = restoreSavedResults();
     await Promise.all([prepareEmbeddedView('adc'), prepareEmbeddedView('wat'), prepareEmbeddedView('rto')]);
     if (els.visualSelect.value) setVisualization(els.visualSelect.value, true);
+    else if (hadSavedResults) setVisualization('adc', true);
   } catch (error) {
     console.error('Falha ao inicializar integração', error);
   }
