@@ -88,17 +88,23 @@ function shortPointLabel(name = '') {
   return text;
 }
 function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
-  const padX = 12, padY = 10, lineH = 28;
+  const scale = Math.max(1, Number(opts.scale || 1));
+  const padX = Math.round(14 * scale);
+  const padY = Math.round(11 * scale);
+  const fontSize = Math.round(20 * scale);
+  const lineH = Math.round(31 * scale);
+  const textBase = Math.round(20 * scale);
   ctx.save();
-  ctx.font = 'bold 18px Inter, Arial, sans-serif';
-  const width = Math.max(...lines.map(line => ctx.measureText(line).width), 70) + padX * 2;
-  const height = lines.length * lineH + padY * 2 - 8;
+  ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+  const minWidth = Math.round(82 * scale);
+  const width = Math.max(...lines.map(line => ctx.measureText(line).width), minWidth) + padX * 2;
+  const height = lines.length * lineH + padY * 2 - Math.round(8 * scale);
   const boxX = x + (opts.dx || 0);
   const boxY = y + (opts.dy || 0);
   ctx.strokeStyle = ok ? '#7CFC00' : '#ef4444';
   ctx.fillStyle = '#0f1b2a';
-  ctx.lineWidth = 4;
-  const radius = 14;
+  ctx.lineWidth = Math.max(4, Math.round(4 * scale));
+  const radius = Math.round(16 * scale);
   ctx.beginPath();
   const w = width, h = height;
   const rx = boxX, ry = boxY;
@@ -111,7 +117,7 @@ function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = ok ? '#7CFC00' : '#ef4444';
-  lines.forEach((line, idx) => ctx.fillText(line, boxX + padX, boxY + padY + 18 + idx * lineH));
+  lines.forEach((line, idx) => ctx.fillText(line, boxX + padX, boxY + padY + textBase + idx * lineH));
   ctx.restore();
   return { x: boxX, y: boxY, w: width, h: height };
 }
@@ -123,6 +129,7 @@ async function renderAdcPreviewToCanvas(out) {
   if (!img) return false;
   const width = img.naturalWidth || payload.chart.size?.width || 1000;
   const height = img.naturalHeight || payload.chart.size?.height || 1400;
+  const labelScale = Math.max(1.15, Math.min(2.4, width / 1000));
   out.width = width;
   out.height = height;
   const ctx = out.getContext('2d');
@@ -131,7 +138,7 @@ async function renderAdcPreviewToCanvas(out) {
   const rows = payload.analysis?.rows || [];
   const gatePoint = pointAlongRunway(payload.runway, payload.analysis?.gateMetersFromRef || 0);
   ctx.save();
-  ctx.lineWidth = 5;
+  ctx.lineWidth = Math.max(5, Math.round(5 * Math.min(labelScale, 1.6)));
   ctx.strokeStyle = '#7CFC00';
   ctx.fillStyle = '#7CFC00';
   const start = payload.runway.pavementRef || payload.runway.thresholdRef;
@@ -143,17 +150,17 @@ async function renderAdcPreviewToCanvas(out) {
     ctx.stroke();
   }
   ctx.beginPath();
-  ctx.arc(gatePoint.x, gatePoint.y, 7, 0, Math.PI * 2);
+  ctx.arc(gatePoint.x, gatePoint.y, Math.max(8, Math.round(7 * Math.min(labelScale, 1.6))), 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
   // RTO label on left
   const rtoText = `${Math.round(payload.rto || 0)} m`;
-  const rtoBox = drawLabeledBox(ctx, 50, Math.max(90, gatePoint.y - 30), ['RTO', rtoText], true);
+  const rtoBox = drawLabeledBox(ctx, Math.round(50 * labelScale * 0.9), Math.max(Math.round(90 * labelScale * 0.85), gatePoint.y - Math.round(32 * labelScale)), ['RTO', rtoText], true, { scale: labelScale });
   ctx.save();
-  ctx.strokeStyle = '#7CFC00'; ctx.lineWidth = 4;
+  ctx.strokeStyle = '#7CFC00'; ctx.lineWidth = Math.max(4, Math.round(4 * Math.min(labelScale, 1.5)));
   ctx.beginPath();
   ctx.moveTo(rtoBox.x + rtoBox.w, rtoBox.y + rtoBox.h / 2);
-  ctx.lineTo(gatePoint.x - 10, gatePoint.y);
+  ctx.lineTo(gatePoint.x - Math.round(10 * Math.min(labelScale, 1.5)), gatePoint.y);
   ctx.stroke();
   ctx.restore();
   rows.forEach((row, idx) => {
@@ -161,12 +168,12 @@ async function renderAdcPreviewToCanvas(out) {
     const isFull = idx === 0 || /pav|full|thr/i.test(String(row.name || ''));
     const label = isFull ? String(payload.departureEnd || row.name || '').trim() : shortPointLabel(row.name || row.id || '');
     const value = `${Math.round(row.availableAsda || 0)} m`;
-    const dx = p.x < width / 2 ? 26 : -150;
-    const dy = p.y < height / 2 ? -40 : 16;
-    const box = drawLabeledBox(ctx, p.x, p.y, [label, value], row.go !== false, { dx, dy });
+    const dx = p.x < width / 2 ? Math.round(30 * labelScale) : -Math.round(175 * labelScale);
+    const dy = p.y < height / 2 ? -Math.round(46 * labelScale) : Math.round(18 * labelScale);
+    const box = drawLabeledBox(ctx, p.x, p.y, [label, value], row.go !== false, { dx, dy, scale: labelScale });
     ctx.save();
     ctx.strokeStyle = row.go !== false ? '#7CFC00' : '#ef4444';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = Math.max(4, Math.round(4 * Math.min(labelScale, 1.5)));
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
     ctx.lineTo(dx >= 0 ? box.x : box.x + box.w, box.y + box.h / 2);
@@ -175,7 +182,7 @@ async function renderAdcPreviewToCanvas(out) {
     ctx.save();
     ctx.fillStyle = isFull ? '#3dd9ff' : '#f59e0b';
     ctx.beginPath();
-    ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, Math.max(8, Math.round(8 * Math.min(labelScale, 1.5))), 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   });
@@ -1008,7 +1015,21 @@ async function renderPreview(mode) {
   const out = els.vizPreviewCanvas;
 
   const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
-  if (mode === 'adc') await refreshEmbeddedSizing(mode);
+  if (mode === 'adc') {
+    await refreshEmbeddedSizing(mode);
+    const ok = await renderAdcPreviewToCanvas(out);
+    if (ok) {
+      const scale = stageWidth / out.width;
+      const displayHeight = Math.round(out.height * scale);
+      out.style.width = stageWidth + 'px';
+      out.style.height = displayHeight + 'px';
+      out.hidden = false;
+      out.dataset.mode = mode;
+      syncViewerStageHeight(displayHeight);
+      return true;
+    }
+  }
+
   const source = getSourceCanvas(mode);
   const sourceReady = !!source && source.width > 48 && source.height > 48;
   if (sourceReady) {
@@ -1026,20 +1047,6 @@ async function renderPreview(mode) {
     out.dataset.mode = mode;
     syncViewerStageHeight(displayHeight);
     return true;
-  }
-
-  if (mode === 'adc') {
-    const ok = await renderAdcPreviewToCanvas(out);
-    if (ok) {
-      const scale = stageWidth / out.width;
-      const displayHeight = Math.round(out.height * scale);
-      out.style.width = stageWidth + 'px';
-      out.style.height = displayHeight + 'px';
-      out.hidden = false;
-      out.dataset.mode = mode;
-      syncViewerStageHeight(displayHeight);
-      return true;
-    }
   }
 
   out.hidden = true;
