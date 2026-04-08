@@ -923,56 +923,6 @@ confinedIbfPageImage.addEventListener('load', ()=>{ if(activeProfile?.pageImage=
 confinedStandardPageImage.addEventListener('load', ()=>{ if(activeProfile?.pageImage===confinedStandardPageImage && !chartPanel.classList.contains('hidden')) drawOverlay(currentResult); });
 window.addEventListener('resize', ()=>{ if(!chartPanel.classList.contains('hidden')) drawOverlay(currentResult); });
 
-
-function bridgeNumberFromText(raw) {
-  const token = String(raw || '').replace(/[^\d.,-]/g, '').replace(/\./g, '').replace(',', '.');
-  const n = Number(token);
-  return Number.isFinite(n) ? n : 0;
-}
-
-async function runFromBridge(ctx = {}) {
-  const aircraftSet = String(ctx.aircraftSet || '7000');
-  const procedure = String(ctx.procedure || 'clear');
-  const configuration = String(ctx.configuration || 'standard');
-  const pa = ctx.paFt ?? ctx.pressureAltitudeFt ?? '';
-  const oat = ctx.oatC ?? '';
-  const weight = ctx.weightKg ?? '';
-  const wind = ctx.headwindKt ?? 0;
-
-  const radio = document.querySelector(`input[name="aircraftSet"][value="${aircraftSet}"]`);
-  if (radio) { radio.checked = true; radio.dispatchEvent(new Event('change', { bubbles: true })); }
-  procedureEl.value = procedure;
-  configurationEl.value = configuration;
-  paEl.value = String(pa);
-  oatEl.value = String(oat);
-  weightEl.value = String(weight);
-  headwindEl.value = String(wind);
-  [procedureEl, configurationEl, paEl, oatEl, weightEl, headwindEl].forEach((el) => {
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  });
-  syncProfileUi();
-  runCalculation();
-  return {
-    maxText: maxWeightEl?.textContent || '—',
-    marginText: marginEl?.textContent || '—',
-    maxWeightKg: bridgeNumberFromText(maxWeightEl?.textContent),
-    marginKg: bridgeNumberFromText(marginEl?.textContent),
-    summary: statusText?.textContent || '',
-  };
-}
-
-window.__watBridge = {
-  runFromBridge,
-  getResult: () => ({
-    maxText: maxWeightEl?.textContent || '—',
-    marginText: marginEl?.textContent || '—',
-    maxWeightKg: bridgeNumberFromText(maxWeightEl?.textContent),
-    marginKg: bridgeNumberFromText(marginEl?.textContent),
-    summary: statusText?.textContent || '',
-  })
-};
-
 setupAutoAdvance();
 toggleHeadwind();
 syncProfileUi();
