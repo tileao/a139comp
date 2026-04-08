@@ -1,0 +1,6 @@
+AW139 Companion v64
+- Base geral do companion: v60
+- CATA revertido para a lógica de visualização da v21 (iframe real do ADC, sem preview sintético)
+- ADC substituído pelo ADC v58 standalone como base funcional
+- Ajuste mínimo no ADC para respeitar ?embed=1 e abrir em Page 1 quando embutido no CAT A
+Objetivo: preservar a abertura correta da ADC no fluxo e usar a interpolação real do próprio módulo ADC.

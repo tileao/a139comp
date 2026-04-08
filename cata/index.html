@@ -38,25 +38,6 @@
           <div class="section-label">Operação</div>
           <div class="form-grid form-grid-2">
             <label class="field">
-              <span>Aeronave</span>
-              <select id="aircraftSetSelect">
-                <option value="6800">6800 kg</option>
-                <option value="7000" selected>7000 kg / Sup 90</option>
-              </select>
-            </label>
-            <label class="field">
-              <span>Configuration</span>
-              <select id="configurationSelect">
-                <option value="standard" selected>Clean Air Intake</option>
-                <option value="eaps_off">EAPS OFF</option>
-                <option value="eaps_on">EAPS ON</option>
-                <option value="ibf">IBF Installed</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="form-grid form-grid-2">
-            <label class="field">
               <span>Base</span>
               <select id="baseSelect"></select>
             </label>
@@ -67,11 +48,16 @@
           </div>
 
           <div class="form-grid form-grid-2">
-            <label class="field full-span-mobile">
-              <span>Matrícula</span>
-              <input id="aircraftRegistration" type="text" enterkeyhint="next" autocomplete="off" placeholder="Opcional">
+            <label class="field">
+              <span>Configuration</span>
+              <select id="configurationSelect">
+                <option value="standard" selected>Standard</option>
+                <option value="eaps_off">EAPS OFF</option>
+                <option value="eaps_on">EAPS ON</option>
+                <option value="ibf">IBF Installed</option>
+              </select>
             </label>
-            <label class="field is-hidden-field" aria-hidden="true">
+            <label class="field">
               <span>Visualização</span>
               <select id="visualSelect">
                 <option value="" selected>Em branco</option>
@@ -88,14 +74,14 @@
               <span>PA (ft)</span>
               <div class="input-with-toggle">
                 <button id="paNegativeBtn" type="button" class="sign-toggle" aria-label="Alternar sinal da altitude pressão">−</button>
-                <input id="pressureAltitude" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0">
+                <input id="pressureAltitude" type="text" value="0" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="0">
               </div>
             </label>
             <label class="field">
               <span>OAT (°C)</span>
               <div class="input-with-toggle">
                 <button id="oatNegativeBtn" type="button" class="sign-toggle" aria-label="Alternar sinal da temperatura">−</button>
-                <input id="oat" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="25" maxlength="3">
+                <input id="oat" type="text" value="25" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="25" maxlength="3">
               </div>
             </label>
           </div>
@@ -103,22 +89,21 @@
           <div class="form-grid form-grid-2">
             <label class="field">
               <span>Weight (kg)</span>
-              <input id="actualWeight" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="6500">
+              <input id="actualWeight" type="text" value="6500" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="6500">
             </label>
             <label class="field">
               <span>Headwind (kt)</span>
-              <input id="headwind" type="text" inputmode="numeric" enterkeyhint="go" autocomplete="off" placeholder="5">
+              <input id="headwind" type="text" value="5" inputmode="numeric" enterkeyhint="go" autocomplete="off" placeholder="5">
             </label>
           </div>
 
           <div class="action-row">
             <button id="runBtn" class="run-btn" type="button">Calcular Cat A</button>
-          </div>
-          <div class="module-open-row">
             <button id="openWATBtn" class="ghost-btn" type="button">Abrir WAT</button>
             <button id="openRTOBtn" class="ghost-btn" type="button">Abrir RTO</button>
             <button id="openADCBtn" class="ghost-btn" type="button">Abrir ADC</button>
           </div>
+          <p id="runHint" class="helper">Uma única entrada alimenta WAT e RTO. O RTO calculado é enviado para a tabela de decisão da ADC.</p>
         </section>
 
         <section id="resultCard" class="panel result-panel pending">
@@ -177,7 +162,6 @@
         </div>
 
         <div id="vizWrap" class="viewer-stage">
-          <canvas id="vizPreviewCanvas" class="viz-preview-canvas" width="1" height="1" hidden></canvas>
           <div id="vizPlaceholder" class="viewer-placeholder">
             <div class="placeholder-title">Visualização em branco</div>
             <div class="placeholder-sub">A carta aparece após preencher e calcular, ou ao escolher uma visualização.</div>

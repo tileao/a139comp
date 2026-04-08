@@ -312,7 +312,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       return pack;
     }
 
-    const PAGE2_ASSETS = {};
+    const PAGE2_ASSETS = {"SBCB":{"asset":"sbcb_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBFS":{"asset":"sbfs_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBGL":{"asset":"sbgl_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBJR":{"asset":"sbjr_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBME":{"asset":"sbme_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBNF":{"asset":"sbnf_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBRJ":{"asset":"sbrj_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBVT":{"asset":"sbvt_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBMI":{"asset":"sbmi_chart_p2.png","label":"ADC pág. 2","size":{"width":3308,"height":4678}}};
 
     const QUERY_PARAMS = new URLSearchParams(location.search);
     const EMBED_MODE = QUERY_PARAMS.get('embed') === '1';
@@ -1825,107 +1825,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       return true;
     }
 
-    function bridgeRowsFromAnalysis(analysis) {
-      return (analysis?.rows || []).map(r => ({
-        id: r.id || r.name,
-        name: r.name || r.id || '',
-        labelPoint: r.labelPoint ? clone(r.labelPoint) : null,
-        metersFromRef: Number(r.metersFromRef || 0),
-        availableAsda: Number(r.availableAsda || 0),
-        availableTora: Number(r.availableTora || 0),
-        availableToda: Number(r.availableToda || 0),
-        distStart: Number(r.distStart || 0),
-        go: !!r.go,
-        rtoOk: !!r.rtoOk
-      }));
-    }
-
-    function getBridgePayload() {
-      const base = currentBase();
-      const runway = currentRunway(base);
-      const chart = currentDisplayChart(base, runway);
-      const src = chartSource(base, runway);
-      const analysis = state.analysis || null;
-      return {
-        baseId: state.currentBaseId,
-        runwayId: state.currentRunwayId,
-        departureEnd: state.departureEnd,
-        vizPage: state.vizPage,
-        embedMode: EMBED_MODE,
-        rto: Number(document.getElementById('rtoInput')?.value || 0),
-        chart: chart ? { id: chart.id, label: chart.label, asset: chart.asset, src, size: clone(chart.size || {}) } : null,
-        runway: runway ? {
-          id: runway.id,
-          label: runway.label,
-          referenceEnd: runway.referenceEnd,
-          pavementRef: clone(runway.pavementRef || null),
-          pavementOpp: clone(runway.pavementOpp || null),
-          thresholdRef: clone(runway.thresholdRef || null),
-          thresholdOpp: clone(runway.thresholdOpp || null),
-          lengthM: Number(runway.lengthM || 0),
-          widthPx: Number(runway.widthPx || 0),
-          intersections: clone(runway.intersections || [])
-        } : null,
-        analysis: analysis ? {
-          gateMetersFromRef: Number(analysis.gateMetersFromRef || 0),
-          anyStartValid: !!analysis.anyStartValid,
-          greenLength: Number(analysis.greenLength || 0),
-          declared: clone(analysis.declared || {}),
-          rows: bridgeRowsFromAnalysis(analysis),
-          basisMetric: analysis.basisMetric || 'ASDA',
-          meta: clone(analysis.meta || {})
-        } : null
-      };
-    }
-
-    async function analyzeFromBridge(ctx = {}) {
-      const rawDeparture = ctx.departureEnd != null ? String(ctx.departureEnd) : '';
-      if (ctx.baseId) state.currentBaseId = String(ctx.baseId);
-      if (ctx.runwayId) state.currentRunwayId = String(ctx.runwayId);
-      if (rawDeparture) {
-        if (rawDeparture.includes('::')) {
-          const [rwId, dep] = rawDeparture.split('::');
-          if (rwId) state.currentRunwayId = rwId;
-          if (dep) state.departureEnd = dep;
-        } else {
-          state.departureEnd = rawDeparture;
-        }
-      }
-      if (ctx.vizPage === 'P1' || ctx.fromCata || EMBED_MODE) state.vizPage = 'P1';
-      else if (ctx.vizPage === 'P2' && hasPage2(currentBase())) state.vizPage = 'P2';
-      refreshBaseOptions();
-      refreshDepartureOptions();
-      renderChartPageControls();
-      const token = `${state.currentRunwayId}::${state.departureEnd}`;
-      const depSel = document.getElementById('departureEndSelect');
-      if (depSel) depSel.value = token;
-      const baseSel = document.getElementById('baseSelect');
-      if (baseSel) baseSel.value = state.currentBaseId;
-      if (ctx.rto != null) document.getElementById('rtoInput').value = String(ctx.rto);
-      loadCurrentChart();
-      analyze();
-      return getBridgePayload();
-    }
-
-    window.__adcBridge = {
-      analyzeFromBridge,
-      getPayload: getBridgePayload,
-      getAnalysis: () => clone(state.analysis || null),
-      getRows: () => bridgeRowsFromAnalysis(state.analysis || null),
-      getChartSource: () => getBridgePayload().chart,
-      getCurrentState: () => ({
-        currentBaseId: state.currentBaseId,
-        currentRunwayId: state.currentRunwayId,
-        departureEnd: state.departureEnd,
-        vizPage: state.vizPage,
-        embedMode: EMBED_MODE
-      })
-    };
-
-    window.__adcDebugState = state;
-
-
-window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', resizeCanvas);
     chartImg.addEventListener('load', resizeCanvas);
     document.getElementById('analyzeBtn').addEventListener('click', analyze);
     document.getElementById('baseSelect').addEventListener('change', e => setCurrentBase(e.target.value));
@@ -1997,8 +1897,6 @@ window.addEventListener('resize', resizeCanvas);
     document.getElementById('resetDeclaredBtn').addEventListener('click', resetDeclaredInputs);
 
     const chartCloseBtn = document.getElementById('chartCloseBtn');
-    const appbarHomeBtn = document.querySelector('.appbar-home');
-    const appbarTitleEl = document.querySelector('.appbar-title');
     function toggleChartFullscreen(force) {
       const on = force == null ? !document.body.classList.contains('body-fullscreen') : !!force;
       document.body.classList.toggle('body-fullscreen', on);
@@ -2017,20 +1915,11 @@ window.addEventListener('resize', resizeCanvas);
         return;
       }
       if (e.target === chartCloseBtn) return;
-      if (document.body.classList.contains('body-fullscreen')) {
-        toggleChartFullscreen(false);
-        return;
-      }
-      toggleChartFullscreen(true);
+      if (!document.body.classList.contains('body-fullscreen')) toggleChartFullscreen(true);
     });
     chartCloseBtn.addEventListener('click', e => { e.stopPropagation(); toggleChartFullscreen(false); });
-    appbarHomeBtn?.addEventListener('click', (e) => { e.stopPropagation(); const ret = new URLSearchParams(location.search).get('return'); location.href = '../index.html'; });
-    appbarTitleEl?.addEventListener('click', (e) => { e.stopPropagation(); const ret = new URLSearchParams(location.search).get('return'); if (ret) location.href = ret; else if (history.length > 1) history.back(); else location.href = '../index.html'; });
-    appbarHomeBtn && (appbarHomeBtn.style.cursor = 'pointer');
-    appbarTitleEl && (appbarTitleEl.style.cursor = 'pointer');
     document.getElementById('page1Btn').addEventListener('click', e => { e.stopPropagation(); setVizPage('P1'); });
-    const page2Btn = document.getElementById('page2Btn');
-    if (page2Btn) page2Btn.addEventListener('click', e => { e.stopPropagation(); setVizPage('P2'); });
+    document.getElementById('page2Btn').addEventListener('click', e => { e.stopPropagation(); setVizPage('P2'); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleChartFullscreen(false); });
 
     const advancedToggle = document.getElementById('advancedToggle');
