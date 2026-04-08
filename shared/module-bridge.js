@@ -9,6 +9,7 @@
   function saveCtx(ctx){ localStorage.setItem(KEY, JSON.stringify({...loadCtx(), ...ctx, updatedAt:new Date().toISOString(), lastModule:mod})); }
   function num(v){ if(v==null) return null; const s=String(v).replace(',', '.').trim(); if(!s) return null; const n=Number(s); return Number.isFinite(n)?n:null; }
   function setIf(id,val){ const el=document.getElementById(id); if(!el || val==null || val==='') return; el.value=val; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
+  function setSelectByDeparture(id, token, dep){ const el=document.getElementById(id); if(!el) return false; const rawToken=token==null?'':String(token).trim(); const rawDep=dep==null?'':String(dep).trim(); let opt=rawToken?[...el.options].find(o=>o.value===rawToken):null; if(!opt && rawDep) opt=[...el.options].find(o=>String(o.value||'').split('::')[1]===rawDep || String(o.textContent||'').trim()===rawDep); if(!opt) return false; el.value=opt.value; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); return true; }
   function setRadio(name,val){ if(val==null || val==='') return; const el=document.querySelector(`input[name="${name}"][value="${val}"]`); if(!el) return; el.checked=true; el.dispatchEvent(new Event('change',{bubbles:true})); }
   function getIf(id){ const el=document.getElementById(id); return el?el.value:null; }
   function mapRtoConfig(v){ return ({standard:'standard', eaps_off:'eapsOff', eaps_on:'eapsOn', ibf:'ibfInstalled'})[v] || v || 'standard'; }
@@ -32,7 +33,9 @@
       setIf('rtoInput', ctx.rtoMeters);
       setIf('ctoInput', ctx.ctoMeters);
       setIf('baseSelect', ctx.adcBase);
-      setIf('departureEndSelect', ctx.adcDepartureEnd);
+      if(!setSelectByDeparture('departureEndSelect', ctx.adcDepartureToken, ctx.adcDepartureEnd)){
+        setIf('departureEndSelect', ctx.adcDepartureToken || ctx.adcDepartureEnd);
+      }
     }
   }
   function captureContext(){
@@ -61,11 +64,15 @@
       });
       alert('Contexto RTO salvo.');
     } else if(mod==='adc'){
+      const depSelect=document.getElementById('departureEndSelect');
+      const depToken=(depSelect||{}).value||null;
+      const depEnd=String(depToken||'').split('::')[1] || depToken;
       saveCtx({
         rtoMeters:num(getIf('rtoInput')),
         ctoMeters:num(getIf('ctoInput')),
         adcBase:(document.getElementById('baseSelect')||{}).value||null,
-        adcDepartureEnd:(document.getElementById('departureEndSelect')||{}).value||null
+        adcDepartureToken:depToken,
+        adcDepartureEnd:depEnd || null
       });
       alert('Contexto ADC salvo.');
     }
