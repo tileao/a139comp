@@ -90,7 +90,7 @@ button,input,select{font:inherit}
 .viewer-stage{position:relative;min-height:0;background:#111827;overflow:hidden;display:block;line-height:0;flex:none;align-self:start}
 .viz-preview-canvas{display:block;width:100%;height:auto;background:#111827;vertical-align:top;cursor:zoom-in;margin:0}
 .viz-frame{position:absolute;left:-10000px;top:0;width:1px;height:1px;visibility:hidden;pointer-events:none;border:0}
-.viz-frame.active{display:block}
+.viz-frame.active{display:block;left:-12000px;top:0;width:1280px;height:1800px;visibility:visible;opacity:0}
 .viewer-pane.viz-fullscreen{position:fixed;inset:0;z-index:999;background:#111827}
 body.fullscreen-body{overflow:hidden}
 .viewer-placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:28px;background:linear-gradient(180deg,#0b1219 0%,#000 100%);color:#E5EEF7;z-index:2}

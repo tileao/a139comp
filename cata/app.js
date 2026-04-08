@@ -695,10 +695,40 @@ function applyUnifiedChartView(doc, mode) {
   }
 }
 
+async function refreshEmbeddedSizing(mode, doc = null) {
+  const frame = frameMap[mode];
+  if (!frame) return;
+  try {
+    const targetDoc = doc || frame.contentDocument || frame.contentWindow?.document;
+    const win = frame.contentWindow || targetDoc?.defaultView;
+    if (mode === 'adc') {
+      frame.style.width = '1280px';
+      if (!frame.style.height) frame.style.height = '1800px';
+      frame.style.visibility = 'visible';
+      frame.style.opacity = '0';
+      await sleep(40);
+      try { win?.resizeCanvas?.(); } catch {}
+      try { win?.draw?.(); } catch {}
+      await sleep(80);
+      resizeActiveFrame(mode);
+      try { win?.resizeCanvas?.(); } catch {}
+      try { win?.draw?.(); } catch {}
+      await sleep(40);
+      return;
+    }
+    try { win?.dispatchEvent?.(new Event('resize')); } catch {}
+    await sleep(40);
+    resizeActiveFrame(mode);
+  } catch (error) {
+    console.warn('Falha ao reajustar visualização', mode, error);
+  }
+}
+
 async function prepareEmbeddedView(mode) {
   try {
     const doc = await waitForIframe(frameMap[mode]);
     applyUnifiedChartView(doc, mode);
+    await refreshEmbeddedSizing(mode, doc);
     return doc;
   } catch (error) {
     console.warn('Falha ao preparar visualização', mode, error);
@@ -869,8 +899,10 @@ async function renderPreview(mode) {
   const out = els.vizPreviewCanvas;
 
   const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
+  if (mode === 'adc') await refreshEmbeddedSizing(mode);
   const source = getSourceCanvas(mode);
-  if (source) {
+  const sourceReady = !!source && source.width > 48 && source.height > 48;
+  if (sourceReady) {
     const crop = getCanvasCrop(source, mode);
     const scale = stageWidth / crop.w;
     const displayHeight = Math.round(crop.h * scale);
