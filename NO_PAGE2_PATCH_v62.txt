@@ -1,0 +1,5 @@
+v62 removes ADC Page 2 from the companion build.
+- PAGE2_ASSETS disabled
+- page toggle no longer available
+- CAT A embed remains forced to Page 1
+Base used: v60 (because v60 at least opened ADC preview).
