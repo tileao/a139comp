@@ -218,7 +218,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
         currentRunwayId: state.currentRunwayId,
         departureEnd: state.departureEnd,
         rto: document.getElementById('rtoInput')?.value || '',
-        vizPage: state.vizPage || 'P1',
+        vizPage: 'P1',
         advancedOpen: document.getElementById('advancedToggle')?.checked || false
       };
       localStorage.setItem(STATE_KEY, JSON.stringify(payload));
@@ -314,9 +314,6 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
 
     const PAGE2_ASSETS = {"SBCB":{"asset":"sbcb_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBFS":{"asset":"sbfs_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBGL":{"asset":"sbgl_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBJR":{"asset":"sbjr_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBME":{"asset":"sbme_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBNF":{"asset":"sbnf_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBRJ":{"asset":"sbrj_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBVT":{"asset":"sbvt_chart_p2.png","label":"ADC pág. 2","size":{"width":2484,"height":3742}},"SBMI":{"asset":"sbmi_chart_p2.png","label":"ADC pág. 2","size":{"width":3308,"height":4678}}};
 
-    const QUERY_PARAMS = new URLSearchParams(location.search);
-    const EMBED_MODE = QUERY_PARAMS.get('embed') === '1';
-
     let baseLibrary = Object.fromEntries(Object.entries(mergedLibrary()).map(([id, pack]) => [id, normalizeBasePack(pack)]));
     const currentGeometry = loadGeometry();
     const persisted = loadUiState();
@@ -329,7 +326,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       scale: 1,
       offsetX: 0,
       offsetY: 0,
-      vizPage: EMBED_MODE ? 'P1' : (persisted.vizPage === 'P2' ? 'P2' : 'P1'),
+      vizPage: 'P1',
       advancedOpen: !!persisted.advancedOpen,
       copiedAnchorPoint: null
     };
@@ -374,22 +371,13 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       return base.charts.find(ch => ch.id === runway.chartId) || base.charts.find(ch => ch.id === base.defaultChartId) || base.charts[0];
     }
     function page2Chart(base = currentBase()) {
-      const cfg = PAGE2_ASSETS[base.id];
-      if (!cfg) return null;
-      return {
-        id: 'ADC_PAGE2',
-        label: cfg.label || 'ADC pág. 2',
-        asset: cfg.asset,
-        assetName: cfg.asset,
-        size: cfg.size || currentChart(base).size
-      };
+      return null;
     }
     function currentDisplayChart(base = currentBase(), runway = currentRunway(base)) {
-      if (state.vizPage === 'P2') return page2Chart(base) || currentChart(base, runway);
       return currentChart(base, runway);
     }
     function hasPage2(base = currentBase()) {
-      return !!page2Chart(base);
+      return false;
     }
     function currentOppositeEnd(runway = currentRunway()) {
       return runway.ends.find(e => e !== runway.referenceEnd) || runway.ends[0];
@@ -730,16 +718,12 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     const captureBanner = document.getElementById('captureBanner');
     const chartImg = new Image();
     const mainView = document.querySelector('.right');
-    chartImg.onload = () => { resizeCanvas(); draw(); updateEmbedMetrics(); };
+    chartImg.onload = () => { resizeCanvas(); draw(); };
     chartImg.onerror = () => {
       const base = currentBase();
       const runway = currentRunway(base);
       const fallback = currentChart(base, runway);
-      if (state.vizPage === 'P2') {
-        state.vizPage = 'P1';
-        renderChartPageControls();
-        chartImg.src = fallback.chartDataUrl || fallback.asset || fallback.assetName || '';
-      }
+      chartImg.src = fallback.chartDataUrl || fallback.asset || fallback.assetName || '';
       document.getElementById('vizSubtitle').textContent = `${base.id} • falha ao carregar a carta solicitada.`;
     };
 
@@ -748,12 +732,18 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const runway = currentRunway(base);
       const chart = currentDisplayChart(base, runway);
       const rect = vizWrap.getBoundingClientRect();
-      const scale = Math.min(rect.width / chart.size.width, rect.height / chart.size.height);
+      const scale = rect.width / chart.size.width;
       const drawW = chart.size.width * scale;
       const drawH = chart.size.height * scale;
-      return { scale, offsetX: (rect.width - drawW) / 2, offsetY: (rect.height - drawH) / 2 };
+      return { scale, offsetX: 0, offsetY: 0, drawW, drawH };
     }
     function resizeCanvas() {
+      const base = currentBase();
+      const runway = currentRunway(base);
+      const chart = currentDisplayChart(base, runway);
+      const width = Math.max(1, vizWrap.clientWidth || vizWrap.getBoundingClientRect().width || chart.size.width);
+      const targetHeight = Math.round(width * (chart.size.height / chart.size.width));
+      vizWrap.style.height = targetHeight + 'px';
       const rect = vizWrap.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.round(rect.width * dpr);
@@ -766,43 +756,17 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       state.offsetX = fit.offsetX;
       state.offsetY = fit.offsetY;
       draw();
-      updateEmbedMetrics();
-    }
-    function updateEmbedMetrics() {
-      if (!EMBED_MODE) return;
-      try {
-        const base = currentBase();
-        const runway = currentRunway(base);
-        const chart = currentDisplayChart(base, runway);
-        const wrapWidth = Math.max(vizWrap.clientWidth || 0, 320);
-        const ratioHeight = chart?.size?.width ? Math.round((wrapWidth * chart.size.height) / chart.size.width) : 0;
-        const measuredHeight = Math.ceil(canvas.getBoundingClientRect().height || vizWrap.getBoundingClientRect().height || 0);
-        const h = Math.max(ratioHeight || 0, measuredHeight || 0, 320);
-        vizWrap.style.setProperty('height', `${h}px`, 'important');
-        vizWrap.style.setProperty('min-height', `${h}px`, 'important');
-        canvas.style.setProperty('height', `${h}px`, 'important');
-        canvas.style.setProperty('max-height', 'none', 'important');
-        window.__cataEmbedContentHeight = h;
-        try { parent?.postMessage?.({ type: 'aw139-adc-embed-resize', height: h }, '*'); } catch {}
-      } catch {}
     }
     function toScreen(p) { return { x: p.x * state.scale + state.offsetX, y: p.y * state.scale + state.offsetY }; }
     function fromScreen(x, y) { return { x: (x - state.offsetX) / state.scale, y: (y - state.offsetY) / state.scale }; }
 
     function renderChartPageControls() {
+      state.vizPage = 'P1';
       const toggle = document.getElementById('pageToggle');
-      const btn1 = document.getElementById('page1Btn');
-      const btn2 = document.getElementById('page2Btn');
-      const available = hasPage2(currentBase());
-      if (!available && state.vizPage === 'P2') state.vizPage = 'P1';
-      if (toggle) toggle.hidden = !available;
-      if (btn1) btn1.classList.toggle('active', state.vizPage !== 'P2');
-      if (btn2) btn2.classList.toggle('active', state.vizPage === 'P2');
+      if (toggle) toggle.hidden = true;
     }
     function setVizPage(page) {
-      const next = page === 'P2' && hasPage2(currentBase()) ? 'P2' : 'P1';
-      state.vizPage = next;
-      if (next === 'P2' && state.captureMode) setCaptureMode(false);
+      state.vizPage = 'P1';
       renderChartPageControls();
       loadCurrentChart();
       draw();
@@ -845,9 +809,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const chart = currentDisplayChart(base, runway);
       const src = chartSource(base, runway);
       if (chartImg.src !== src) chartImg.src = src; else if (src) chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
-      const modeText = state.vizPage === 'P2' ? 'consulta da página 2 da ADC' : `overlay ${runway.label} • ${state.departureEnd}`;
-      document.getElementById('vizSubtitle').textContent = `${base.id} • ${chart.label} • ${modeText} • toque na carta para abrir em tela cheia.`;
-      updateEmbedMetrics();
+      document.getElementById('vizSubtitle').textContent = `${base.id} • ${runway.label} • ${chart.label} • toque na carta para abrir em tela cheia.`;
     }
 
     function analyze() {
@@ -1623,15 +1585,15 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const axisPoint = pointAtMetersFromRef(metersFromRef, runway);
       const p = toScreen(axisPoint);
       const styleMode = style === 'twy' ? 'twy' : 'default';
-      const halfMultiplier = styleMode === 'twy' ? 0.68 : 0.95;
-      const minHalf = styleMode === 'twy' ? 10 : 14;
+      const halfMultiplier = styleMode === 'twy' ? 0.60 : 0.95;
+      const minHalf = styleMode === 'twy' ? 7 : 14;
       const half = Math.max(runway.widthPx * state.scale * halfMultiplier, minHalf);
       const p1 = { x: p.x + g.px * state.scale * half, y: p.y + g.py * state.scale * half };
       const p2 = { x: p.x - g.px * state.scale * half, y: p.y - g.py * state.scale * half };
       const color = ok ? '#7CFC00' : '#ef4444';
       ctx.save();
       ctx.strokeStyle = color;
-      ctx.lineWidth = styleMode === 'twy' ? Math.max(2, runway.widthPx * state.scale * 0.10) : Math.max(4, runway.widthPx * state.scale * 0.18);
+      ctx.lineWidth = styleMode === 'twy' ? Math.max(1.8, runway.widthPx * state.scale * 0.072) : Math.max(4, runway.widthPx * state.scale * 0.18);
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(p1.x, p1.y);
@@ -1737,26 +1699,9 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       });
     }
     function drawIntersection(runway, it) {
-      const row = state.analysis?.rows?.find(r => String(r.id) === String(it.id));
-      if (!row) return;
-      const axisPoint = pointAtMetersFromRef(it.metersFromRef, runway);
-      const p = toScreen(axisPoint);
-      const g = runwayGeometry(runway);
-      const half = Math.max(runway.widthPx * state.scale * 0.95, 14);
-      const p1 = { x: p.x + g.px * state.scale * half, y: p.y + g.py * state.scale * half };
-      const p2 = { x: p.x - g.px * state.scale * half, y: p.y - g.py * state.scale * half };
-      const selected = selectedAnchorKey();
-      const selectedAxis = selected === `axis_${it.id}`;
-      const color = row.go ? '#7CFC00' : '#ef4444';
-      ctx.save();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = selectedAxis ? Math.max(10, runway.widthPx * state.scale * 0.42) : Math.max(8, runway.widthPx * state.scale * 0.34);
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
-      ctx.restore();
+      // As barrinhas operacionais das TWY já são desenhadas em drawStatusBarAtPoint().
+      // Evitamos desenhar uma segunda barra aqui para não engrossar visualmente.
+      return;
     }
     function drawSelectedGuide(runway) {
       const key = selectedAnchorKey();
@@ -1803,17 +1748,10 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const base = currentBase();
       const runway = currentRunway(base);
       const chart = currentDisplayChart(base, runway);
-      if (!chartImg.complete || !chartImg.naturalWidth) {
-        updateEmbedMetrics();
-        return;
-      }
+      if (!chartImg.complete || !chartImg.naturalWidth) return;
       ctx.imageSmoothingEnabled = true;
       try { ctx.imageSmoothingQuality = 'high'; } catch (e) {}
       ctx.drawImage(chartImg, state.offsetX, state.offsetY, chart.size.width * state.scale, chart.size.height * state.scale);
-      if (state.vizPage === 'P2') {
-        updateEmbedMetrics();
-        return;
-      }
       drawReferenceAxis(runway);
       drawOperationalRestriction(runway, state.departureEnd);
       drawRunwayOverlay(runway, state.analysis);
@@ -1823,7 +1761,6 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       drawOperationalStartLabel(runway);
       runway.intersections.forEach(it => drawIntersection(runway, it));
       drawSelectedGuide(runway);
-      updateEmbedMetrics();
     }
 
     function readExternalInbox() {
@@ -1852,11 +1789,89 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       return true;
     }
 
-    window.addEventListener('resize', resizeCanvas);
-    window.addEventListener('message', e => {
-      if (!e?.data || e.data.type !== 'aw139-cata-force-resize') return;
-      setTimeout(() => { try { resizeCanvas(); } catch {} }, 30);
-    });
+    function bridgeRowsFromAnalysis(analysis) {
+  return (analysis?.rows || []).map(r => ({
+    id: r.id || r.name,
+    name: r.name || r.id || '',
+    labelPoint: r.labelPoint ? clone(r.labelPoint) : null,
+    metersFromRef: Number(r.metersFromRef || 0),
+    availableAsda: Number(r.availableAsda || 0),
+    availableTora: Number(r.availableTora || 0),
+    availableToda: Number(r.availableToda || 0),
+    distStart: Number(r.distStart || 0),
+    go: !!r.go,
+    rtoOk: !!r.rtoOk
+  }));
+}
+
+function getBridgePayload() {
+  const base = currentBase();
+  const runway = currentRunway(base);
+  const chart = currentDisplayChart(base, runway);
+  const src = chartSource(base, runway);
+  const analysis = state.analysis || null;
+  return {
+    baseId: state.currentBaseId,
+    runwayId: state.currentRunwayId,
+    departureEnd: state.departureEnd,
+    rto: Number(document.getElementById('rtoInput')?.value || 0),
+    chart: chart ? { id: chart.id, label: chart.label, asset: chart.asset, src, size: clone(chart.size || {}) } : null,
+    runway: runway ? {
+      id: runway.id,
+      label: runway.label,
+      referenceEnd: runway.referenceEnd,
+      pavementRef: clone(runway.pavementRef || null),
+      pavementOpp: clone(runway.pavementOpp || null),
+      thresholdRef: clone(runway.thresholdRef || null),
+      thresholdOpp: clone(runway.thresholdOpp || null),
+      lengthM: Number(runway.lengthM || 0),
+      widthPx: Number(runway.widthPx || 0),
+      intersections: clone(runway.intersections || [])
+    } : null,
+    analysis: analysis ? {
+      gateMetersFromRef: Number(analysis.gateMetersFromRef || 0),
+      anyStartValid: !!analysis.anyStartValid,
+      greenLength: Number(analysis.greenLength || 0),
+      declared: clone(analysis.declared || {}),
+      rows: bridgeRowsFromAnalysis(analysis),
+      meta: clone(analysis.meta || {})
+    } : null
+  };
+}
+
+async function analyzeFromBridge(ctx = {}) {
+  if (ctx.baseId) state.currentBaseId = String(ctx.baseId);
+  if (ctx.runwayId) state.currentRunwayId = String(ctx.runwayId);
+  if (ctx.departureEnd) state.departureEnd = String(ctx.departureEnd);
+  refreshBaseOptions();
+  refreshDepartureOptions();
+  const token = `${state.currentRunwayId}::${state.departureEnd}`;
+  const depSel = document.getElementById('departureEndSelect');
+  if (depSel) depSel.value = token;
+  const baseSel = document.getElementById('baseSelect');
+  if (baseSel) baseSel.value = state.currentBaseId;
+  if (ctx.rto != null) document.getElementById('rtoInput').value = String(ctx.rto);
+  analyze();
+  return getBridgePayload();
+}
+
+window.__adcBridge = {
+  analyzeFromBridge,
+  getPayload: getBridgePayload,
+  getAnalysis: () => clone(state.analysis || null),
+  getRows: () => bridgeRowsFromAnalysis(state.analysis || null),
+  getChartSource: () => getBridgePayload().chart,
+  getCurrentState: () => ({
+    currentBaseId: state.currentBaseId,
+    currentRunwayId: state.currentRunwayId,
+    departureEnd: state.departureEnd,
+    vizPage: state.vizPage
+  })
+};
+
+
+
+window.addEventListener('resize', resizeCanvas);
     chartImg.addEventListener('load', resizeCanvas);
     document.getElementById('analyzeBtn').addEventListener('click', analyze);
     document.getElementById('baseSelect').addEventListener('change', e => setCurrentBase(e.target.value));
@@ -1949,8 +1964,10 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       if (!document.body.classList.contains('body-fullscreen')) toggleChartFullscreen(true);
     });
     chartCloseBtn.addEventListener('click', e => { e.stopPropagation(); toggleChartFullscreen(false); });
-    document.getElementById('page1Btn').addEventListener('click', e => { e.stopPropagation(); setVizPage('P1'); });
-    document.getElementById('page2Btn').addEventListener('click', e => { e.stopPropagation(); setVizPage('P2'); });
+    const page1Btn = document.getElementById('page1Btn');
+    const page2Btn = document.getElementById('page2Btn');
+    if (page1Btn) page1Btn.addEventListener('click', e => { e.stopPropagation(); setVizPage('P1'); });
+    if (page2Btn) page2Btn.addEventListener('click', e => { e.stopPropagation(); setVizPage('P2'); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleChartFullscreen(false); });
 
     const advancedToggle = document.getElementById('advancedToggle');
