@@ -20,6 +20,10 @@ function setAdcFrameVisible(visible) {
     frame.style.opacity = '1';
     frame.style.display = 'block';
     frame.style.width = '100%';
+    frame.style.margin = '0';
+    frame.style.padding = '0';
+    frame.style.background = '#000';
+    frame.style.verticalAlign = 'top';
     if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1600px';
     frame.style.zIndex = '1';
   } else {
@@ -1130,14 +1134,28 @@ async function refreshEmbeddedSizing(mode, doc = null) {
       if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1800px';
       frame.style.visibility = 'visible';
       frame.style.opacity = live ? '1' : '0';
+      try {
+        win?.scrollTo?.(0, 0);
+        if (targetDoc?.documentElement) targetDoc.documentElement.scrollTop = 0;
+        if (targetDoc?.body) targetDoc.body.scrollTop = 0;
+      } catch {}
       await sleep(40);
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
       await sleep(80);
       resizeActiveFrame(mode);
+      try {
+        const contentH = Math.ceil(win?.__cataEmbedContentHeight || 0);
+        if (contentH > 0) frame.style.height = `${contentH}px`;
+      } catch {}
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
       await sleep(40);
+      resizeActiveFrame(mode);
+      try {
+        const contentH = Math.ceil(win?.__cataEmbedContentHeight || 0);
+        if (contentH > 0) frame.style.height = `${contentH}px`;
+      } catch {}
       return;
     }
     try { win?.dispatchEvent?.(new Event('resize')); } catch {}
