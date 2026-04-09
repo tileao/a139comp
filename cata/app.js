@@ -5,6 +5,7 @@ const rtoFrame = document.getElementById('rtoFrame');
 const frameMap = { adc: adcFrame, wat: watFrame, rto: rtoFrame };
 const adcPreviewState = { payload: null };
 const imageCache = new Map();
+let vizRenderSeq = 0;
 
 const els = {
   base: document.getElementById('baseSelect'),
@@ -1335,14 +1336,21 @@ async function renderPreview(mode) {
   const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
 
   if (mode === 'adc') {
-    const expectedSrc = expectedAdcSrc();
-    const snap = await getAdcSnapshot(expectedSrc, 3600) || await getAdcSnapshot('', 1800);
+    await refreshEmbeddedSizing('adc');
+    let expectedSrc = expectedAdcSrc();
+    let snap = await getAdcSnapshot(expectedSrc, 3600) || await getAdcSnapshot('', 1800);
+    if (!snap?.image) {
+      try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch {}
+      await refreshEmbeddedSizing('adc');
+      expectedSrc = expectedAdcSrc();
+      snap = await getAdcSnapshot(expectedSrc, 3600) || await getAdcSnapshot('', 1800);
+    }
     if (snap?.image && await drawDirectImageToTarget(snap.image, out, stageWidth)) {
       out.hidden = false;
       out.dataset.mode = mode;
       return true;
     }
-    const stable = await waitForStableAdcCanvas(expectedSrc, 2200);
+    const stable = await waitForStableAdcCanvas(expectedSrc, 2600);
     if (stable?.source && await drawDirectImageToTarget(stable.source, out, stageWidth)) {
       out.hidden = false;
       out.dataset.mode = mode;
@@ -1498,7 +1506,8 @@ async function openFullscreenChart(mode) {
   fitFullscreenCanvas();
 }
 
-function setVisualization(mode, forceShow = true) {
+async function setVisualization(mode, forceShow = true) {
+  const requestId = ++vizRenderSeq;
   if (!mode) {
     clearVisualization();
     return;
@@ -1513,12 +1522,24 @@ function setVisualization(mode, forceShow = true) {
   saveCtx({ cataVizMode: mode });
   els.vizSubtitle.textContent = mapVizLabel(mode);
   renderVisualizationMeta(mode);
-  const prep = prepareEmbeddedView(mode);
-  prep.then(async () => {
-    await sleep(mode === 'adc' ? 90 : 120);
-    await renderPreview(mode);
-    renderVisualizationMeta(mode);
-  });
+  if (mode === 'adc') {
+    try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch (error) { console.warn('Falha ao sincronizar ADC para visualização', error); }
+  }
+  if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+  await prepareEmbeddedView(mode);
+  if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+  await sleep(mode === 'adc' ? 120 : 120);
+  let ok = await renderPreview(mode);
+  if (!ok && mode === 'adc') {
+    try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch {}
+    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+    await prepareEmbeddedView(mode);
+    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+    await sleep(140);
+    ok = await renderPreview(mode);
+  }
+  if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+  renderVisualizationMeta(mode);
 }
 
 function setupAutoAdvance() {
