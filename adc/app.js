@@ -328,7 +328,10 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       offsetY: 0,
       vizPage: 'P1',
       advancedOpen: !!persisted.advancedOpen,
-      copiedAnchorPoint: null
+      copiedAnchorPoint: null,
+      chartRequestedKey: '',
+      chartLoadedKey: '',
+      chartRenderStamp: 0
     };
     let labelBoxes = [];
 
@@ -554,6 +557,17 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       return chart.chartDataUrl || chart.asset || chart.assetName || '';
     }
 
+    function chartKey(src) {
+      const raw = String(src || '').trim();
+      if (!raw) return '';
+      try {
+        const url = new URL(raw, window.location.href);
+        return url.pathname.split('/').pop() || raw;
+      } catch {
+        return raw.split('?')[0].split('#')[0].split('/').pop() || raw;
+      }
+    }
+
     function runwayGeometry(runway = currentRunway()) {
       const pRef = runway.pavementRef || runway.thresholdRef;
       const pOpp = runway.pavementOpp || runway.thresholdOpp;
@@ -718,7 +732,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     const captureBanner = document.getElementById('captureBanner');
     const chartImg = new Image();
     const mainView = document.querySelector('.right');
-    chartImg.onload = () => { resizeCanvas(); draw(); };
+    chartImg.onload = () => { state.chartLoadedKey = chartKey(chartImg.currentSrc || chartImg.src || state.chartRequestedKey); state.chartRenderStamp += 1; resizeCanvas(); draw(); };
     chartImg.onerror = () => {
       const base = currentBase();
       const runway = currentRunway(base);
@@ -808,6 +822,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       renderChartPageControls();
       const chart = currentDisplayChart(base, runway);
       const src = chartSource(base, runway);
+      state.chartRequestedKey = chartKey(src);
       if (chartImg.src !== src) chartImg.src = src; else if (src) chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
       document.getElementById('vizSubtitle').textContent = `${base.id} • ${runway.label} • ${chart.label} • toque na carta para abrir em tela cheia.`;
     }
@@ -1453,11 +1468,11 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     }
     function measureLabelBox(textLines, x, y, align = 'left') {
       ctx.save();
-      ctx.font = '800 13px Inter, sans-serif';
-      const padX = 9, lineH = 15;
+      ctx.font = '800 14px Inter, sans-serif';
+      const padX = 10, lineH = 16;
       const widths = textLines.map(t => ctx.measureText(t).width);
       const w = Math.max(...widths, 32) + padX * 2;
-      const h = textLines.length * lineH + 11;
+      const h = textLines.length * lineH + 12;
       let left = align === 'right' ? x - w : x;
       left = Math.max(8, Math.min(left, canvas.clientWidth - w - 8));
       let top = Math.max(8, Math.min(y, canvas.clientHeight - h - 8));
@@ -1472,8 +1487,8 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     function drawLabelBox(textLines, x, y, color, align = 'left', register = true) {
       const box = measureLabelBox(textLines, x, y, align);
       ctx.save();
-      ctx.font = '800 13px Inter, sans-serif';
-      const padX = 9, lineH = 15, w = box.width, h = box.height, left = box.left, top = box.top;
+      ctx.font = '800 17px Inter, sans-serif';
+      const padX = 12, lineH = 19, w = box.width, h = box.height, left = box.left, top = box.top;
       ctx.shadowColor = 'rgba(0,0,0,.18)';
       ctx.shadowBlur = 9;
       ctx.fillStyle = 'rgba(8,18,31,.92)';
@@ -1494,7 +1509,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = color;
-      textLines.forEach((line, i) => ctx.fillText(line, left + padX, top + 17 + i * lineH));
+      textLines.forEach((line, i) => ctx.fillText(line, left + padX, top + 21 + i * lineH));
       ctx.restore();
       if (register) labelBoxes.push(box);
       return box;
@@ -1840,19 +1855,70 @@ function getBridgePayload() {
 }
 
 async function analyzeFromBridge(ctx = {}) {
+  const parseBridgeDeparture = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return { token: '', runwayId: '', dep: '' };
+    if (raw.includes('::')) {
+      const [runwayId, dep] = raw.split('::');
+      return { token: raw, runwayId: runwayId || '', dep: dep || '' };
+    }
+    return { token: raw, runwayId: '', dep: raw };
+  };
+  const desired = parseBridgeDeparture(ctx.departureToken || ctx.adcDepartureToken || ctx.departureEnd || '');
   if (ctx.baseId) state.currentBaseId = String(ctx.baseId);
-  if (ctx.runwayId) state.currentRunwayId = String(ctx.runwayId);
-  if (ctx.departureEnd) state.departureEnd = String(ctx.departureEnd);
+  const base = currentBase();
+  if (ctx.runwayId && base.runways.some(r => String(r.id) === String(ctx.runwayId))) {
+    state.currentRunwayId = String(ctx.runwayId);
+  } else if (desired.runwayId && base.runways.some(r => String(r.id) === String(desired.runwayId))) {
+    state.currentRunwayId = String(desired.runwayId);
+  }
+  if (desired.dep) state.departureEnd = desired.dep;
   refreshBaseOptions();
   refreshDepartureOptions();
-  const token = `${state.currentRunwayId}::${state.departureEnd}`;
   const depSel = document.getElementById('departureEndSelect');
-  if (depSel) depSel.value = token;
   const baseSel = document.getElementById('baseSelect');
   if (baseSel) baseSel.value = state.currentBaseId;
+  if (depSel) {
+    const options = [...depSel.options];
+    const exact = desired.token ? options.find(opt => opt.value === desired.token) : null;
+    const byEnd = !exact && desired.dep ? options.find(opt => String(opt.value || '').split('::')[1] === desired.dep || String(opt.textContent || '').trim() === desired.dep) : null;
+    const match = exact || byEnd || options.find(opt => opt.value === `${state.currentRunwayId}::${state.departureEnd}`) || options[0] || null;
+    if (match) depSel.value = match.value;
+  }
   if (ctx.rto != null) document.getElementById('rtoInput').value = String(ctx.rto);
   analyze();
   return getBridgePayload();
+}
+
+
+async function waitForChart(targetSrc = '', timeoutMs = 2200) {
+  const targetKey = chartKey(targetSrc);
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const currentKey = state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || '');
+    const requestedKey = state.chartRequestedKey || currentKey;
+    const canvasReady = canvas && canvas.width > 32 && canvas.height > 32;
+    if ((!targetKey || currentKey === targetKey || requestedKey === targetKey) && canvasReady) {
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return {
+        ok: true,
+        loadedKey: currentKey,
+        requestedKey,
+        renderStamp: state.chartRenderStamp,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height
+      };
+    }
+    await new Promise(resolve => setTimeout(resolve, 60));
+  }
+  return {
+    ok: false,
+    loadedKey: state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || ''),
+    requestedKey: state.chartRequestedKey || '',
+    renderStamp: state.chartRenderStamp,
+    canvasWidth: canvas?.width || 0,
+    canvasHeight: canvas?.height || 0
+  };
 }
 
 window.__adcBridge = {
@@ -1866,7 +1932,15 @@ window.__adcBridge = {
     currentRunwayId: state.currentRunwayId,
     departureEnd: state.departureEnd,
     vizPage: state.vizPage
-  })
+  }),
+  getRenderInfo: () => ({
+    requestedKey: state.chartRequestedKey,
+    loadedKey: state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || ''),
+    renderStamp: state.chartRenderStamp,
+    canvasWidth: canvas?.width || 0,
+    canvasHeight: canvas?.height || 0
+  }),
+  waitForChart
 };
 
 
