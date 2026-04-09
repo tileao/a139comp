@@ -7,6 +7,35 @@ const adcPreviewState = { payload: null };
 const imageCache = new Map();
 let vizRenderSeq = 0;
 
+function setAdcFrameVisible(visible) {
+  const frame = adcFrame;
+  if (!frame) return;
+  frame.dataset.liveMode = visible ? '1' : '0';
+  if (visible) {
+    frame.style.position = 'relative';
+    frame.style.left = '0';
+    frame.style.top = '0';
+    frame.style.visibility = 'visible';
+    frame.style.pointerEvents = 'auto';
+    frame.style.opacity = '1';
+    frame.style.display = 'block';
+    frame.style.width = '100%';
+    if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1600px';
+    frame.style.zIndex = '1';
+  } else {
+    frame.style.position = 'absolute';
+    frame.style.left = '-10000px';
+    frame.style.top = '0';
+    frame.style.width = '1px';
+    frame.style.height = '1px';
+    frame.style.visibility = 'hidden';
+    frame.style.pointerEvents = 'none';
+    frame.style.opacity = '0';
+    frame.style.display = 'block';
+    frame.style.zIndex = '';
+  }
+}
+
 const els = {
   base: document.getElementById('baseSelect'),
   departure: document.getElementById('departureEndSelect'),
@@ -662,7 +691,10 @@ async function syncAdcSelection({ renderPreviewIfActive = false } = {}) {
 
   if (renderPreviewIfActive && els.visualSelect.value === 'adc') {
     await prepareEmbeddedView('adc');
-    await renderPreview('adc');
+    setAdcFrameVisible(true);
+    await refreshEmbeddedSizing('adc');
+    resizeActiveFrame('adc');
+    els.vizPreviewCanvas.hidden = true;
     renderVisualizationMeta('adc');
   }
 
@@ -1092,10 +1124,12 @@ async function refreshEmbeddedSizing(mode, doc = null) {
     const targetDoc = doc || frame.contentDocument || frame.contentWindow?.document;
     const win = frame.contentWindow || targetDoc?.defaultView;
     if (mode === 'adc') {
-      frame.style.width = '1280px';
-      if (!frame.style.height) frame.style.height = '1800px';
+      const live = frame.dataset.liveMode === '1';
+      if (!live) frame.style.width = '1280px';
+      else frame.style.width = '100%';
+      if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1800px';
       frame.style.visibility = 'visible';
-      frame.style.opacity = '0';
+      frame.style.opacity = live ? '1' : '0';
       await sleep(40);
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
@@ -1336,29 +1370,13 @@ async function renderPreview(mode) {
   const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
 
   if (mode === 'adc') {
-    await refreshEmbeddedSizing('adc');
-    let expectedSrc = expectedAdcSrc();
-    let snap = await getAdcSnapshot(expectedSrc, 3600) || await getAdcSnapshot('', 1800);
-    if (!snap?.image) {
-      try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch {}
-      await refreshEmbeddedSizing('adc');
-      expectedSrc = expectedAdcSrc();
-      snap = await getAdcSnapshot(expectedSrc, 3600) || await getAdcSnapshot('', 1800);
-    }
-    if (snap?.image && await drawDirectImageToTarget(snap.image, out, stageWidth)) {
-      out.hidden = false;
-      out.dataset.mode = mode;
-      return true;
-    }
-    const stable = await waitForStableAdcCanvas(expectedSrc, 2600);
-    if (stable?.source && await drawDirectImageToTarget(stable.source, out, stageWidth)) {
-      out.hidden = false;
-      out.dataset.mode = mode;
-      return true;
-    }
+    setAdcFrameVisible(true);
     out.hidden = true;
-    syncViewerStageHeight(null);
-    return false;
+    await refreshEmbeddedSizing('adc');
+    resizeActiveFrame('adc');
+    const h = parseInt(adcFrame.style.height || '0', 10);
+    if (h > 0) syncViewerStageHeight(h);
+    return true;
   }
 
   const source = getSourceCanvas(mode);
@@ -1392,6 +1410,7 @@ function clearVisualization() {
   els.viewerPane.classList.add('is-empty');
   els.vizPlaceholder.hidden = false;
   els.vizPreviewCanvas.hidden = true;
+  setAdcFrameVisible(false);
   syncViewerStageHeight(null);
   adcPreviewState.payload = null;
   els.vizSubtitle.textContent = mapVizLabel('');
@@ -1516,28 +1535,31 @@ async function setVisualization(mode, forceShow = true) {
     els.viewerPane.classList.remove('is-empty');
     els.vizPlaceholder.hidden = true;
   }
+  setAdcFrameVisible(false);
   Object.entries(frameMap).forEach(([key, frame]) => frame.classList.toggle('active', key === mode));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.viz === mode));
   els.visualSelect.value = mode;
   saveCtx({ cataVizMode: mode });
   els.vizSubtitle.textContent = mapVizLabel(mode);
   renderVisualizationMeta(mode);
+
   if (mode === 'adc') {
     try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch (error) { console.warn('Falha ao sincronizar ADC para visualização', error); }
+    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+    await prepareEmbeddedView('adc');
+    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+    setAdcFrameVisible(true);
+    await refreshEmbeddedSizing('adc');
+    resizeActiveFrame('adc');
+    els.vizPreviewCanvas.hidden = true;
+    renderVisualizationMeta(mode);
+    return;
   }
-  if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+
   await prepareEmbeddedView(mode);
   if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
-  await sleep(mode === 'adc' ? 120 : 120);
-  let ok = await renderPreview(mode);
-  if (!ok && mode === 'adc') {
-    try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch {}
-    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
-    await prepareEmbeddedView(mode);
-    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
-    await sleep(140);
-    ok = await renderPreview(mode);
-  }
+  await sleep(120);
+  await renderPreview(mode);
   if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
   renderVisualizationMeta(mode);
 }
