@@ -823,6 +823,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const chart = currentDisplayChart(base, runway);
       const src = chartSource(base, runway);
       state.chartRequestedKey = chartKey(src);
+      state.chartLoadedKey = '';
       if (chartImg.src !== src) chartImg.src = src; else if (src) chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
       document.getElementById('vizSubtitle').textContent = `${base.id} • ${runway.label} • ${chart.label} • toque na carta para abrir em tela cheia.`;
     }
@@ -1910,22 +1911,34 @@ async function analyzeFromBridge(ctx = {}) {
 async function waitForChart(targetSrc = '', timeoutMs = 2200) {
   const targetKey = chartKey(targetSrc);
   const deadline = Date.now() + timeoutMs;
+  let stableCount = 0;
+  let lastSignature = '';
   while (Date.now() < deadline) {
     const currentKey = state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || '');
     const requestedKey = state.chartRequestedKey || currentKey;
     const canvasReady = canvas && canvas.width > 32 && canvas.height > 32;
-    if ((!targetKey || currentKey === targetKey || requestedKey === targetKey) && canvasReady) {
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-      return {
-        ok: true,
-        loadedKey: currentKey,
-        requestedKey,
-        renderStamp: state.chartRenderStamp,
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height
-      };
+    const keyMatches = targetKey ? currentKey === targetKey : true;
+    const signature = `${currentKey}|${requestedKey}|${canvas?.width || 0}x${canvas?.height || 0}|${state.chartRenderStamp}`;
+    if (canvasReady && keyMatches) {
+      if (signature === lastSignature) stableCount += 1;
+      else stableCount = 1;
+      lastSignature = signature;
+      if (stableCount >= 2) {
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return {
+          ok: true,
+          loadedKey: currentKey,
+          requestedKey,
+          renderStamp: state.chartRenderStamp,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height
+        };
+      }
+    } else {
+      stableCount = 0;
+      lastSignature = signature;
     }
-    await new Promise(resolve => setTimeout(resolve, 60));
+    await new Promise(resolve => setTimeout(resolve, 70));
   }
   return {
     ok: false,
