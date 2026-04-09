@@ -1903,6 +1903,12 @@ async function analyzeFromBridge(ctx = {}) {
   renderDeclaredInputs();
   if (ctx.rto != null) document.getElementById('rtoInput').value = String(ctx.rto);
   analyze();
+  try {
+    const readyBase = currentBase();
+    const readyRunway = currentRunway(readyBase);
+    const readySrc = chartSource(readyBase, readyRunway);
+    await waitForChart(readySrc, 3200);
+  } catch (error) {}
   saveUiState();
   return getBridgePayload();
 }
@@ -1950,6 +1956,35 @@ async function waitForChart(targetSrc = '', timeoutMs = 2200) {
   };
 }
 
+
+async function getSnapshotDataUrl(targetSrc = '', timeoutMs = 2600) {
+  const info = await waitForChart(targetSrc, timeoutMs);
+  const currentKey = state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || '');
+  const requestedKey = state.chartRequestedKey || currentKey;
+  if (!canvas || canvas.width <= 32 || canvas.height <= 32) {
+    return {
+      ok: false,
+      loadedKey: currentKey,
+      requestedKey,
+      renderStamp: state.chartRenderStamp,
+      canvasWidth: canvas?.width || 0,
+      canvasHeight: canvas?.height || 0,
+      dataUrl: ''
+    };
+  }
+  let dataUrl = '';
+  try { dataUrl = canvas.toDataURL('image/png'); } catch (error) {}
+  return {
+    ok: !!(info?.ok && dataUrl),
+    loadedKey: info?.loadedKey || currentKey,
+    requestedKey: info?.requestedKey || requestedKey,
+    renderStamp: info?.renderStamp || state.chartRenderStamp,
+    canvasWidth: canvas.width,
+    canvasHeight: canvas.height,
+    dataUrl
+  };
+}
+
 window.__adcBridge = {
   analyzeFromBridge,
   getPayload: getBridgePayload,
@@ -1962,6 +1997,7 @@ window.__adcBridge = {
     departureEnd: state.departureEnd,
     vizPage: state.vizPage
   }),
+  getSnapshotDataUrl,
   getRenderInfo: () => ({
     requestedKey: state.chartRequestedKey,
     loadedKey: state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || ''),
