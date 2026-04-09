@@ -74,15 +74,20 @@ async function waitForAdcChartMatch(expectedSrc = '', timeoutMs = 1800) {
   try {
     const bridge = adcFrame.contentWindow?.__adcBridge;
     if (!bridge) return null;
-    if (bridge.waitForChart) return await bridge.waitForChart(expectedSrc, timeoutMs);
     const expectedKey = chartKey(expectedSrc);
+    if (bridge.waitForChart) {
+      const info = await bridge.waitForChart(expectedSrc, timeoutMs);
+      const canvasReady = (info?.canvasWidth || 0) > 32 && (info?.canvasHeight || 0) > 32;
+      const loadedKey = info?.loadedKey || '';
+      if ((!expectedKey || loadedKey === expectedKey) && canvasReady) return info;
+      return null;
+    }
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
       const info = bridge.getRenderInfo ? bridge.getRenderInfo() : null;
       const loadedKey = info?.loadedKey || '';
-      const requestedKey = info?.requestedKey || '';
       const canvasReady = (info?.canvasWidth || 0) > 32 && (info?.canvasHeight || 0) > 32;
-      if ((!expectedKey || loadedKey === expectedKey || requestedKey === expectedKey) && canvasReady) return info;
+      if ((!expectedKey || loadedKey === expectedKey) && canvasReady) return info;
       await sleep(60);
     }
   } catch {}
@@ -1237,11 +1242,16 @@ async function renderPreview(mode) {
   if (mode === 'adc') {
     await refreshEmbeddedSizing(mode);
     const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-    if (expectedSrc) await waitForAdcChartMatch(expectedSrc, 2200);
+    const expectedInfo = expectedSrc ? await waitForAdcChartMatch(expectedSrc, 2600) : null;
+    const expectedKey = chartKey(expectedSrc);
 
     const source = getSourceCanvas('adc');
     const sourceReady = !!source && source.width > 48 && source.height > 48;
-    if (sourceReady) {
+    const renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
+    const loadedKey = renderInfo?.loadedKey || expectedInfo?.loadedKey || '';
+    const sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
+
+    if (sourceReady && sourceMatchesExpected) {
       const crop = getCanvasCrop(source, 'adc');
       const scale = stageWidth / crop.w;
       const displayHeight = Math.round(crop.h * scale);
