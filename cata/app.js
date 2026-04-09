@@ -1237,7 +1237,27 @@ async function renderPreview(mode) {
   if (mode === 'adc') {
     await refreshEmbeddedSizing(mode);
     const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-    if (expectedSrc) await waitForAdcChartMatch(expectedSrc, 1800);
+    if (expectedSrc) await waitForAdcChartMatch(expectedSrc, 2200);
+
+    const source = getSourceCanvas('adc');
+    const sourceReady = !!source && source.width > 48 && source.height > 48;
+    if (sourceReady) {
+      const crop = getCanvasCrop(source, 'adc');
+      const scale = stageWidth / crop.w;
+      const displayHeight = Math.round(crop.h * scale);
+      out.width = crop.w;
+      out.height = crop.h;
+      out.style.width = stageWidth + 'px';
+      out.style.height = displayHeight + 'px';
+      const ctx = out.getContext('2d');
+      ctx.clearRect(0, 0, out.width, out.height);
+      ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+      out.hidden = false;
+      out.dataset.mode = mode;
+      syncViewerStageHeight(displayHeight);
+      return true;
+    }
+
     const ok = await renderAdcPreviewToCanvas(out);
     if (ok) {
       const scale = stageWidth / out.width;
