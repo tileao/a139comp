@@ -1878,6 +1878,7 @@ async function analyzeFromBridge(ctx = {}) {
   if (desired.dep) state.departureEnd = desired.dep;
   refreshBaseOptions();
   refreshDepartureOptions();
+  refreshFineTuneOptions();
   const depSel = document.getElementById('departureEndSelect');
   const baseSel = document.getElementById('baseSelect');
   if (baseSel) baseSel.value = state.currentBaseId;
@@ -1886,10 +1887,22 @@ async function analyzeFromBridge(ctx = {}) {
     const exact = desired.token ? options.find(opt => opt.value === desired.token) : null;
     const byEnd = !exact && desired.dep ? options.find(opt => String(opt.value || '').split('::')[1] === desired.dep || String(opt.textContent || '').trim() === desired.dep) : null;
     const match = exact || byEnd || options.find(opt => opt.value === `${state.currentRunwayId}::${state.departureEnd}`) || options[0] || null;
-    if (match) depSel.value = match.value;
+    if (match) {
+      depSel.value = match.value;
+      const parsed = parseDepartureToken(match.value);
+      if (parsed.runwayId) state.currentRunwayId = parsed.runwayId;
+      if (parsed.dep) state.departureEnd = parsed.dep;
+    }
   }
+  renderChartPageControls();
+  loadCurrentChart();
+  renderLibraryStatus();
+  renderBaseInfo();
+  renderAnchorTable();
+  renderDeclaredInputs();
   if (ctx.rto != null) document.getElementById('rtoInput').value = String(ctx.rto);
   analyze();
+  saveUiState();
   return getBridgePayload();
 }
 
