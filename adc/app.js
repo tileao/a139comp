@@ -1848,6 +1848,9 @@ function getBridgePayload() {
       anyStartValid: !!analysis.anyStartValid,
       greenLength: Number(analysis.greenLength || 0),
       declared: clone(analysis.declared || {}),
+      features: clone(analysis.features || {}),
+      metrics: clone(analysis.metrics || {}),
+      visual: clone(analysis.visual || {}),
       rows: bridgeRowsFromAnalysis(analysis),
       meta: clone(analysis.meta || {})
     } : null
