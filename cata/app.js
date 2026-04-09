@@ -1235,68 +1235,73 @@ function syncViewerStageHeight(px = null) {
   els.vizWrap.style.minHeight = `${h}px`;
 }
 
-async function renderPreview(mode) {
-  const out = els.vizPreviewCanvas;
+async function drawCanvasCropToTarget(source, mode, out, stageWidth = null) {
+  if (!source || source.width <= 48 || source.height <= 48) return false;
+  const crop = getCanvasCrop(source, mode);
+  if (!crop || crop.w <= 48 || crop.h <= 48) return false;
+  out.width = crop.w;
+  out.height = crop.h;
+  const ctx = out.getContext('2d');
+  ctx.clearRect(0, 0, out.width, out.height);
+  ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+  if (stageWidth != null) {
+    const scale = stageWidth / crop.w;
+    const displayHeight = Math.round(crop.h * scale);
+    out.style.width = stageWidth + 'px';
+    out.style.height = displayHeight + 'px';
+    syncViewerStageHeight(displayHeight);
+  }
+  return true;
+}
 
-  const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
-  if (mode === 'adc') {
-    await refreshEmbeddedSizing(mode);
-    const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-    const expectedInfo = expectedSrc ? await waitForAdcChartMatch(expectedSrc, 2600) : null;
-    const expectedKey = chartKey(expectedSrc);
-
+async function waitForStableAdcCanvas(expectedSrc = '', timeoutMs = 3200) {
+  const expectedKey = chartKey(expectedSrc);
+  const deadline = Date.now() + timeoutMs;
+  let stableCount = 0;
+  let lastSignature = '';
+  while (Date.now() < deadline) {
+    await refreshEmbeddedSizing('adc');
+    const info = await waitForAdcChartMatch(expectedSrc, Math.min(900, Math.max(240, deadline - Date.now())));
     const source = getSourceCanvas('adc');
     const sourceReady = !!source && source.width > 48 && source.height > 48;
-    const renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
-    const loadedKey = renderInfo?.loadedKey || expectedInfo?.loadedKey || '';
-    const sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
+    const loadedKey = info?.loadedKey || adcFrame.contentWindow?.__adcBridge?.getRenderInfo?.()?.loadedKey || '';
+    const keyMatches = !expectedKey || loadedKey === expectedKey;
+    const signature = `${loadedKey}|${source?.width || 0}x${source?.height || 0}|${info?.renderStamp || 0}`;
+    if (sourceReady && keyMatches) {
+      if (signature === lastSignature) stableCount += 1;
+      else stableCount = 1;
+      lastSignature = signature;
+      if (stableCount >= 2) return { source, info };
+    } else {
+      stableCount = 0;
+      lastSignature = signature;
+    }
+    await sleep(80);
+  }
+  return null;
+}
 
-    if (sourceReady && sourceMatchesExpected) {
-      const crop = getCanvasCrop(source, 'adc');
-      const scale = stageWidth / crop.w;
-      const displayHeight = Math.round(crop.h * scale);
-      out.width = crop.w;
-      out.height = crop.h;
-      out.style.width = stageWidth + 'px';
-      out.style.height = displayHeight + 'px';
-      const ctx = out.getContext('2d');
-      ctx.clearRect(0, 0, out.width, out.height);
-      ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+async function renderPreview(mode) {
+  const out = els.vizPreviewCanvas;
+  const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
+
+  if (mode === 'adc') {
+    const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
+    const stable = await waitForStableAdcCanvas(expectedSrc, 3400);
+    if (stable?.source && await drawCanvasCropToTarget(stable.source, 'adc', out, stageWidth)) {
       out.hidden = false;
       out.dataset.mode = mode;
-      syncViewerStageHeight(displayHeight);
       return true;
     }
-
-    const ok = await renderAdcPreviewToCanvas(out);
-    if (ok) {
-      const scale = stageWidth / out.width;
-      const displayHeight = Math.round(out.height * scale);
-      out.style.width = stageWidth + 'px';
-      out.style.height = displayHeight + 'px';
-      out.hidden = false;
-      out.dataset.mode = mode;
-      syncViewerStageHeight(displayHeight);
-      return true;
-    }
+    out.hidden = true;
+    syncViewerStageHeight(null);
+    return false;
   }
 
   const source = getSourceCanvas(mode);
-  const sourceReady = !!source && source.width > 48 && source.height > 48;
-  if (sourceReady) {
-    const crop = getCanvasCrop(source, mode);
-    const scale = stageWidth / crop.w;
-    const displayHeight = Math.round(crop.h * scale);
-    out.width = crop.w;
-    out.height = crop.h;
-    out.style.width = stageWidth + 'px';
-    out.style.height = displayHeight + 'px';
-    const ctx = out.getContext('2d');
-    ctx.clearRect(0, 0, out.width, out.height);
-    ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+  if (await drawCanvasCropToTarget(source, mode, out, stageWidth)) {
     out.hidden = false;
     out.dataset.mode = mode;
-    syncViewerStageHeight(displayHeight);
     return true;
   }
 
@@ -1341,27 +1346,27 @@ const fullscreenEls = {
 const fullscreenState = { active: false, scale: 1, minScale: 1, maxScale: 4, x: 0, y: 0, startX: 0, startY: 0, dragging: false, moved: false };
 
 
-function drawFullscreenSource(mode) {
+async function drawFullscreenSource(mode) {
   const out = fullscreenEls.canvas;
-  const ctx = out.getContext('2d');
+  if (mode === 'adc') {
+    const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
+    const stable = await waitForStableAdcCanvas(expectedSrc, 3600);
+    return !!(stable?.source && await drawCanvasCropToTarget(stable.source, 'adc', out, null));
+  }
+
+  const source = getSourceCanvas(mode);
+  if (await drawCanvasCropToTarget(source, mode, out, null)) return true;
 
   const preview = els.vizPreviewCanvas;
   if (preview && !preview.hidden && preview.width > 1 && preview.height > 1 && (preview.dataset.mode || els.visualSelect.value) === mode) {
     out.width = preview.width;
     out.height = preview.height;
+    const ctx = out.getContext('2d');
     ctx.clearRect(0, 0, out.width, out.height);
     ctx.drawImage(preview, 0, 0, preview.width, preview.height, 0, 0, preview.width, preview.height);
     return true;
   }
-
-  const source = getSourceCanvas(mode);
-  if (!source) return false;
-  const crop = getCanvasCrop(source, mode);
-  out.width = crop.w;
-  out.height = crop.h;
-  ctx.clearRect(0,0,out.width,out.height);
-  ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
-  return true;
+  return false;
 }
 
 
@@ -1426,8 +1431,9 @@ function closeFullscreenChart() {
   document.body.classList.remove('fullscreen-body');
 }
 
-function openFullscreenChart(mode) {
-  if (!drawFullscreenSource(mode)) return;
+async function openFullscreenChart(mode) {
+  const ok = await drawFullscreenSource(mode);
+  if (!ok) return;
   fullscreenState.active = true;
   fullscreenState.moved = false;
   fullscreenEls.overlay.hidden = false;
