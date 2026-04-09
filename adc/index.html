@@ -892,20 +892,41 @@
     }
     body.embed-mode .pane.right {
       display: block !important;
+      overflow: hidden !important;
+    }
+    body.embed-mode .workspace {
+      display: block !important;
+      min-height: 0 !important;
+      height: auto !important;
+      overflow: hidden !important;
+    }
+    body.embed-mode .chart-frame {
+      display: block !important;
+      flex: none !important;
+      min-height: 0 !important;
+      height: auto !important;
+      overflow: hidden !important;
     }
     body.embed-mode .viz-wrap {
+      display: block !important;
+      position: relative !important;
       min-height: 0 !important;
       height: auto !important;
       line-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
       background: #000 !important;
       border-radius: 0 !important;
       cursor: default !important;
+      overflow: hidden !important;
     }
     body.embed-mode #vizCanvas {
       display: block !important;
       width: 100% !important;
       height: auto !important;
       max-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
       background: #000 !important;
       vertical-align: top;
     }

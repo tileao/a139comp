@@ -761,12 +761,22 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const width = Math.max(1, vizWrap.clientWidth || vizWrap.getBoundingClientRect().width || chart.size.width);
       const targetHeight = Math.round(width * (chart.size.height / chart.size.width));
       vizWrap.style.height = targetHeight + 'px';
+      vizWrap.style.minHeight = '0px';
       const rect = vizWrap.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       canvas.width = Math.round(rect.width * dpr);
       canvas.height = Math.round(rect.height * dpr);
       canvas.style.width = rect.width + 'px';
       canvas.style.height = rect.height + 'px';
+      try {
+        window.__cataEmbedContentHeight = Math.round(targetHeight);
+        window.__cataEmbedSourceRect = { x: 0, y: 0, w: chart.size.width, h: chart.size.height };
+        if (EMBED_MODE) {
+          window.scrollTo(0, 0);
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        }
+      } catch (error) {}
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const fit = fixedFitTransform();
       state.scale = fit.scale;
@@ -2126,7 +2136,14 @@ window.addEventListener('resize', resizeCanvas);
     if (advancedToggle.checked) { advancedWrap.hidden = false; advancedWrap.classList.add('open'); }
     advancedToggle.addEventListener('change', () => { state.advancedOpen = advancedToggle.checked; syncAdvancedPanel(); });
 
-    if (EMBED_MODE) document.body.classList.add('embed-mode');
+    if (EMBED_MODE) {
+      document.body.classList.add('embed-mode');
+      try {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      } catch (error) {}
+    }
     refreshBaseOptions();
     renderChartPageControls();
     setCurrentBase(state.currentBaseId);
