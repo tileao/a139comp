@@ -7,9 +7,20 @@ const adcPreviewState = { payload: null };
 const imageCache = new Map();
 let vizRenderSeq = 0;
 
+function currentViewerStageWidth() {
+  try {
+    const stage = document.getElementById('vizWrap') || document.getElementById('viewerPane');
+    const rect = stage?.getBoundingClientRect?.();
+    return Math.max(320, Math.round((rect?.width || 0) - 2));
+  } catch {
+    return 768;
+  }
+}
+
 function setAdcFrameVisible(visible) {
   const frame = adcFrame;
   if (!frame) return;
+  const stageW = currentViewerStageWidth();
   frame.dataset.liveMode = visible ? '1' : '0';
   if (visible) {
     frame.style.position = 'relative';
@@ -26,16 +37,23 @@ function setAdcFrameVisible(visible) {
     frame.style.verticalAlign = 'top';
     if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1600px';
     frame.style.zIndex = '1';
+    try {
+      frame.contentWindow?.scrollTo?.(0, 0);
+      const doc = frame.contentDocument || frame.contentWindow?.document;
+      if (doc?.documentElement) doc.documentElement.scrollTop = 0;
+      if (doc?.body) doc.body.scrollTop = 0;
+    } catch {}
   } else {
     frame.style.position = 'absolute';
     frame.style.left = '-10000px';
     frame.style.top = '0';
-    frame.style.width = '1px';
-    frame.style.height = '1px';
+    frame.style.width = `${stageW}px`;
+    if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1600px';
     frame.style.visibility = 'hidden';
     frame.style.pointerEvents = 'none';
     frame.style.opacity = '0';
     frame.style.display = 'block';
+    frame.style.background = '#000';
     frame.style.zIndex = '';
   }
 }
@@ -1129,8 +1147,8 @@ async function refreshEmbeddedSizing(mode, doc = null) {
     const win = frame.contentWindow || targetDoc?.defaultView;
     if (mode === 'adc') {
       const live = frame.dataset.liveMode === '1';
-      if (!live) frame.style.width = '1280px';
-      else frame.style.width = '100%';
+      const stageW = currentViewerStageWidth();
+      frame.style.width = live ? '100%' : `${stageW}px`;
       if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1800px';
       frame.style.visibility = 'visible';
       frame.style.opacity = live ? '1' : '0';
@@ -1139,18 +1157,23 @@ async function refreshEmbeddedSizing(mode, doc = null) {
         if (targetDoc?.documentElement) targetDoc.documentElement.scrollTop = 0;
         if (targetDoc?.body) targetDoc.body.scrollTop = 0;
       } catch {}
-      await sleep(40);
+      await sleep(80);
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
-      await sleep(80);
+      await sleep(120);
       resizeActiveFrame(mode);
       try {
         const contentH = Math.ceil(win?.__cataEmbedContentHeight || 0);
         if (contentH > 0) frame.style.height = `${contentH}px`;
       } catch {}
+      try {
+        win?.scrollTo?.(0, 0);
+        if (targetDoc?.documentElement) targetDoc.documentElement.scrollTop = 0;
+        if (targetDoc?.body) targetDoc.body.scrollTop = 0;
+      } catch {}
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
-      await sleep(40);
+      await sleep(80);
       resizeActiveFrame(mode);
       try {
         const contentH = Math.ceil(win?.__cataEmbedContentHeight || 0);
