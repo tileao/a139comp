@@ -1019,6 +1019,25 @@ async function renderPreview(mode) {
   const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
   if (mode === 'adc') {
     await refreshEmbeddedSizing(mode);
+    const adcSource = getSourceCanvas('adc');
+    const adcSourceReady = !!adcSource && adcSource.width > 48 && adcSource.height > 48;
+    if (adcSourceReady) {
+      const crop = { x: 0, y: 0, w: adcSource.width, h: adcSource.height };
+      const scale = stageWidth / crop.w;
+      const displayHeight = Math.round(crop.h * scale);
+      out.width = crop.w;
+      out.height = crop.h;
+      out.style.width = stageWidth + 'px';
+      out.style.height = displayHeight + 'px';
+      const ctx = out.getContext('2d');
+      ctx.clearRect(0, 0, out.width, out.height);
+      ctx.drawImage(adcSource, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+      out.hidden = false;
+      out.dataset.mode = mode;
+      syncViewerStageHeight(displayHeight);
+      return true;
+    }
+
     const ok = await renderAdcPreviewToCanvas(out);
     if (ok) {
       const scale = stageWidth / out.width;
