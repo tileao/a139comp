@@ -59,6 +59,36 @@ function resolveFrameAssetSrc(frame, src) {
   }
 }
 
+function chartKey(src) {
+  const raw = String(src || '').trim();
+  if (!raw) return '';
+  try {
+    const url = new URL(raw, window.location.href);
+    return url.pathname.split('/').pop() || raw;
+  } catch {
+    return raw.split('?')[0].split('#')[0].split('/').pop() || raw;
+  }
+}
+
+async function waitForAdcChartMatch(expectedSrc = '', timeoutMs = 1800) {
+  try {
+    const bridge = adcFrame.contentWindow?.__adcBridge;
+    if (!bridge) return null;
+    if (bridge.waitForChart) return await bridge.waitForChart(expectedSrc, timeoutMs);
+    const expectedKey = chartKey(expectedSrc);
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      const info = bridge.getRenderInfo ? bridge.getRenderInfo() : null;
+      const loadedKey = info?.loadedKey || '';
+      const requestedKey = info?.requestedKey || '';
+      const canvasReady = (info?.canvasWidth || 0) > 32 && (info?.canvasHeight || 0) > 32;
+      if ((!expectedKey || loadedKey === expectedKey || requestedKey === expectedKey) && canvasReady) return info;
+      await sleep(60);
+    }
+  } catch {}
+  return null;
+}
+
 async function loadImage(src) {
   if (!src) return null;
   if (imageCache.has(src)) return imageCache.get(src);
@@ -1019,9 +1049,16 @@ async function renderPreview(mode) {
   const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
   if (mode === 'adc') {
     await refreshEmbeddedSizing(mode);
+    const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
+    const expectedKey = chartKey(expectedSrc);
+    if (expectedKey) await waitForAdcChartMatch(expectedSrc, 1800);
+    const bridge = adcFrame.contentWindow?.__adcBridge;
+    const renderInfo = bridge?.getRenderInfo ? bridge.getRenderInfo() : null;
+    const loadedKey = renderInfo?.loadedKey || '';
     const adcSource = getSourceCanvas('adc');
     const adcSourceReady = !!adcSource && adcSource.width > 48 && adcSource.height > 48;
-    if (adcSourceReady) {
+    const sourceMatches = !expectedKey || !loadedKey || loadedKey === expectedKey;
+    if (adcSourceReady && sourceMatches) {
       const crop = { x: 0, y: 0, w: adcSource.width, h: adcSource.height };
       const scale = stageWidth / crop.w;
       const displayHeight = Math.round(crop.h * scale);
@@ -1164,9 +1201,10 @@ function applyFullscreenTransform() {
 function fitFullscreenCanvas() {
   const vp = fullscreenEls.viewport;
   const c = fullscreenEls.canvas;
-  const scale = Math.min(vp.clientWidth / c.width, vp.clientHeight / c.height, 1);
+  const scale = Math.min(vp.clientWidth / c.width, vp.clientHeight / c.height);
   fullscreenState.scale = scale;
   fullscreenState.minScale = scale;
+  fullscreenState.maxScale = Math.max(4, scale * 4);
   fullscreenState.x = (vp.clientWidth - c.width * scale) / 2;
   fullscreenState.y = (vp.clientHeight - c.height * scale) / 2;
   applyFullscreenTransform();
