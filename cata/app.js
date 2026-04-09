@@ -107,6 +107,55 @@ async function loadImage(src) {
   return p;
 }
 
+
+function expectedAdcSrc() {
+  const fromPayload = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
+  if (fromPayload) return fromPayload;
+  try {
+    const bridge = adcFrame.contentWindow?.__adcBridge;
+    const src = bridge?.getChartSource?.()?.src || '';
+    return src ? resolveFrameAssetSrc(adcFrame, src) : '';
+  } catch {
+    return '';
+  }
+}
+
+async function getAdcSnapshot(expectedSrc = '', timeoutMs = 3400) {
+  const bridge = adcFrame.contentWindow?.__adcBridge;
+  if (!bridge?.getSnapshotDataUrl) return null;
+  try {
+    const expectedKey = chartKey(expectedSrc);
+    const snap = await bridge.getSnapshotDataUrl(expectedSrc, timeoutMs);
+    if (!snap?.dataUrl) return null;
+    if (expectedKey && snap.loadedKey && snap.loadedKey !== expectedKey) return null;
+    const img = await loadImage(snap.dataUrl);
+    if (!img) return null;
+    return { image: img, info: snap };
+  } catch {
+    return null;
+  }
+}
+
+async function drawDirectImageToTarget(image, out, stageWidth = null) {
+  if (!image) return false;
+  const w = image.naturalWidth || image.width || 0;
+  const h = image.naturalHeight || image.height || 0;
+  if (w <= 48 || h <= 48) return false;
+  out.width = w;
+  out.height = h;
+  const ctx = out.getContext('2d');
+  ctx.clearRect(0, 0, out.width, out.height);
+  ctx.drawImage(image, 0, 0, w, h, 0, 0, w, h);
+  if (stageWidth != null) {
+    const scale = stageWidth / w;
+    const displayHeight = Math.round(h * scale);
+    out.style.width = stageWidth + 'px';
+    out.style.height = displayHeight + 'px';
+    syncViewerStageHeight(displayHeight);
+  }
+  return true;
+}
+
 function lerp(a, b, t) { return a + (b - a) * t; }
 function pointAlongRunway(runway, metersFromRef) {
   const len = Number(runway?.lengthM || 0) || 1;
@@ -1286,9 +1335,15 @@ async function renderPreview(mode) {
   const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
 
   if (mode === 'adc') {
-    const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-    const stable = await waitForStableAdcCanvas(expectedSrc, 3400);
-    if (stable?.source && await drawCanvasCropToTarget(stable.source, 'adc', out, stageWidth)) {
+    const expectedSrc = expectedAdcSrc();
+    const snap = await getAdcSnapshot(expectedSrc, 3600) || await getAdcSnapshot('', 1800);
+    if (snap?.image && await drawDirectImageToTarget(snap.image, out, stageWidth)) {
+      out.hidden = false;
+      out.dataset.mode = mode;
+      return true;
+    }
+    const stable = await waitForStableAdcCanvas(expectedSrc, 2200);
+    if (stable?.source && await drawDirectImageToTarget(stable.source, out, stageWidth)) {
       out.hidden = false;
       out.dataset.mode = mode;
       return true;
@@ -1349,9 +1404,11 @@ const fullscreenState = { active: false, scale: 1, minScale: 1, maxScale: 4, x: 
 async function drawFullscreenSource(mode) {
   const out = fullscreenEls.canvas;
   if (mode === 'adc') {
-    const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-    const stable = await waitForStableAdcCanvas(expectedSrc, 3600);
-    return !!(stable?.source && await drawCanvasCropToTarget(stable.source, 'adc', out, null));
+    const expectedSrc = expectedAdcSrc();
+    const snap = await getAdcSnapshot(expectedSrc, 3800) || await getAdcSnapshot('', 1800);
+    if (snap?.image && await drawDirectImageToTarget(snap.image, out, null)) return true;
+    const stable = await waitForStableAdcCanvas(expectedSrc, 2200);
+    return !!(stable?.source && await drawDirectImageToTarget(stable.source, out, null));
   }
 
   const source = getSourceCanvas(mode);
