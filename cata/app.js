@@ -111,11 +111,38 @@ function pointAlongRunway(runway, metersFromRef) {
   if (!a || !b) return { x: 0, y: 0 };
   return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) };
 }
-function shortPointLabel(name = '') {
-  const text = String(name || '').trim();
-  const m = text.match(/TWY\s+(.+)$/i);
-  if (m) return `TWY ${m[1]}`;
-  return text;
+function runwayGeometry(runway) {
+  const pRef = runway?.pavementRef || runway?.thresholdRef;
+  const pOpp = runway?.pavementOpp || runway?.thresholdOpp;
+  const dx = (pOpp?.x || 0) - (pRef?.x || 0);
+  const dy = (pOpp?.y || 0) - (pRef?.y || 0);
+  const len = Math.max(1, Math.hypot(dx, dy));
+  return { pRef, pOpp, dx, dy, len, ux: dx / len, uy: dy / len, px: -dy / len, py: dx / len };
+}
+function pointAtMetersFromRef(runway, metersFromRef) {
+  return pointAlongRunway(runway, metersFromRef);
+}
+function oppositeEnd(runway) {
+  const ref = String(runway?.referenceEnd || '');
+  return (runway?.ends || []).find(end => String(end) !== ref) || (runway?.ends || [])[0] || '';
+}
+function displayTaxiLabel(name = '') {
+  const raw = String(name || '').trim();
+  return raw.replace(/^TWY\s+/i, '') || raw;
+}
+function measureLabeledBox(ctx, lines, scale = 1) {
+  const useScale = Math.max(1, Number(scale || 1));
+  const padX = Math.round(14 * useScale);
+  const padY = Math.round(11 * useScale);
+  const fontSize = Math.round(20 * useScale);
+  const lineH = Math.round(31 * useScale);
+  ctx.save();
+  ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+  const minWidth = Math.round(82 * useScale);
+  const width = Math.max(...lines.map(line => ctx.measureText(line).width), minWidth) + padX * 2;
+  const height = lines.length * lineH + padY * 2 - Math.round(8 * useScale);
+  ctx.restore();
+  return { w: width, h: height };
 }
 function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
   const scale = Math.max(1, Number(opts.scale || 1));
@@ -124,13 +151,13 @@ function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
   const fontSize = Math.round(20 * scale);
   const lineH = Math.round(31 * scale);
   const textBase = Math.round(20 * scale);
-  ctx.save();
-  ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
-  const minWidth = Math.round(82 * scale);
-  const width = Math.max(...lines.map(line => ctx.measureText(line).width), minWidth) + padX * 2;
-  const height = lines.length * lineH + padY * 2 - Math.round(8 * scale);
   const boxX = x + (opts.dx || 0);
   const boxY = y + (opts.dy || 0);
+  const measured = measureLabeledBox(ctx, lines, scale);
+  const width = measured.w;
+  const height = measured.h;
+  ctx.save();
+  ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
   ctx.strokeStyle = ok ? '#7CFC00' : '#ef4444';
   ctx.fillStyle = '#0f1b2a';
   ctx.lineWidth = Math.max(4, Math.round(4 * scale));
@@ -151,6 +178,67 @@ function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
   ctx.restore();
   return { x: boxX, y: boxY, w: width, h: height };
 }
+function nearestPointOnBox(box, anchor) {
+  return {
+    x: Math.max(box.x, Math.min(anchor.x, box.x + box.w)),
+    y: Math.max(box.y, Math.min(anchor.y, box.y + box.h))
+  };
+}
+function boxesOverlap(a, b, margin = 10) {
+  return !(a.x + a.w + margin < b.x || b.x + b.w + margin < a.x || a.y + a.h + margin < b.y || b.y + b.h + margin < a.y);
+}
+function drawLeaderLine(ctx, anchor, box, color, scale = 1) {
+  const edge = nearestPointOnBox(box, anchor);
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(3, Math.round(3 * Math.min(scale, 1.6)));
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(anchor.x, anchor.y);
+  ctx.lineTo(edge.x, edge.y);
+  ctx.stroke();
+  ctx.restore();
+}
+function drawCalloutLabel(ctx, textLines, anchor, candidates, ok, scale, occupied, bounds) {
+  const color = ok ? '#7CFC00' : '#ef4444';
+  const size = measureLabeledBox(ctx, textLines, scale);
+  const fits = (box) => box.x >= 6 && box.y >= 6 && box.x + box.w <= bounds.w - 6 && box.y + box.h <= bounds.h - 6;
+  const candidateBoxes = (candidates || []).map(candidate => {
+    const align = candidate.align === 'right' ? 'right' : 'left';
+    return {
+      ...candidate,
+      x: align === 'right' ? Math.round(candidate.x - size.w) : Math.round(candidate.x),
+      y: Math.round(candidate.y),
+      w: size.w,
+      h: size.h,
+      align
+    };
+  });
+  let chosen = candidateBoxes.find(box => fits(box) && !(occupied || []).some(other => boxesOverlap(box, other, Math.round(12 * Math.min(scale, 1.5)))));
+  if (!chosen) chosen = candidateBoxes.find(box => fits(box)) || candidateBoxes[0] || { x: anchor.x + 20, y: anchor.y - 20, w: size.w, h: size.h, align: 'left' };
+  const rendered = drawLabeledBox(ctx, chosen.x, chosen.y, textLines, ok, { scale, dx: 0, dy: 0 });
+  drawLeaderLine(ctx, anchor, rendered, color, scale);
+  occupied?.push(rendered);
+  return rendered;
+}
+function anchorMetersFromToken(runway, dep, token, features = {}) {
+  const raw = String(token || '').trim();
+  if (!raw) return null;
+  const [kind, target] = raw.split(':');
+  const ref = String(runway?.referenceEnd || '');
+  const opp = String(oppositeEnd(runway) || '');
+  if (kind === 'PAV' || kind === 'THR') return String(target) === ref ? 0 : Number(runway?.lengthM || 0);
+  if (kind === 'INT') {
+    const it = (runway?.intersections || []).find(item => String(item.id) === String(target));
+    return it ? Number(it.metersFromRef || 0) : null;
+  }
+  if (kind === 'OP') {
+    const op = Number(features?.[target]?.operationalStartM || features?.operationalStartM || 0);
+    if (!(op > 0)) return null;
+    return String(target) === ref ? Math.min(Number(runway?.lengthM || 0), op) : Math.max(0, Number(runway?.lengthM || 0) - op);
+  }
+  return null;
+}
 async function renderAdcPreviewToCanvas(out) {
   const payload = adcPreviewState.payload;
   if (!payload?.chart?.src || !payload?.runway) return false;
@@ -161,62 +249,161 @@ async function renderAdcPreviewToCanvas(out) {
   const canonicalHeight = Number(payload.chart.size?.height || 0);
   const width = canonicalWidth > 0 ? canonicalWidth : (img.naturalWidth || 1000);
   const height = canonicalHeight > 0 ? canonicalHeight : (img.naturalHeight || 1400);
-  const labelScale = Math.max(1.15, Math.min(2.4, width / 1000));
+  const bounds = { w: width, h: height };
+  const labelScale = Math.max(1.18, Math.min(2.45, width / 980));
   out.width = width;
   out.height = height;
   const ctx = out.getContext('2d');
   ctx.clearRect(0, 0, width, height);
   ctx.drawImage(img, 0, 0, width, height);
-  const rows = payload.analysis?.rows || [];
-  const gatePoint = pointAlongRunway(payload.runway, payload.analysis?.gateMetersFromRef || 0);
-  ctx.save();
-  ctx.lineWidth = Math.max(5, Math.round(5 * Math.min(labelScale, 1.6)));
-  ctx.strokeStyle = '#7CFC00';
-  ctx.fillStyle = '#7CFC00';
-  const start = payload.runway.pavementRef || payload.runway.thresholdRef;
-  const end = payload.runway.pavementOpp || payload.runway.thresholdOpp;
-  if (start && end) {
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-    ctx.stroke();
-  }
-  ctx.beginPath();
-  ctx.arc(gatePoint.x, gatePoint.y, Math.max(8, Math.round(7 * Math.min(labelScale, 1.6))), 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-  // RTO label on left
-  const rtoText = `${Math.round(payload.rto || 0)} m`;
-  const rtoBox = drawLabeledBox(ctx, Math.round(50 * labelScale * 0.9), Math.max(Math.round(90 * labelScale * 0.85), gatePoint.y - Math.round(32 * labelScale)), ['RTO', rtoText], true, { scale: labelScale });
-  ctx.save();
-  ctx.strokeStyle = '#7CFC00'; ctx.lineWidth = Math.max(4, Math.round(4 * Math.min(labelScale, 1.5)));
-  ctx.beginPath();
-  ctx.moveTo(rtoBox.x + rtoBox.w, rtoBox.y + rtoBox.h / 2);
-  ctx.lineTo(gatePoint.x - Math.round(10 * Math.min(labelScale, 1.5)), gatePoint.y);
-  ctx.stroke();
-  ctx.restore();
-  rows.forEach((row, idx) => {
-    const p = row.labelPoint || pointAlongRunway(payload.runway, row.metersFromRef || 0);
-    const isFull = idx === 0 || /pav|full|thr/i.test(String(row.name || ''));
-    const label = isFull ? String(payload.departureEnd || row.name || '').trim() : shortPointLabel(row.name || row.id || '');
-    const value = `${Math.round(row.availableAsda || 0)} m`;
-    const dx = p.x < width / 2 ? Math.round(30 * labelScale) : -Math.round(175 * labelScale);
-    const dy = p.y < height / 2 ? -Math.round(46 * labelScale) : Math.round(18 * labelScale);
-    const box = drawLabeledBox(ctx, p.x, p.y, [label, value], row.go !== false, { dx, dy, scale: labelScale });
+  const runway = payload.runway;
+  const analysis = payload.analysis || {};
+  const rows = [...(analysis.rows || [])];
+  const fullRow = rows.find(row => row.id === 'FULL') || rows[0] || null;
+  const g = runwayGeometry(runway);
+  const occupied = [];
+
+  const drawRequiredArrow = () => {
+    const rto = Math.round(Number(payload.rto || 0));
+    const available = Number(analysis.metrics?.asda?.fullLength || fullRow?.availableAsda || runway.lengthM || 0);
+    const startMeters = Number(analysis.metrics?.asda?.startMeters);
+    const endMeters = Number(analysis.metrics?.asda?.endMeters);
+    const hasMetrics = Number.isFinite(startMeters) && Number.isFinite(endMeters);
+    const startBase = hasMetrics ? startMeters : (Number(analysis.meta?.fullLengthMetersFromRef));
+    const endBase = hasMetrics ? endMeters : Number(runway.lengthM || 0);
+    const usable = Math.max(0, available);
+    const req = Math.max(0, Math.min(usable, rto));
+    const dep = String(payload.departureEnd || '');
+    const depIsOpp = dep === String(oppositeEnd(runway) || '');
+    const startMRef = depIsOpp ? startBase - Math.max(0, usable - req) : startBase + Math.max(0, usable - req);
+    const endMRef = endBase;
+    const s = pointAtMetersFromRef(runway, startMRef);
+    const e = pointAtMetersFromRef(runway, endMRef);
     ctx.save();
-    ctx.strokeStyle = row.go !== false ? '#7CFC00' : '#ef4444';
-    ctx.lineWidth = Math.max(4, Math.round(4 * Math.min(labelScale, 1.5)));
+    ctx.strokeStyle = rto <= usable ? '#7CFC00' : '#ef4444';
+    ctx.fillStyle = rto <= usable ? '#7CFC00' : '#ef4444';
+    ctx.lineWidth = Math.max(5, runway.widthPx * 0.18);
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
-    ctx.lineTo(dx >= 0 ? box.x : box.x + box.w, box.y + box.h / 2);
+    ctx.moveTo(s.x, s.y);
+    ctx.lineTo(e.x, e.y);
     ctx.stroke();
-    ctx.restore();
-    ctx.save();
-    ctx.fillStyle = isFull ? '#3dd9ff' : '#f59e0b';
+    const len = Math.max(1, Math.hypot(e.x - s.x, e.y - s.y));
+    const ux = (e.x - s.x) / len, uy = (e.y - s.y) / len, px = -uy, py = ux;
+    const ah = 16, aw = 10;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, Math.max(8, Math.round(8 * Math.min(labelScale, 1.5))), 0, Math.PI * 2);
+    ctx.moveTo(e.x, e.y);
+    ctx.lineTo(e.x - ux * ah + px * aw, e.y - uy * ah + py * aw);
+    ctx.lineTo(e.x - ux * ah - px * aw, e.y - uy * ah - py * aw);
+    ctx.closePath();
     ctx.fill();
     ctx.restore();
+    const anchor = { x: s.x + (e.x - s.x) * 0.28, y: s.y + (e.y - s.y) * 0.28 };
+    const side = depIsOpp ? -1 : 1;
+    drawCalloutLabel(ctx, ['RTO', `${rto} m`], anchor, [
+      { x: anchor.x + g.px * 108 * side, y: anchor.y + g.py * 108 * side - 28, align: (g.px * side) > 0 ? 'left' : 'right' },
+      { x: anchor.x + g.px * 126 * side, y: anchor.y + g.py * 126 * side - 4, align: (g.px * side) > 0 ? 'left' : 'right' },
+      { x: anchor.x - g.px * 96 * side, y: anchor.y - g.py * 96 * side - 18, align: (g.px * side) > 0 ? 'right' : 'left' }
+    ], rto <= usable, labelScale, occupied, bounds);
+  };
+
+  const drawOperationalRestriction = () => {
+    const visual = analysis.visual || {};
+    const features = analysis.features || runway.endFeatures?.[payload.departureEnd] || {};
+    const dep = String(payload.departureEnd || '');
+    const defaultStart = `PAV:${dep}`;
+    const defaultEnd = `OP:${dep}`;
+    const startToken = visual?.restrictedSegment?.start || defaultStart;
+    const endToken = visual?.restrictedSegment?.end || defaultEnd;
+    const featureMap = runway.endFeatures || { [dep]: features };
+    const startMeters = anchorMetersFromToken(runway, dep, startToken, featureMap);
+    const endMeters = anchorMetersFromToken(runway, dep, endToken, featureMap);
+    if (!Number.isFinite(startMeters) || !Number.isFinite(endMeters) || Math.abs(endMeters - startMeters) < 1) return;
+    const aM = Math.min(startMeters, endMeters);
+    const bM = Math.max(startMeters, endMeters);
+    const s1 = pointAtMetersFromRef(runway, aM);
+    const s2 = pointAtMetersFromRef(runway, bM);
+    const bandHalf = Math.max(runway.widthPx * 0.72, 12);
+    ctx.save();
+    ctx.fillStyle = visual?.restrictedBandColor || 'rgba(239,68,68,0.96)';
+    ctx.beginPath();
+    ctx.moveTo(s1.x + g.px * bandHalf, s1.y + g.py * bandHalf);
+    ctx.lineTo(s2.x + g.px * bandHalf, s2.y + g.py * bandHalf);
+    ctx.lineTo(s2.x - g.px * bandHalf, s2.y - g.py * bandHalf);
+    ctx.lineTo(s1.x - g.px * bandHalf, s1.y - g.py * bandHalf);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    const opPoint = pointAtMetersFromRef(runway, endMeters);
+    const half = Math.max(runway.widthPx * 1.9, 28);
+    ctx.save();
+    ctx.strokeStyle = visual?.restrictedBarColor || '#ef4444';
+    ctx.lineWidth = Math.max(10, runway.widthPx * 0.42);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(opPoint.x + g.px * half, opPoint.y + g.py * half);
+    ctx.lineTo(opPoint.x - g.px * half, opPoint.y - g.py * half);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const drawGateBar = () => {
+    const gate = pointAtMetersFromRef(runway, Number(analysis.gateMetersFromRef || 0));
+    const half = runway.widthPx * 1.12;
+    ctx.save();
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(gate.x + g.px * half, gate.y + g.py * half);
+    ctx.lineTo(gate.x - g.px * half, gate.y - g.py * half);
+    ctx.stroke();
+    ctx.restore();
+  };
+
+  const drawStatusBarAtPoint = (metersFromRef, label, valueMeters, ok, dep, labelPoint = null, style = null) => {
+    const axisPoint = pointAtMetersFromRef(runway, metersFromRef);
+    const styleMode = style === 'twy' ? 'twy' : 'default';
+    const halfMultiplier = styleMode === 'twy' ? 0.60 : 0.95;
+    const minHalf = styleMode === 'twy' ? 7 : 14;
+    const half = Math.max(runway.widthPx * halfMultiplier, minHalf);
+    ctx.save();
+    ctx.strokeStyle = ok ? '#7CFC00' : '#ef4444';
+    ctx.lineWidth = styleMode === 'twy' ? Math.max(1.8, runway.widthPx * 0.072) : Math.max(4, runway.widthPx * 0.18);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(axisPoint.x + g.px * half, axisPoint.y + g.py * half);
+    ctx.lineTo(axisPoint.x - g.px * half, axisPoint.y - g.py * half);
+    ctx.stroke();
+    ctx.restore();
+    const side = dep === String(oppositeEnd(runway) || '') ? 1 : -1;
+    const preferred = labelPoint || { x: axisPoint.x + g.px * side * 84, y: axisPoint.y + g.py * side * 84 };
+    const alignPref = preferred.x >= axisPoint.x ? 'left' : 'right';
+    drawCalloutLabel(ctx, [label, `${Math.round(valueMeters || 0)} m`], axisPoint, [
+      { x: preferred.x + (alignPref === 'left' ? 10 : -10), y: preferred.y - 32, align: alignPref },
+      { x: preferred.x + (alignPref === 'left' ? 14 : -14), y: preferred.y + 4, align: alignPref },
+      { x: axisPoint.x + g.px * side * 104, y: axisPoint.y + g.py * side * 104 - 18, align: side * g.px >= 0 ? 'left' : 'right' },
+      { x: axisPoint.x - g.px * side * 104, y: axisPoint.y - g.py * side * 104 - 18, align: side * g.px >= 0 ? 'right' : 'left' }
+    ], ok, labelScale, occupied, bounds);
+  };
+
+  drawOperationalRestriction();
+  drawRequiredArrow();
+  drawGateBar();
+
+  if (fullRow) {
+    const dep = String(payload.departureEnd || '');
+    const startPoint = analysis.metrics?.asda?.startPoint || pointAtMetersFromRef(runway, Number(analysis.meta?.fullLengthMetersFromRef || 0));
+    const depLabelPoint = dep === String(oppositeEnd(runway) || '')
+      ? { x: startPoint.x + g.px * 58 + g.ux * 12, y: startPoint.y + g.py * 58 + g.uy * 12 }
+      : { x: startPoint.x - g.px * 58 - g.ux * 12, y: startPoint.y - g.py * 58 - g.uy * 12 };
+    drawStatusBarAtPoint(Number(analysis.meta?.fullLengthMetersFromRef || fullRow.metersFromRef || 0), String(analysis.meta?.startLabel || fullRow.name || dep).trim(), Number(fullRow.availableAsda || 0), fullRow.go !== false, dep, depLabelPoint, 'default');
+  }
+
+  const dep = String(payload.departureEnd || '');
+  const sorted = rows.filter(row => row.id !== 'FULL').sort((a, b) => Number(a.distStart || 0) - Number(b.distStart || 0));
+  sorted.forEach(row => {
+    drawStatusBarAtPoint(Number(row.metersFromRef || 0), displayTaxiLabel(row.name || row.id || ''), Number(row.availableAsda || 0), row.go !== false, dep, row.labelPoint || null, 'twy');
   });
   return true;
 }
@@ -1050,31 +1237,7 @@ async function renderPreview(mode) {
   if (mode === 'adc') {
     await refreshEmbeddedSizing(mode);
     const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-    const expectedKey = chartKey(expectedSrc);
-    if (expectedKey) await waitForAdcChartMatch(expectedSrc, 1800);
-    const bridge = adcFrame.contentWindow?.__adcBridge;
-    const renderInfo = bridge?.getRenderInfo ? bridge.getRenderInfo() : null;
-    const loadedKey = renderInfo?.loadedKey || '';
-    const adcSource = getSourceCanvas('adc');
-    const adcSourceReady = !!adcSource && adcSource.width > 48 && adcSource.height > 48;
-    const sourceMatches = !expectedKey || !loadedKey || loadedKey === expectedKey;
-    if (adcSourceReady && sourceMatches) {
-      const crop = { x: 0, y: 0, w: adcSource.width, h: adcSource.height };
-      const scale = stageWidth / crop.w;
-      const displayHeight = Math.round(crop.h * scale);
-      out.width = crop.w;
-      out.height = crop.h;
-      out.style.width = stageWidth + 'px';
-      out.style.height = displayHeight + 'px';
-      const ctx = out.getContext('2d');
-      ctx.clearRect(0, 0, out.width, out.height);
-      ctx.drawImage(adcSource, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
-      out.hidden = false;
-      out.dataset.mode = mode;
-      syncViewerStageHeight(displayHeight);
-      return true;
-    }
-
+    if (expectedSrc) await waitForAdcChartMatch(expectedSrc, 1800);
     const ok = await renderAdcPreviewToCanvas(out);
     if (ok) {
       const scale = stageWidth / out.width;
