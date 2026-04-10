@@ -822,8 +822,17 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       renderChartPageControls();
       const chart = currentDisplayChart(base, runway);
       const src = chartSource(base, runway);
-      state.chartRequestedKey = chartKey(src);
-      if (chartImg.src !== src) chartImg.src = src; else if (src) chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      const nextKey = chartKey(src);
+      const currentKey = state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || '');
+      state.chartRequestedKey = nextKey;
+      if (nextKey && currentKey !== nextKey) {
+        state.chartLoadedKey = '';
+        if (chartImg.src !== src) chartImg.src = src;
+        else chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      } else if (!canvas?.width || !canvas?.height) {
+        try { resizeCanvas(); } catch {}
+        try { draw(); } catch {}
+      }
       document.getElementById('vizSubtitle').textContent = `${base.id} • ${runway.label} • ${chart.label} • toque na carta para abrir em tela cheia.`;
     }
 
@@ -1925,7 +1934,7 @@ async function waitForChart(targetSrc = '', timeoutMs = 2200) {
         canvasHeight: canvas.height
       };
     }
-    await new Promise(resolve => setTimeout(resolve, 60));
+    await new Promise(resolve => setTimeout(resolve, 30));
   }
   return {
     ok: false,
