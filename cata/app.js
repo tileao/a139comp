@@ -5,6 +5,7 @@ const rtoFrame = document.getElementById('rtoFrame');
 const frameMap = { adc: adcFrame, wat: watFrame, rto: rtoFrame };
 const adcPreviewState = { payload: null };
 const imageCache = new Map();
+const vizRuntime = { renderSeq: 0, adcSyncSeq: 0, adcDirty: false };
 
 const els = {
   base: document.getElementById('baseSelect'),
@@ -47,6 +48,40 @@ const els = {
 function loadCtx() { try { return JSON.parse(localStorage.getItem(SHARED_KEY) || '{}'); } catch { return {}; } }
 function saveCtx(patch) { localStorage.setItem(SHARED_KEY, JSON.stringify({ ...loadCtx(), ...patch, updatedAt: new Date().toISOString(), lastModule: 'cata' })); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setViewerLoading(title = 'Atualizando visualização', sub = 'Aguarde a carta ser atualizada.') {
+  if (els.viewerPane) els.viewerPane.classList.remove('is-empty');
+  if (els.vizPlaceholder) {
+    restoreViewerPlaceholder();
+  els.vizPlaceholder.hidden = false;
+    els.vizPlaceholder.innerHTML = `
+      <div class="placeholder-title">${escapeHtml(title)}</div>
+      <div class="placeholder-sub">${escapeHtml(sub)}</div>
+    `;
+  }
+  if (els.vizPreviewCanvas) els.vizPreviewCanvas.hidden = true;
+  syncViewerStageHeight(null);
+}
+
+function restoreViewerPlaceholder() {
+  if (!els.vizPlaceholder) return;
+  els.vizPlaceholder.innerHTML = `
+    <div class="placeholder-title">Visualização em branco</div>
+    <div class="placeholder-sub">A carta aparece após preencher e calcular, ou ao escolher uma visualização.</div>
+  `;
+}
+
+function markAdcDirty(reason = '') {
+  vizRuntime.adcDirty = true;
+  if ((els.visualSelect.value || '') === 'adc') {
+    const sub = reason ? `Atualizando ${reason}…` : 'Aguarde a carta ADC ser atualizada.';
+    setViewerLoading('Atualizando carta ADC', sub);
+  }
+}
+
+function clearAdcDirty() {
+  vizRuntime.adcDirty = false;
+}
 
 function resolveFrameAssetSrc(frame, src) {
   if (!src) return '';
@@ -580,6 +615,12 @@ async function populateBaseOptions() {
 }
 
 async function syncAdcSelection({ renderPreviewIfActive = false } = {}) {
+  const syncSeq = ++vizRuntime.adcSyncSeq;
+  const activeAdc = (els.visualSelect.value || '') === 'adc';
+  if (renderPreviewIfActive && activeAdc) {
+    setViewerLoading('Atualizando carta ADC', 'Sincronizando base, cabeceira e RTO atuais.');
+  }
+
   const doc = await waitForIframe(adcFrame, ['baseSelect', 'departureEndSelect']);
   const baseSelect = doc.getElementById('baseSelect');
   const depSelect = doc.getElementById('departureEndSelect');
@@ -595,6 +636,7 @@ async function syncAdcSelection({ renderPreviewIfActive = false } = {}) {
       departureToken: desired.token || undefined,
       rto: numberFromText(els.rtoMetric.textContent) ?? loadCtx().rtoMeters ?? 0,
     });
+    if (syncSeq !== vizRuntime.adcSyncSeq) return selectedToken;
     adcPreviewState.payload = payload || null;
   } else {
     setField(doc, 'baseSelect', els.base.value);
@@ -605,17 +647,23 @@ async function syncAdcSelection({ renderPreviewIfActive = false } = {}) {
     try { doc.defaultView?.analyze?.(); } catch { clickField(doc, 'analyzeBtn'); }
   }
 
+  if (syncSeq !== vizRuntime.adcSyncSeq) return selectedToken;
+
   els.base.innerHTML = baseSelect.innerHTML;
   if (baseSelect.value) els.base.value = baseSelect.value;
   els.departure.innerHTML = depSelect.innerHTML;
   selectedToken = selectDepartureOption(els.departure, depSelect.value || desired.token, desired.dep);
 
-  if (renderPreviewIfActive && els.visualSelect.value === 'adc') {
+  if (renderPreviewIfActive && (els.visualSelect.value || '') === 'adc') {
+    const renderSeq = ++vizRuntime.renderSeq;
     await prepareEmbeddedView('adc');
+    if (syncSeq !== vizRuntime.adcSyncSeq || renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== 'adc') return selectedToken;
     await renderPreview('adc');
+    if (syncSeq !== vizRuntime.adcSyncSeq || renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== 'adc') return selectedToken;
     renderVisualizationMeta('adc');
   }
 
+  clearAdcDirty();
   pushSharedContext(collectInputs());
   return selectedToken;
 }
@@ -1264,6 +1312,8 @@ async function renderPreview(mode) {
       ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
       out.hidden = false;
       out.dataset.mode = mode;
+      if (els.vizPlaceholder) els.vizPlaceholder.hidden = true;
+      restoreViewerPlaceholder();
       syncViewerStageHeight(displayHeight);
       return true;
     }
@@ -1276,6 +1326,8 @@ async function renderPreview(mode) {
       out.style.height = displayHeight + 'px';
       out.hidden = false;
       out.dataset.mode = mode;
+      if (els.vizPlaceholder) els.vizPlaceholder.hidden = true;
+      restoreViewerPlaceholder();
       syncViewerStageHeight(displayHeight);
       return true;
     }
@@ -1296,11 +1348,14 @@ async function renderPreview(mode) {
     ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
     out.hidden = false;
     out.dataset.mode = mode;
+    if (els.vizPlaceholder) els.vizPlaceholder.hidden = true;
+    restoreViewerPlaceholder();
     syncViewerStageHeight(displayHeight);
     return true;
   }
 
   out.hidden = true;
+  if (els.vizPlaceholder) els.vizPlaceholder.hidden = false;
   syncViewerStageHeight(null);
   return false;
 }
@@ -1322,6 +1377,7 @@ function clearVisualization() {
   Object.values(frameMap).forEach(frame => frame.classList.remove('active'));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.classList.remove('active'));
   els.viewerPane.classList.add('is-empty');
+  restoreViewerPlaceholder();
   els.vizPlaceholder.hidden = false;
   els.vizPreviewCanvas.hidden = true;
   syncViewerStageHeight(null);
@@ -1436,6 +1492,7 @@ function openFullscreenChart(mode) {
 }
 
 function setVisualization(mode, forceShow = true) {
+  const renderSeq = ++vizRuntime.renderSeq;
   if (!mode) {
     clearVisualization();
     return;
@@ -1450,11 +1507,30 @@ function setVisualization(mode, forceShow = true) {
   saveCtx({ cataVizMode: mode });
   els.vizSubtitle.textContent = mapVizLabel(mode);
   renderVisualizationMeta(mode);
-  const prep = prepareEmbeddedView(mode);
-  prep.then(async () => {
-    await sleep(mode === 'adc' ? 90 : 120);
+
+  if (mode === 'adc' && vizRuntime.adcDirty) {
+    setViewerLoading('Atualizando carta ADC', 'Aplicando a última base, cabeceira e cálculo.');
+  }
+
+  (async () => {
+    if (mode === 'adc' && vizRuntime.adcDirty) {
+      await syncAdcSelection({ renderPreviewIfActive: false });
+    clearAdcDirty();
+      if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
+    }
+
+    await prepareEmbeddedView(mode);
+    if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
+
+    await sleep(mode === 'adc' ? 40 : 80);
+    if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
+
     await renderPreview(mode);
+    if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
+
     renderVisualizationMeta(mode);
+  })().catch(error => {
+    console.warn('Falha ao atualizar visualização', mode, error);
   });
 }
 
@@ -1509,6 +1585,7 @@ function setupAutoAdvance() {
 
 async function runFlow() {
   const input = collectInputs();
+  markAdcDirty('o cálculo');
   pushSharedContext(input);
   els.statusChip.textContent = 'Calculando…';
   els.statusChip.className = 'status-chip warn';
@@ -1517,11 +1594,13 @@ async function runFlow() {
     const wat = await runWAT(input);
     const rto = await runRTO(input);
     const adc = await runADC(input, rto);
+    clearAdcDirty();
     renderResults(wat, rto, adc);
     saveResultSnapshot(input, wat, rto, adc);
     setVisualization(els.visualSelect.value || 'adc');
   } catch (error) {
     console.error(error);
+    clearAdcDirty();
     els.statusChip.textContent = 'Erro na integração';
     els.statusChip.className = 'status-chip bad';
     els.resultCard.classList.remove('result-ok');
@@ -1539,8 +1618,9 @@ function bindEvents() {
   els.runBtn.addEventListener('click', runFlow);
   els.visualSelect.addEventListener('change', e => setVisualization(e.target.value, !!e.target.value));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.addEventListener('click', () => setVisualization(btn.dataset.viz, true)));
-  els.base.addEventListener('change', () => { syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
-  els.departure.addEventListener('change', () => { syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
+  els.base.addEventListener('change', () => { markAdcDirty('a base'); syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
+  els.departure.addEventListener('change', () => { markAdcDirty('a cabeceira'); syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
+  [els.aircraftSet, els.config, els.pa, els.oat, els.weight, els.wind].forEach(el => el?.addEventListener('change', () => { markAdcDirty('o cálculo'); }));
   els.openWATBtn.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../wat/?back=1&return=' + encodeURIComponent('../cata/');
@@ -1639,6 +1719,7 @@ window.addEventListener('load', async () => {
     await populateBaseOptions();
     restoreInputsFromContext();
     await syncAdcSelection({ renderPreviewIfActive: false });
+    clearAdcDirty();
     const hadSavedResults = restoreSavedResults();
     await Promise.all([prepareEmbeddedView('adc'), prepareEmbeddedView('wat'), prepareEmbeddedView('rto')]);
     if (els.visualSelect.value) setVisualization(els.visualSelect.value, true);
