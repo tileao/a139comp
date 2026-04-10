@@ -1477,11 +1477,11 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     }
     function measureLabelBox(textLines, x, y, align = 'left') {
       ctx.save();
-      ctx.font = '800 14px Inter, sans-serif';
-      const padX = 10, lineH = 16;
+      ctx.font = '800 13px Inter, sans-serif';
+      const padX = 9, lineH = 15;
       const widths = textLines.map(t => ctx.measureText(t).width);
       const w = Math.max(...widths, 32) + padX * 2;
-      const h = textLines.length * lineH + 12;
+      const h = textLines.length * lineH + 11;
       let left = align === 'right' ? x - w : x;
       left = Math.max(8, Math.min(left, canvas.clientWidth - w - 8));
       let top = Math.max(8, Math.min(y, canvas.clientHeight - h - 8));
@@ -1496,8 +1496,8 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     function drawLabelBox(textLines, x, y, color, align = 'left', register = true) {
       const box = measureLabelBox(textLines, x, y, align);
       ctx.save();
-      ctx.font = '800 17px Inter, sans-serif';
-      const padX = 12, lineH = 19, w = box.width, h = box.height, left = box.left, top = box.top;
+      ctx.font = '800 13px Inter, sans-serif';
+      const padX = 9, lineH = 15, w = box.width, h = box.height, left = box.left, top = box.top;
       ctx.shadowColor = 'rgba(0,0,0,.18)';
       ctx.shadowBlur = 9;
       ctx.fillStyle = 'rgba(8,18,31,.92)';
@@ -1518,7 +1518,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = color;
-      textLines.forEach((line, i) => ctx.fillText(line, left + padX, top + 21 + i * lineH));
+      textLines.forEach((line, i) => ctx.fillText(line, left + padX, top + 17 + i * lineH));
       ctx.restore();
       if (register) labelBoxes.push(box);
       return box;
