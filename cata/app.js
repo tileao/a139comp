@@ -48,6 +48,16 @@ const els = {
 function loadCtx() { try { return JSON.parse(localStorage.getItem(SHARED_KEY) || '{}'); } catch { return {}; } }
 function saveCtx(patch) { localStorage.setItem(SHARED_KEY, JSON.stringify({ ...loadCtx(), ...patch, updatedAt: new Date().toISOString(), lastModule: 'cata' })); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function nextFrame(count = 1) {
+  const steps = Math.max(1, Number(count || 1));
+  return new Promise(resolve => {
+    const tick = (n) => {
+      const raf = window.requestAnimationFrame || ((cb) => setTimeout(cb, 16));
+      raf(() => (n <= 1 ? resolve() : tick(n - 1)));
+    };
+    tick(steps);
+  });
+}
 
 function modeLoadingCopy(mode, reason = '') {
   const titleMap = {
@@ -615,7 +625,7 @@ async function waitForIframe(frame, ids = []) {
       const doc = frame.contentWindow?.document;
       if (doc && (!ids.length || ids.every(id => doc.getElementById(id)))) return doc;
     } catch {}
-    await sleep(120);
+    await sleep(60);
   }
   throw new Error('iframe não ficou pronto: ' + frame.id);
 }
@@ -625,7 +635,7 @@ async function waitForTruthy(readFn, timeoutMs = 5000) {
   while (Date.now() < end) {
     const value = readFn();
     if (value) return value;
-    await sleep(120);
+    await sleep(40);
   }
   return null;
 }
@@ -636,7 +646,7 @@ async function waitForFieldValue(doc, id, expected, timeoutMs = 3000) {
   while (Date.now() < end) {
     const el = doc.getElementById(id);
     if (el && normalize(el.value) === normalize(expected)) return true;
-    await sleep(60);
+    await sleep(25);
   }
   return false;
 }
@@ -646,7 +656,7 @@ async function waitForNoPendingRto(doc, timeoutMs = 4000) {
   while (Date.now() < end) {
     const pending = /recalculando|aguardando|loading|carregando/i.test(text(doc, 'statusDetail')) || /recalculando|aguardando|loading|carregando/i.test(text(doc, 'statusText'));
     if (!pending) return true;
-    await sleep(60);
+    await sleep(25);
   }
   return false;
 }
@@ -780,7 +790,7 @@ async function runWAT(input) {
   await waitForFieldValue(doc, 'oat', input.oatC);
   await waitForFieldValue(doc, 'actualWeight', input.weightKg);
   await waitForFieldValue(doc, 'headwind', input.headwindKt);
-  await sleep(120);
+  await nextFrame(1);
   try { await doc.defaultView?.runCalculation?.(); } catch { clickField(doc, 'runBtn'); }
 
   const maxText = await waitForTruthy(() => {
@@ -832,7 +842,7 @@ async function runRTO(input) {
   await waitForFieldValue(doc, 'oat', input.oatC);
   await waitForFieldValue(doc, 'actualWeight', input.weightKg);
   await waitForFieldValue(doc, 'headwind', input.headwindKt);
-  await sleep(120);
+  await nextFrame(1);
 
   try { await doc.defaultView?.refreshWeightSensitiveProfileIfNeeded?.(); } catch {}
   try { await doc.defaultView?.ensureEffectiveProfileLoaded?.({ preserveInputs: true, autoRun: false }); } catch {}
@@ -1141,18 +1151,17 @@ async function refreshEmbeddedSizing(mode, doc = null) {
       if (!frame.style.height) frame.style.height = '1800px';
       frame.style.visibility = 'visible';
       frame.style.opacity = '0';
-      await sleep(40);
+      await nextFrame(1);
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
-      await sleep(80);
+      await nextFrame(1);
       resizeActiveFrame(mode);
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
-      await sleep(40);
       return;
     }
     try { win?.dispatchEvent?.(new Event('resize')); } catch {}
-    await sleep(40);
+    await nextFrame(1);
     resizeActiveFrame(mode);
   } catch (error) {
     console.warn('Falha ao reajustar visualização', mode, error);
@@ -1337,14 +1346,22 @@ async function renderPreview(mode) {
   if (mode === 'adc') {
     await refreshEmbeddedSizing(mode);
     const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-    const expectedInfo = expectedSrc ? await waitForAdcChartMatch(expectedSrc, 2600) : null;
     const expectedKey = chartKey(expectedSrc);
 
-    const source = getSourceCanvas('adc');
-    const sourceReady = !!source && source.width > 48 && source.height > 48;
-    const renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
-    const loadedKey = renderInfo?.loadedKey || expectedInfo?.loadedKey || '';
-    const sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
+    let source = getSourceCanvas('adc');
+    let sourceReady = !!source && source.width > 48 && source.height > 48;
+    let renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
+    let loadedKey = renderInfo?.loadedKey || '';
+    let sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
+
+    if ((!sourceReady || !sourceMatchesExpected) && expectedSrc) {
+      const expectedInfo = await waitForAdcChartMatch(expectedSrc, 1600);
+      source = getSourceCanvas('adc');
+      sourceReady = !!source && source.width > 48 && source.height > 48;
+      renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
+      loadedKey = renderInfo?.loadedKey || expectedInfo?.loadedKey || '';
+      sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
+    }
 
     if (sourceReady && sourceMatchesExpected) {
       const crop = getCanvasCrop(source, 'adc');
@@ -1572,7 +1589,7 @@ function setVisualization(mode, forceShow = true) {
     if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
     if (vizRuntime.modeDirty?.[mode] && mode !== 'adc') return;
 
-    await sleep(mode === 'adc' ? 40 : 80);
+    await nextFrame(1);
     if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
     if (vizRuntime.modeDirty?.[mode] && mode !== 'adc') return;
 
@@ -1644,8 +1661,7 @@ async function runFlow() {
   els.statusChip.className = 'status-chip warn';
   els.resultCard.classList.remove('result-ok', 'result-bad');
   try {
-    const wat = await runWAT(input);
-    const rto = await runRTO(input);
+    const [wat, rto] = await Promise.all([runWAT(input), runRTO(input)]);
     const adc = await runADC(input, rto);
     clearAllModeDirty();
     clearAdcDirty();
