@@ -5,7 +5,7 @@ const rtoFrame = document.getElementById('rtoFrame');
 const frameMap = { adc: adcFrame, wat: watFrame, rto: rtoFrame };
 const adcPreviewState = { payload: null };
 const imageCache = new Map();
-const vizRuntime = { renderSeq: 0, adcSyncSeq: 0, adcDirty: false };
+const vizRuntime = { renderSeq: 0, adcSyncSeq: 0, adcDirty: false, modeDirty: { adc: false, wat: false, rto: false } };
 
 const els = {
   base: document.getElementById('baseSelect'),
@@ -49,6 +49,55 @@ function loadCtx() { try { return JSON.parse(localStorage.getItem(SHARED_KEY) ||
 function saveCtx(patch) { localStorage.setItem(SHARED_KEY, JSON.stringify({ ...loadCtx(), ...patch, updatedAt: new Date().toISOString(), lastModule: 'cata' })); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+function modeLoadingCopy(mode, reason = '') {
+  const titleMap = {
+    adc: 'Atualizando carta ADC',
+    wat: 'Atualizando gráfico WAT',
+    rto: 'Atualizando gráfico RTO'
+  };
+  const defaultSubMap = {
+    adc: 'Aguarde a carta ADC ser atualizada.',
+    wat: 'Aguarde o gráfico WAT ser atualizado.',
+    rto: 'Aguarde o gráfico RTO ser atualizado.'
+  };
+  let sub = defaultSubMap[mode] || 'Aguarde a visualização ser atualizada.';
+  if (reason) {
+    if (/recal|par[aâ]metr|c[aá]lcul/i.test(reason)) {
+      sub = 'Aplicando o cálculo mais recente.';
+    } else if (/base|cabeceira/i.test(reason)) {
+      sub = 'Aplicando a seleção mais recente.';
+    } else if (/troca|visualiza/i.test(reason)) {
+      sub = 'Abrindo a visualização atual.';
+    }
+  }
+  return { title: titleMap[mode] || 'Atualizando visualização', sub };
+}
+
+function showModeLoading(mode, reason = '') {
+  if (!mode) return;
+  const copy = modeLoadingCopy(mode, reason);
+  setViewerLoading(copy.title, copy.sub);
+}
+
+function setModeDirty(mode, reason = '') {
+  if (!mode || !vizRuntime.modeDirty) return;
+  vizRuntime.modeDirty[mode] = true;
+  if ((els.visualSelect.value || '') === mode) showModeLoading(mode, reason);
+}
+
+function markCalculationDirty(reason = 'o cálculo') {
+  ['adc', 'wat', 'rto'].forEach(mode => setModeDirty(mode, reason));
+}
+
+function clearModeDirty(mode) {
+  if (!mode || !vizRuntime.modeDirty) return;
+  vizRuntime.modeDirty[mode] = false;
+}
+
+function clearAllModeDirty() {
+  ['adc', 'wat', 'rto'].forEach(clearModeDirty);
+}
+
 function setViewerLoading(title = 'Atualizando visualização', sub = 'Aguarde a carta ser atualizada.') {
   if (els.viewerPane) els.viewerPane.classList.remove('is-empty');
   if (els.vizPlaceholder) {
@@ -73,14 +122,12 @@ function restoreViewerPlaceholder() {
 
 function markAdcDirty(reason = '') {
   vizRuntime.adcDirty = true;
-  if ((els.visualSelect.value || '') === 'adc') {
-    const sub = reason ? `Atualizando ${reason}…` : 'Aguarde a carta ADC ser atualizada.';
-    setViewerLoading('Atualizando carta ADC', sub);
-  }
+  setModeDirty('adc', reason || 'a carta ADC');
 }
 
 function clearAdcDirty() {
   vizRuntime.adcDirty = false;
+  clearModeDirty('adc');
 }
 
 function resolveFrameAssetSrc(frame, src) {
@@ -1499,8 +1546,8 @@ function setVisualization(mode, forceShow = true) {
   }
   if (forceShow) {
     els.viewerPane.classList.remove('is-empty');
-    els.vizPlaceholder.hidden = true;
   }
+  showModeLoading(mode, 'troca de visualização');
   Object.entries(frameMap).forEach(([key, frame]) => frame.classList.toggle('active', key === mode));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.viz === mode));
   els.visualSelect.value = mode;
@@ -1508,26 +1555,31 @@ function setVisualization(mode, forceShow = true) {
   els.vizSubtitle.textContent = mapVizLabel(mode);
   renderVisualizationMeta(mode);
 
-  if (mode === 'adc' && vizRuntime.adcDirty) {
-    setViewerLoading('Atualizando carta ADC', 'Aplicando a última base, cabeceira e cálculo.');
-  }
-
   (async () => {
     if (mode === 'adc' && vizRuntime.adcDirty) {
+      showModeLoading('adc', 'base/cabeceira/cálculo');
       await syncAdcSelection({ renderPreviewIfActive: false });
-    clearAdcDirty();
+      clearAdcDirty();
+      if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
+    }
+
+    if (vizRuntime.modeDirty?.[mode]) {
+      if (mode !== 'adc') return;
       if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
     }
 
     await prepareEmbeddedView(mode);
     if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
+    if (vizRuntime.modeDirty?.[mode] && mode !== 'adc') return;
 
     await sleep(mode === 'adc' ? 40 : 80);
     if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
+    if (vizRuntime.modeDirty?.[mode] && mode !== 'adc') return;
 
     await renderPreview(mode);
     if (renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== mode) return;
 
+    clearModeDirty(mode);
     renderVisualizationMeta(mode);
   })().catch(error => {
     console.warn('Falha ao atualizar visualização', mode, error);
@@ -1585,7 +1637,8 @@ function setupAutoAdvance() {
 
 async function runFlow() {
   const input = collectInputs();
-  markAdcDirty('o cálculo');
+  markCalculationDirty('o cálculo');
+  if (els.visualSelect.value) showModeLoading(els.visualSelect.value, 'recalculando');
   pushSharedContext(input);
   els.statusChip.textContent = 'Calculando…';
   els.statusChip.className = 'status-chip warn';
@@ -1594,6 +1647,7 @@ async function runFlow() {
     const wat = await runWAT(input);
     const rto = await runRTO(input);
     const adc = await runADC(input, rto);
+    clearAllModeDirty();
     clearAdcDirty();
     renderResults(wat, rto, adc);
     saveResultSnapshot(input, wat, rto, adc);
@@ -1620,7 +1674,7 @@ function bindEvents() {
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.addEventListener('click', () => setVisualization(btn.dataset.viz, true)));
   els.base.addEventListener('change', () => { markAdcDirty('a base'); syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
   els.departure.addEventListener('change', () => { markAdcDirty('a cabeceira'); syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
-  [els.aircraftSet, els.config, els.pa, els.oat, els.weight, els.wind].forEach(el => el?.addEventListener('change', () => { markAdcDirty('o cálculo'); }));
+  [els.aircraftSet, els.config, els.pa, els.oat, els.weight, els.wind].forEach(el => el?.addEventListener('change', () => { markCalculationDirty('parâmetros alterados'); }));
   els.openWATBtn.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../wat/?back=1&return=' + encodeURIComponent('../cata/');
