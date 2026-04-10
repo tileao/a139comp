@@ -5,64 +5,6 @@ const rtoFrame = document.getElementById('rtoFrame');
 const frameMap = { adc: adcFrame, wat: watFrame, rto: rtoFrame };
 const adcPreviewState = { payload: null };
 const imageCache = new Map();
-let vizRenderSeq = 0;
-
-function currentViewerStageWidth() {
-  try {
-    const stage = document.getElementById('vizWrap') || document.getElementById('viewerPane');
-    const rect = stage?.getBoundingClientRect?.();
-    return Math.max(320, Math.round((rect?.width || 0) - 2));
-  } catch {
-    return 768;
-  }
-}
-
-function setAdcFrameVisible(visible) {
-  const frame = adcFrame;
-  if (!frame) return;
-  const stageW = currentViewerStageWidth();
-  frame.dataset.liveMode = visible ? '1' : '0';
-  if (visible) {
-    frame.style.position = 'relative';
-    frame.style.left = '0';
-    frame.style.top = '0';
-    frame.style.visibility = 'visible';
-    frame.style.pointerEvents = 'auto';
-    frame.style.opacity = '1';
-    frame.style.display = 'block';
-    frame.style.width = '100%';
-    frame.style.margin = '0';
-    frame.style.padding = '0';
-    frame.style.background = '#000';
-    frame.style.verticalAlign = 'top';
-    if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1600px';
-    frame.style.zIndex = '1';
-    try {
-      frame.contentWindow?.scrollTo?.(0, 0);
-      const doc = frame.contentDocument || frame.contentWindow?.document;
-      if (doc?.documentElement) doc.documentElement.scrollTop = 0;
-      if (doc?.body) doc.body.scrollTop = 0;
-    } catch {}
-  } else {
-    frame.style.position = 'absolute';
-    frame.style.left = '-10000px';
-    frame.style.top = '0';
-    frame.style.width = `${stageW}px`;
-    if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1600px';
-    frame.style.visibility = 'visible';
-    frame.style.pointerEvents = 'none';
-    frame.style.opacity = '0';
-    frame.style.display = 'block';
-    frame.style.background = '#000';
-    frame.style.zIndex = '';
-    try {
-      frame.contentWindow?.scrollTo?.(0, 0);
-      const doc = frame.contentDocument || frame.contentWindow?.document;
-      if (doc?.documentElement) doc.documentElement.scrollTop = 0;
-      if (doc?.body) doc.body.scrollTop = 0;
-    } catch {}
-  }
-}
 
 const els = {
   base: document.getElementById('baseSelect'),
@@ -163,55 +105,6 @@ async function loadImage(src) {
   }).catch(() => null);
   imageCache.set(src, p);
   return p;
-}
-
-
-function expectedAdcSrc() {
-  const fromPayload = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
-  if (fromPayload) return fromPayload;
-  try {
-    const bridge = adcFrame.contentWindow?.__adcBridge;
-    const src = bridge?.getChartSource?.()?.src || '';
-    return src ? resolveFrameAssetSrc(adcFrame, src) : '';
-  } catch {
-    return '';
-  }
-}
-
-async function getAdcSnapshot(expectedSrc = '', timeoutMs = 3400) {
-  const bridge = adcFrame.contentWindow?.__adcBridge;
-  if (!bridge?.getSnapshotDataUrl) return null;
-  try {
-    const expectedKey = chartKey(expectedSrc);
-    const snap = await bridge.getSnapshotDataUrl(expectedSrc, timeoutMs);
-    if (!snap?.dataUrl) return null;
-    if (expectedKey && snap.loadedKey && snap.loadedKey !== expectedKey) return null;
-    const img = await loadImage(snap.dataUrl);
-    if (!img) return null;
-    return { image: img, info: snap };
-  } catch {
-    return null;
-  }
-}
-
-async function drawDirectImageToTarget(image, out, stageWidth = null) {
-  if (!image) return false;
-  const w = image.naturalWidth || image.width || 0;
-  const h = image.naturalHeight || image.height || 0;
-  if (w <= 48 || h <= 48) return false;
-  out.width = w;
-  out.height = h;
-  const ctx = out.getContext('2d');
-  ctx.clearRect(0, 0, out.width, out.height);
-  ctx.drawImage(image, 0, 0, w, h, 0, 0, w, h);
-  if (stageWidth != null) {
-    const scale = stageWidth / w;
-    const displayHeight = Math.round(h * scale);
-    out.style.width = stageWidth + 'px';
-    out.style.height = displayHeight + 'px';
-    syncViewerStageHeight(displayHeight);
-  }
-  return true;
 }
 
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -719,9 +612,6 @@ async function syncAdcSelection({ renderPreviewIfActive = false } = {}) {
 
   if (renderPreviewIfActive && els.visualSelect.value === 'adc') {
     await prepareEmbeddedView('adc');
-    setAdcFrameVisible(false);
-    await refreshEmbeddedSizing('adc');
-    resizeActiveFrame('adc');
     await renderPreview('adc');
     renderVisualizationMeta('adc');
   }
@@ -1152,39 +1042,18 @@ async function refreshEmbeddedSizing(mode, doc = null) {
     const targetDoc = doc || frame.contentDocument || frame.contentWindow?.document;
     const win = frame.contentWindow || targetDoc?.defaultView;
     if (mode === 'adc') {
-      const live = frame.dataset.liveMode === '1';
-      const stageW = currentViewerStageWidth();
-      frame.style.width = live ? '100%' : `${stageW}px`;
-      if (!frame.style.height || frame.style.height === '1px') frame.style.height = '1800px';
+      frame.style.width = '1280px';
+      if (!frame.style.height) frame.style.height = '1800px';
       frame.style.visibility = 'visible';
-      frame.style.opacity = live ? '1' : '0';
-      try {
-        win?.scrollTo?.(0, 0);
-        if (targetDoc?.documentElement) targetDoc.documentElement.scrollTop = 0;
-        if (targetDoc?.body) targetDoc.body.scrollTop = 0;
-      } catch {}
-      await sleep(80);
-      try { win?.resizeCanvas?.(); } catch {}
-      try { win?.draw?.(); } catch {}
-      await sleep(120);
-      resizeActiveFrame(mode);
-      try {
-        const contentH = Math.ceil(win?.__cataEmbedContentHeight || 0);
-        if (contentH > 0) frame.style.height = `${contentH}px`;
-      } catch {}
-      try {
-        win?.scrollTo?.(0, 0);
-        if (targetDoc?.documentElement) targetDoc.documentElement.scrollTop = 0;
-        if (targetDoc?.body) targetDoc.body.scrollTop = 0;
-      } catch {}
+      frame.style.opacity = '0';
+      await sleep(40);
       try { win?.resizeCanvas?.(); } catch {}
       try { win?.draw?.(); } catch {}
       await sleep(80);
       resizeActiveFrame(mode);
-      try {
-        const contentH = Math.ceil(win?.__cataEmbedContentHeight || 0);
-        if (contentH > 0) frame.style.height = `${contentH}px`;
-      } catch {}
+      try { win?.resizeCanvas?.(); } catch {}
+      try { win?.draw?.(); } catch {}
+      await sleep(40);
       return;
     }
     try { win?.dispatchEvent?.(new Event('resize')); } catch {}
@@ -1366,88 +1235,68 @@ function syncViewerStageHeight(px = null) {
   els.vizWrap.style.minHeight = `${h}px`;
 }
 
-async function drawCanvasCropToTarget(source, mode, out, stageWidth = null) {
-  if (!source || source.width <= 48 || source.height <= 48) return false;
-  const crop = getCanvasCrop(source, mode);
-  if (!crop || crop.w <= 48 || crop.h <= 48) return false;
-  out.width = crop.w;
-  out.height = crop.h;
-  const ctx = out.getContext('2d');
-  ctx.clearRect(0, 0, out.width, out.height);
-  ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
-  if (stageWidth != null) {
-    const scale = stageWidth / crop.w;
-    const displayHeight = Math.round(crop.h * scale);
-    out.style.width = stageWidth + 'px';
-    out.style.height = displayHeight + 'px';
-    syncViewerStageHeight(displayHeight);
-  }
-  return true;
-}
-
-async function waitForStableAdcCanvas(expectedSrc = '', timeoutMs = 3200) {
-  const expectedKey = chartKey(expectedSrc);
-  const deadline = Date.now() + timeoutMs;
-  let stableCount = 0;
-  let lastSignature = '';
-  while (Date.now() < deadline) {
-    await refreshEmbeddedSizing('adc');
-    const info = await waitForAdcChartMatch(expectedSrc, Math.min(900, Math.max(240, deadline - Date.now())));
-    const source = getSourceCanvas('adc');
-    const sourceReady = !!source && source.width > 48 && source.height > 48;
-    const loadedKey = info?.loadedKey || adcFrame.contentWindow?.__adcBridge?.getRenderInfo?.()?.loadedKey || '';
-    const keyMatches = !expectedKey || loadedKey === expectedKey;
-    const signature = `${loadedKey}|${source?.width || 0}x${source?.height || 0}|${info?.renderStamp || 0}`;
-    if (sourceReady && keyMatches) {
-      if (signature === lastSignature) stableCount += 1;
-      else stableCount = 1;
-      lastSignature = signature;
-      if (stableCount >= 2) return { source, info };
-    } else {
-      stableCount = 0;
-      lastSignature = signature;
-    }
-    await sleep(80);
-  }
-  return null;
-}
-
 async function renderPreview(mode) {
   const out = els.vizPreviewCanvas;
-  const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
 
+  const stageWidth = Math.max(320, els.viewerPane.getBoundingClientRect().width - 2);
   if (mode === 'adc') {
-    setAdcFrameVisible(false);
-    await refreshEmbeddedSizing('adc');
-    resizeActiveFrame('adc');
-    const expectedSrc = expectedAdcSrc();
-    let snap = await getAdcSnapshot(expectedSrc, 4200);
-    if (!snap?.image && expectedSrc) {
-      try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch {}
-      await refreshEmbeddedSizing('adc');
-      resizeActiveFrame('adc');
-      snap = await getAdcSnapshot(expectedSrc, 2600);
-    }
-    if (snap?.image && await drawDirectImageToTarget(snap.image, out, stageWidth)) {
+    await refreshEmbeddedSizing(mode);
+    const expectedSrc = adcPreviewState.payload?.chart?.src ? resolveFrameAssetSrc(adcFrame, adcPreviewState.payload.chart.src) : '';
+    const expectedInfo = expectedSrc ? await waitForAdcChartMatch(expectedSrc, 2600) : null;
+    const expectedKey = chartKey(expectedSrc);
+
+    const source = getSourceCanvas('adc');
+    const sourceReady = !!source && source.width > 48 && source.height > 48;
+    const renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
+    const loadedKey = renderInfo?.loadedKey || expectedInfo?.loadedKey || '';
+    const sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
+
+    if (sourceReady && sourceMatchesExpected) {
+      const crop = getCanvasCrop(source, 'adc');
+      const scale = stageWidth / crop.w;
+      const displayHeight = Math.round(crop.h * scale);
+      out.width = crop.w;
+      out.height = crop.h;
+      out.style.width = stageWidth + 'px';
+      out.style.height = displayHeight + 'px';
+      const ctx = out.getContext('2d');
+      ctx.clearRect(0, 0, out.width, out.height);
+      ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
       out.hidden = false;
       out.dataset.mode = mode;
+      syncViewerStageHeight(displayHeight);
       return true;
     }
-    const stable = await waitForStableAdcCanvas(expectedSrc, 2600);
-    if (stable?.source && await drawDirectImageToTarget(stable.source, out, stageWidth)) {
+
+    const ok = await renderAdcPreviewToCanvas(out);
+    if (ok) {
+      const scale = stageWidth / out.width;
+      const displayHeight = Math.round(out.height * scale);
+      out.style.width = stageWidth + 'px';
+      out.style.height = displayHeight + 'px';
       out.hidden = false;
       out.dataset.mode = mode;
+      syncViewerStageHeight(displayHeight);
       return true;
     }
-    out.hidden = true;
-    syncViewerStageHeight(null);
-    return false;
   }
 
   const source = getSourceCanvas(mode);
-  if (await drawCanvasCropToTarget(source, mode, out, stageWidth)) {
+  const sourceReady = !!source && source.width > 48 && source.height > 48;
+  if (sourceReady) {
+    const crop = getCanvasCrop(source, mode);
+    const scale = stageWidth / crop.w;
+    const displayHeight = Math.round(crop.h * scale);
+    out.width = crop.w;
+    out.height = crop.h;
+    out.style.width = stageWidth + 'px';
+    out.style.height = displayHeight + 'px';
+    const ctx = out.getContext('2d');
+    ctx.clearRect(0, 0, out.width, out.height);
+    ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
     out.hidden = false;
     out.dataset.mode = mode;
+    syncViewerStageHeight(displayHeight);
     return true;
   }
 
@@ -1475,7 +1324,6 @@ function clearVisualization() {
   els.viewerPane.classList.add('is-empty');
   els.vizPlaceholder.hidden = false;
   els.vizPreviewCanvas.hidden = true;
-  setAdcFrameVisible(false);
   syncViewerStageHeight(null);
   adcPreviewState.payload = null;
   els.vizSubtitle.textContent = mapVizLabel('');
@@ -1493,29 +1341,27 @@ const fullscreenEls = {
 const fullscreenState = { active: false, scale: 1, minScale: 1, maxScale: 4, x: 0, y: 0, startX: 0, startY: 0, dragging: false, moved: false };
 
 
-async function drawFullscreenSource(mode) {
+function drawFullscreenSource(mode) {
   const out = fullscreenEls.canvas;
-  if (mode === 'adc') {
-    const expectedSrc = expectedAdcSrc();
-    const snap = await getAdcSnapshot(expectedSrc, 3800) || await getAdcSnapshot('', 1800);
-    if (snap?.image && await drawDirectImageToTarget(snap.image, out, null)) return true;
-    const stable = await waitForStableAdcCanvas(expectedSrc, 2200);
-    return !!(stable?.source && await drawDirectImageToTarget(stable.source, out, null));
-  }
-
-  const source = getSourceCanvas(mode);
-  if (await drawCanvasCropToTarget(source, mode, out, null)) return true;
+  const ctx = out.getContext('2d');
 
   const preview = els.vizPreviewCanvas;
   if (preview && !preview.hidden && preview.width > 1 && preview.height > 1 && (preview.dataset.mode || els.visualSelect.value) === mode) {
     out.width = preview.width;
     out.height = preview.height;
-    const ctx = out.getContext('2d');
     ctx.clearRect(0, 0, out.width, out.height);
     ctx.drawImage(preview, 0, 0, preview.width, preview.height, 0, 0, preview.width, preview.height);
     return true;
   }
-  return false;
+
+  const source = getSourceCanvas(mode);
+  if (!source) return false;
+  const crop = getCanvasCrop(source, mode);
+  out.width = crop.w;
+  out.height = crop.h;
+  ctx.clearRect(0,0,out.width,out.height);
+  ctx.drawImage(source, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+  return true;
 }
 
 
@@ -1580,9 +1426,8 @@ function closeFullscreenChart() {
   document.body.classList.remove('fullscreen-body');
 }
 
-async function openFullscreenChart(mode) {
-  const ok = await drawFullscreenSource(mode);
-  if (!ok) return;
+function openFullscreenChart(mode) {
+  if (!drawFullscreenSource(mode)) return;
   fullscreenState.active = true;
   fullscreenState.moved = false;
   fullscreenEls.overlay.hidden = false;
@@ -1590,8 +1435,7 @@ async function openFullscreenChart(mode) {
   fitFullscreenCanvas();
 }
 
-async function setVisualization(mode, forceShow = true) {
-  const requestId = ++vizRenderSeq;
+function setVisualization(mode, forceShow = true) {
   if (!mode) {
     clearVisualization();
     return;
@@ -1600,34 +1444,18 @@ async function setVisualization(mode, forceShow = true) {
     els.viewerPane.classList.remove('is-empty');
     els.vizPlaceholder.hidden = true;
   }
-  setAdcFrameVisible(false);
   Object.entries(frameMap).forEach(([key, frame]) => frame.classList.toggle('active', key === mode));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.viz === mode));
   els.visualSelect.value = mode;
   saveCtx({ cataVizMode: mode });
   els.vizSubtitle.textContent = mapVizLabel(mode);
   renderVisualizationMeta(mode);
-
-  if (mode === 'adc') {
-    try { await syncAdcSelection({ renderPreviewIfActive: false }); } catch (error) { console.warn('Falha ao sincronizar ADC para visualização', error); }
-    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
-    await prepareEmbeddedView('adc');
-    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
-    setAdcFrameVisible(false);
-    await refreshEmbeddedSizing('adc');
-    resizeActiveFrame('adc');
-    await renderPreview('adc');
-    if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
+  const prep = prepareEmbeddedView(mode);
+  prep.then(async () => {
+    await sleep(mode === 'adc' ? 90 : 120);
+    await renderPreview(mode);
     renderVisualizationMeta(mode);
-    return;
-  }
-
-  await prepareEmbeddedView(mode);
-  if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
-  await sleep(120);
-  await renderPreview(mode);
-  if (requestId !== vizRenderSeq || els.visualSelect.value !== mode) return;
-  renderVisualizationMeta(mode);
+  });
 }
 
 function setupAutoAdvance() {
