@@ -228,36 +228,37 @@ function displayTaxiLabel(name = '') {
   return raw.replace(/^TWY\s+/i, '') || raw;
 }
 function measureLabeledBox(ctx, lines, scale = 1) {
-  void scale;
+  const useScale = Math.max(1, Number(scale || 1));
+  const padX = Math.round(14 * useScale);
+  const padY = Math.round(11 * useScale);
+  const fontSize = Math.round(20 * useScale);
+  const lineH = Math.round(31 * useScale);
   ctx.save();
-  ctx.font = '800 13px Inter, sans-serif';
-  const padX = 9;
-  const lineH = 15;
-  const widths = lines.map(line => ctx.measureText(line).width);
-  const width = Math.max(...widths, 32) + padX * 2;
-  const height = lines.length * lineH + 11;
+  ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
+  const minWidth = Math.round(82 * useScale);
+  const width = Math.max(...lines.map(line => ctx.measureText(line).width), minWidth) + padX * 2;
+  const height = lines.length * lineH + padY * 2 - Math.round(8 * useScale);
   ctx.restore();
   return { w: width, h: height };
 }
 function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
-  void opts;
-  const padX = 9;
-  const fontSize = 13;
-  const lineH = 15;
-  const textBase = 17;
-  const boxX = x;
-  const boxY = y;
-  const measured = measureLabeledBox(ctx, lines, 1);
+  const scale = Math.max(1, Number(opts.scale || 1));
+  const padX = Math.round(14 * scale);
+  const padY = Math.round(11 * scale);
+  const fontSize = Math.round(20 * scale);
+  const lineH = Math.round(31 * scale);
+  const textBase = Math.round(20 * scale);
+  const boxX = x + (opts.dx || 0);
+  const boxY = y + (opts.dy || 0);
+  const measured = measureLabeledBox(ctx, lines, scale);
   const width = measured.w;
   const height = measured.h;
   ctx.save();
-  ctx.font = `800 ${fontSize}px Inter, Arial, sans-serif`;
+  ctx.font = `bold ${fontSize}px Inter, Arial, sans-serif`;
   ctx.strokeStyle = ok ? '#7CFC00' : '#ef4444';
-  ctx.fillStyle = 'rgba(8,18,31,.92)';
-  ctx.lineWidth = 2;
-  const radius = 10;
-  ctx.shadowColor = 'rgba(0,0,0,.18)';
-  ctx.shadowBlur = 9;
+  ctx.fillStyle = '#0f1b2a';
+  ctx.lineWidth = Math.max(4, Math.round(4 * scale));
+  const radius = Math.round(16 * scale);
   ctx.beginPath();
   const w = width, h = height;
   const rx = boxX, ry = boxY;
@@ -270,7 +271,7 @@ function drawLabeledBox(ctx, x, y, lines, ok = true, opts = {}) {
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = ok ? '#7CFC00' : '#ef4444';
-  lines.forEach((line, idx) => ctx.fillText(line, boxX + padX, boxY + textBase + idx * lineH));
+  lines.forEach((line, idx) => ctx.fillText(line, boxX + padX, boxY + padY + textBase + idx * lineH));
   ctx.restore();
   return { x: boxX, y: boxY, w: width, h: height };
 }
@@ -346,7 +347,7 @@ async function renderAdcPreviewToCanvas(out) {
   const width = canonicalWidth > 0 ? canonicalWidth : (img.naturalWidth || 1000);
   const height = canonicalHeight > 0 ? canonicalHeight : (img.naturalHeight || 1400);
   const bounds = { w: width, h: height };
-  const labelScale = 1;
+  const labelScale = Math.max(1.18, Math.min(2.45, width / 980));
   out.width = width;
   out.height = height;
   const ctx = out.getContext('2d');
