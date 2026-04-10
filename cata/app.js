@@ -1147,7 +1147,9 @@ async function refreshEmbeddedSizing(mode, doc = null) {
     const targetDoc = doc || frame.contentDocument || frame.contentWindow?.document;
     const win = frame.contentWindow || targetDoc?.defaultView;
     if (mode === 'adc') {
-      frame.style.width = '1280px';
+      const viewerRect = els.viewerPane?.getBoundingClientRect?.();
+      const stageWidth = Math.max(360, Math.round((viewerRect?.width || 0) - 2) || 390);
+      frame.style.width = `${stageWidth}px`;
       if (!frame.style.height) frame.style.height = '1800px';
       frame.style.visibility = 'visible';
       frame.style.opacity = '0';
