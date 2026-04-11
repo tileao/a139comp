@@ -2363,8 +2363,8 @@ syncProfileUi();
     syncProfileUi_v1690();
     const is7000 = getSelectedAircraftSet() === '7000';
     formHintEl.textContent = is7000
-      ? 'Aeronave 7000: Offshore Helideck e Confined usam a base 6800. CAT A Offshore Enhanced usa o Supplement 97 até 7000 kg. CAT A Clear Area e CAT B usam o Supplement 90 quando os limitantes forem atendidos.'
-      : 'Aeronave 6800: todos os perfis continuam disponíveis. No CAT A Offshore Enhanced, o Supplement 97 é usado para o cálculo, mas o resultado final é limitado a 6800 kg.';
+      ? 'Perfis calculados: CAT A Offshore Helideck, CAT A Offshore Enhanced, CAT A Clear Area, CAT B e CAT A Confined Area. Na aeronave 7000, Offshore Helideck e Confined usam a base 6800, Offshore Enhanced usa o Supplement 97 até 7000 kg, e CAT A Clear Area / CAT B usam o Supplement 90 quando os limitantes forem atendidos.'
+      : 'Perfis calculados: CAT A Offshore Helideck, CAT A Offshore Enhanced, CAT A Clear Area, CAT B e CAT A Confined Area. Na aeronave 6800, todos os perfis permanecem disponíveis; no CAT A Offshore Enhanced o cálculo usa o Supplement 97 com resultado final limitado a 6800 kg.';
     activeProfile = getActiveProfile();
     if (activeProfile?.referenceHtml) chartReferenceEl.innerHTML = activeProfile.referenceHtml;
     chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
