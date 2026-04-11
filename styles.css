@@ -44,7 +44,7 @@ a{color:inherit}
   backdrop-filter:blur(12px);
 }
 .home-brand{display:flex;align-items:center;gap:0;min-width:0}
-.brand-mark{display:none}
+.brand-mark{display:grid;width:46px;height:46px;border-radius:14px;overflow:hidden;flex:0 0 46px}
 .brand-title{font-size:26px;font-weight:700;letter-spacing:.01em}
 .brand-subtitle{font-size:14px;color:var(--muted);margin-top:4px}
 .topbar-actions{display:flex;gap:10px;align-items:center}
@@ -156,3 +156,7 @@ a{color:inherit}
   .flow-card,.module-card,.utility-card{min-height:auto}
   .hero-panel{padding:18px}
 }
+
+.product-icon img{width:100%;height:100%;display:block;border-radius:inherit;object-fit:cover}
+
+.brand-mark img{width:100%;height:100%;display:block;object-fit:cover}
