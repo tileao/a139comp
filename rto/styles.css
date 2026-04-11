@@ -1122,7 +1122,7 @@ html,body{height:100%}
 body{min-height:100%}
 .app-shell{max-width:none;min-height:100%;margin:0;padding:12px;display:grid;grid-template-columns:370px minmax(0,1fr);grid-template-rows:auto auto auto 1fr;grid-template-areas:"top top" "sidebar viewer" "result viewer" "notes viewer";gap:12px}
 .topbar{grid-area:top;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:#243447;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:10px 12px;box-shadow:0 18px 40px rgba(0,0,0,.28)}
-.topbar-left,.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.product-tag{display:flex;align-items:center;gap:10px;padding-left:0}.product-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:transparent;color:#E5EEF7;font-size:20px;overflow:hidden}.product-line{font-size:13px;letter-spacing:.04em;color:#E5EEF7;opacity:.92;text-transform:uppercase}.product-sub{font-size:20px;line-height:1.05;font-weight:300;letter-spacing:.02em}
+.topbar-left,.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.product-tag{display:flex;align-items:center;gap:10px;padding-left:0}.product-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#1E293B;color:#E5EEF7;font-size:20px;overflow:hidden}.product-line{font-size:13px;letter-spacing:.04em;color:#E5EEF7;opacity:.92;text-transform:uppercase}.product-sub{font-size:20px;line-height:1.05;font-weight:300;letter-spacing:.02em}
 .hero{display:none}
 #formSection{grid-area:sidebar;margin:0;background:#1E293B;border-radius:0;padding:12px}
 #statusCard{grid-area:result;margin:0;background:#243447;border-radius:0;padding:12px;position:static;top:auto}
@@ -1157,4 +1157,5 @@ label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;c
 
 .module-topbar{padding:8px 10px!important;border-radius:14px!important}.module-topbar .product-icon{width:30px!important;height:30px!important;font-size:16px!important;border-radius:10px!important;overflow:hidden!important}.module-topbar .product-line{font-size:11px!important}.module-topbar .product-sub{font-size:16px!important;font-weight:500!important}.module-topbar .topbar-left,.module-topbar .topbar-right{gap:8px!important}.hero[hidden]{display:none!important}
 
-.product-icon img{width:100%;height:100%;display:block;border-radius:inherit;object-fit:cover}
+
+.product-icon img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
