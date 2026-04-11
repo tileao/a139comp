@@ -1662,117 +1662,169 @@ function updateSharePdfButtonLabel() {
   els.sharePdfBtn.textContent = 'Baixar PDF';
 }
 
-function createCataPdfCanvas() {
-  const ctxState = loadCtx();
-  const snap = ctxState?.cataLastResults || null;
-  const activeMode = els.visualSelect.value || ctxState.cataVizMode || 'adc';
-  const inputs = collectInputs();
-  const sourceCanvas = (() => {
+function getModeSnapshotCanvas(mode) {
+  try {
     const preview = els.vizPreviewCanvas;
-    const previewMode = preview?.dataset?.mode || activeMode;
-    if (preview && !preview.hidden && preview.width > 16 && preview.height > 16 && previewMode === activeMode) return preview;
-    const src = getSourceCanvas(activeMode);
+    if (preview && !preview.hidden && preview.width > 16 && preview.height > 16 && (preview.dataset.mode || els.visualSelect.value) === mode) {
+      const tmp = document.createElement('canvas');
+      tmp.width = preview.width;
+      tmp.height = preview.height;
+      tmp.getContext('2d').drawImage(preview, 0, 0);
+      return tmp;
+    }
+    const src = getSourceCanvas(mode);
     if (!src || src.width <= 16 || src.height <= 16) return null;
-    const crop = getCanvasCrop(src, activeMode);
+    const crop = getCanvasCrop(src, mode);
     if (!crop?.w || !crop?.h) return null;
     const tmp = document.createElement('canvas');
     tmp.width = crop.w;
     tmp.height = crop.h;
     tmp.getContext('2d').drawImage(src, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
     return tmp;
-  })();
+  } catch {
+    return null;
+  }
+}
+
+function createCataPdfCanvas() {
+  const inputs = collectInputs();
+  const adcCanvas = getModeSnapshotCanvas('adc');
+  const watCanvas = getModeSnapshotCanvas('wat');
+  const rtoCanvas = getModeSnapshotCanvas('rto');
 
   const decisionRows = [...els.decisionBody.querySelectorAll('tr')].map(tr => {
     const cells = [...tr.querySelectorAll('td')].map(td => td.textContent.trim());
     return cells.length >= 2 ? { point: cells[0], result: cells[1] } : null;
   }).filter(Boolean);
 
-  const width = 1400;
-  const margin = 64;
-  const cardGap = 22;
-  const headerH = 96;
-  const metaH = 210;
-  const resultH = 170;
-  const decisionRowH = 42;
-  const decisionH = 84 + Math.max(1, decisionRows.length) * decisionRowH;
-  const vizMaxW = width - margin * 2;
-  const vizDrawW = sourceCanvas ? vizMaxW : 0;
-  const vizDrawH = sourceCanvas ? Math.round(sourceCanvas.height * (vizDrawW / sourceCanvas.width)) : 0;
-  const vizH = sourceCanvas ? (vizDrawH + 64) : 170;
-  const height = headerH + metaH + resultH + decisionH + vizH + margin * 2 + cardGap * 4;
+  const width = 1600;
+  const margin = 48;
+  const gap = 22;
+  const contentW = width - margin * 2;
+  const colGap = 20;
+  const colW = Math.floor((contentW - colGap) / 2);
+  const metaH = 230;
+  const decisionRowH = 40;
+  const decisionH = 88 + Math.max(1, decisionRows.length) * decisionRowH;
+  const cardTitleH = 54;
+  const cardPad = 18;
+
+  const fitSize = (canvas, maxW, maxH) => {
+    if (!canvas || !canvas.width || !canvas.height) return { w: 0, h: 0 };
+    const scale = Math.min(maxW / canvas.width, maxH / canvas.height);
+    return { w: Math.round(canvas.width * scale), h: Math.round(canvas.height * scale) };
+  };
+  const topMaxH = 520;
+  const adcFit = fitSize(adcCanvas, colW - cardPad * 2, topMaxH - cardTitleH - cardPad * 2);
+  const watFit = fitSize(watCanvas, colW - cardPad * 2, topMaxH - cardTitleH - cardPad * 2);
+  const topCardH = Math.max(220, cardTitleH + cardPad * 2 + Math.max(adcFit.h, watFit.h));
+  const rtoMaxH = 520;
+  const rtoFit = fitSize(rtoCanvas, contentW - cardPad * 2, rtoMaxH - cardTitleH - cardPad * 2);
+  const rtoCardH = Math.max(220, cardTitleH + cardPad * 2 + rtoFit.h);
+
+  const height = margin + 74 + gap + metaH + gap + topCardH + gap + rtoCardH + gap + decisionH + margin;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
 
-  const roundRect = (x, y, w, h, r=22) => {
+  const roundRect = (x, y, w, h, r = 22) => {
     ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y, x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x, y+h, r);
-    ctx.arcTo(x, y+h, x, y, r);
-    ctx.arcTo(x, y, x+w, y, r);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   };
-  const fillCard = (x, y, w, h) => { ctx.fillStyle = '#ffffff'; roundRect(x,y,w,h,24); ctx.fill(); ctx.strokeStyle='#d6deea'; ctx.lineWidth=2; ctx.stroke(); };
-  const text = (str, x, y, size=28, color='#102033', weight='600', align='left') => { ctx.fillStyle=color; ctx.font=`${weight} ${size}px Inter, Arial, sans-serif`; ctx.textAlign=align; ctx.fillText(String(str||''), x, y); };
-  const rowText = (label, value, x, y, w) => { text(label, x, y, 20, '#5f6f84', '600'); text(value || '—', x, y+30, 28, '#102033', '700'); };
+  const fillCard = (x, y, w, h) => {
+    ctx.fillStyle = '#ffffff';
+    roundRect(x, y, w, h, 24);
+    ctx.fill();
+    ctx.strokeStyle = '#d6deea';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  };
+  const text = (str, x, y, size = 28, color = '#102033', weight = '600', align = 'left') => {
+    ctx.fillStyle = color;
+    ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+    ctx.textAlign = align;
+    ctx.fillText(String(str || ''), x, y);
+  };
+  const rowText = (label, value, x, y) => {
+    text(label, x, y, 20, '#5f6f84', '600');
+    text(value || '—', x, y + 30, 28, '#102033', '700');
+  };
+  const drawVizCard = (title, srcCanvas, x, y, w, h) => {
+    fillCard(x, y, w, h);
+    text(title, x + 22, y + 36, 28, '#102033', '800');
+    if (!srcCanvas) {
+      text('Sem carta disponível.', x + 22, y + 96, 22, '#6a7a8e', '600');
+      return;
+    }
+    const maxW = w - cardPad * 2;
+    const maxH = h - cardTitleH - cardPad * 2;
+    const fit = fitSize(srcCanvas, maxW, maxH);
+    const drawX = x + Math.round((w - fit.w) / 2);
+    const drawY = y + cardTitleH + cardPad + Math.round((maxH - fit.h) / 2);
+    ctx.fillStyle = '#0f1a28';
+    roundRect(drawX - 8, drawY - 8, fit.w + 16, fit.h + 16, 16);
+    ctx.fill();
+    ctx.drawImage(srcCanvas, drawX, drawY, fit.w, fit.h);
+  };
 
-  ctx.fillStyle = '#eef3f9'; ctx.fillRect(0,0,width,height);
-  text('AW139 Companion — Cat A Clear Area', margin, margin+10, 36, '#102033', '800');
-  text('Resumo exportado do fluxo composto', margin, margin+50, 20, '#5f6f84', '600');
-  const exportedAt = new Date().toLocaleString('pt-BR');
-  text(exportedAt, width-margin, margin+50, 18, '#6f7f93', '600', 'right');
+  ctx.fillStyle = '#eef3f9';
+  ctx.fillRect(0, 0, width, height);
+  text('AW139 Companion — CAT A Clear Area', margin, margin + 10, 36, '#102033', '800');
+  text('Resumo exportado do fluxo composto', margin, margin + 50, 20, '#5f6f84', '600');
+  text(new Date().toLocaleString('pt-BR'), width - margin, margin + 50, 18, '#6f7f93', '600', 'right');
 
-  let y = margin + 76;
-  fillCard(margin, y, width - margin*2, metaH);
-  rowText('Base', inputs.base || '—', margin+28, y+42);
-  rowText('Cabeceira', inputs.departureEnd || '—', margin+350, y+42);
-  rowText('PA', `${inputs.pressureAltitudeFt || 0} ft`, margin+700, y+42);
-  rowText('OAT', `${inputs.oatC || 0} °C`, margin+980, y+42);
-  rowText('Configuração', els.config.options[els.config.selectedIndex]?.text || inputs.configuration || '—', margin+28, y+118);
-  rowText('Peso', `${inputs.weightKg || 0} kg`, margin+520, y+118);
-  rowText('Vento', `${inputs.headwindKt || 0} kt`, margin+760, y+118);
-  rowText('Matrícula', inputs.registration || '—', margin+980, y+118);
+  let y = margin + 74;
+  fillCard(margin, y, contentW, metaH);
+  rowText('Base', inputs.base || '—', margin + 28, y + 42);
+  rowText('Cabeceira', inputs.departureEnd || '—', margin + 350, y + 42);
+  rowText('PA', `${inputs.pressureAltitudeFt || 0} ft`, margin + 700, y + 42);
+  rowText('OAT', `${inputs.oatC || 0} °C`, margin + 980, y + 42);
+  rowText('Configuração', els.config.options[els.config.selectedIndex]?.text || inputs.configuration || '—', margin + 28, y + 118);
+  rowText('Peso', `${inputs.weightKg || 0} kg`, margin + 520, y + 118);
+  rowText('Headwind', `${inputs.headwindKt || 0} kt`, margin + 760, y + 118);
+  rowText('Matrícula', inputs.registration || '—', margin + 1020, y + 118);
+  rowText('Status', els.statusChip.textContent || '—', margin + 28, y + 188);
+  rowText('WAT', els.watMax.textContent || '—', margin + 520, y + 188);
+  rowText('RTO', els.rtoMetric.textContent || '—', margin + 760, y + 188);
 
-  y += metaH + cardGap;
-  fillCard(margin, y, width - margin*2, resultH);
-  rowText('Status', els.statusChip.textContent || '—', margin+28, y+42);
-  rowText('WAT', els.watMax.textContent || '—', margin+420, y+42);
-  rowText('RTO', els.rtoMetric.textContent || '—', margin+700, y+42);
-  rowText('Visualização', (activeMode || 'adc').toUpperCase(), margin+980, y+42);
-  text(els.watSummary.textContent || '—', margin+28, y+118, 20, '#314254', '600');
-  text(els.rtoSummary.textContent || '—', margin+28, y+148, 20, '#314254', '600');
+  y += metaH + gap;
+  drawVizCard('ADC', adcCanvas, margin, y, colW, topCardH);
+  drawVizCard('WAT', watCanvas, margin + colW + colGap, y, colW, topCardH);
 
-  y += resultH + cardGap;
-  fillCard(margin, y, width - margin*2, decisionH);
-  text('Tabela de decisão', margin+28, y+42, 28, '#102033', '800');
-  const col1 = margin + 28; const col2 = width - margin - 110;
-  text('Ponto', col1, y+82, 20, '#6a7a8e', '700');
-  text('RTO', col2, y+82, 20, '#6a7a8e', '700', 'right');
+  y += topCardH + gap;
+  drawVizCard('RTO', rtoCanvas, margin, y, contentW, rtoCardH);
+
+  y += rtoCardH + gap;
+  fillCard(margin, y, contentW, decisionH);
+  text('Tabela de decisão', margin + 28, y + 42, 28, '#102033', '800');
+  const col1 = margin + 28;
+  const col2 = width - margin - 110;
+  text('Ponto', col1, y + 82, 20, '#6a7a8e', '700');
+  text('RTO', col2, y + 82, 20, '#6a7a8e', '700', 'right');
   let rowY = y + 118;
   if (!decisionRows.length) {
     text('Sem análise ainda.', col1, rowY, 20, '#6a7a8e', '600');
   } else {
     decisionRows.forEach((row, idx) => {
-      if (idx) { ctx.strokeStyle = '#e2e8f1'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(margin+24, rowY-24); ctx.lineTo(width-margin-24, rowY-24); ctx.stroke(); }
+      if (idx) {
+        ctx.strokeStyle = '#e2e8f1';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(margin + 24, rowY - 24);
+        ctx.lineTo(width - margin - 24, rowY - 24);
+        ctx.stroke();
+      }
       text(row.point, col1, rowY, 22, '#102033', '700');
       const ok = /^ok$/i.test(row.result);
       text(row.result, col2, rowY, 22, ok ? '#1f8f57' : '#b53a3a', '800', 'right');
       rowY += decisionRowH;
     });
-  }
-
-  y += decisionH + cardGap;
-  fillCard(margin, y, width - margin*2, vizH);
-  text(`Visualização ${String(activeMode || 'adc').toUpperCase()}`, margin+28, y+42, 28, '#102033', '800');
-  if (sourceCanvas) {
-    ctx.fillStyle = '#0f1a28';
-    roundRect(margin+24, y+64, vizDrawW+16, vizDrawH+16, 18);
-    ctx.fill();
-    ctx.drawImage(sourceCanvas, margin+32, y+72, vizDrawW, vizDrawH);
-  } else {
-    text('Nenhuma carta disponível para exportar nesta visualização.', margin+28, y+110, 22, '#6a7a8e', '600');
   }
 
   return canvas;
@@ -1785,20 +1837,20 @@ async function exportFlowPdf() {
     alert('Rode primeiro um cálculo válido para compartilhar o PDF do fluxo.');
     return;
   }
-  const mode = els.visualSelect.value || 'adc';
-  if (mode) showModeLoading(mode, 'gerando PDF');
+  const previousMode = els.visualSelect.value || 'adc';
+  showModeLoading(previousMode, 'gerando PDF');
   try {
-    if (mode) {
-      await prepareEmbeddedView(mode);
-      await nextFrame(1);
-      await renderPreview(mode);
-    }
+    await Promise.all(['adc', 'wat', 'rto'].map(async (mode) => {
+      try {
+        await prepareEmbeddedView(mode);
+        await nextFrame(1);
+      } catch {}
+    }));
     const canvas = createCataPdfCanvas();
     const safeBase = String((collectInputs().base || 'base')).toLowerCase();
-    const safeMode = String(mode || 'adc').toLowerCase();
-    await shareOrDownloadPdfFromCanvas(canvas, `aw139-cata-${safeBase}-${safeMode}.pdf`);
+    await shareOrDownloadPdfFromCanvas(canvas, `aw139-cata-${safeBase}.pdf`);
   } finally {
-    if (mode) setVisualization(mode, true);
+    setVisualization(previousMode, true);
   }
 }
 
@@ -1860,7 +1912,7 @@ function setupAutoAdvance() {
     { el: els.pa, next: els.oat, minDigits: 3, maxDigits: 5 },
     { el: els.oat, next: els.weight, minDigits: 2, maxDigits: 2 },
     { el: els.weight, next: els.wind, minDigits: 4, maxDigits: 4 },
-    { el: els.wind, next: els.runBtn, minDigits: 1, maxDigits: 2 },
+    { el: els.wind, next: els.runBtn, minDigits: 2, maxDigits: 2 },
   ];
 
   rules.forEach((rule) => {
@@ -1951,7 +2003,7 @@ function bindEvents() {
     saveCurrentInputsForModuleOpen();
     location.href = '../adc/?back=1&return=' + encodeURIComponent('../cata/');
   });
-  els.sidebarToggleBtn.addEventListener('click', () => setSidebarCollapsed());
+  els.sidebarToggleBtn?.addEventListener('click', () => setSidebarCollapsed());
   els.vizPreviewCanvas.addEventListener('click', () => { const mode = els.vizPreviewCanvas.dataset.mode || els.visualSelect.value; if (mode) openFullscreenChart(mode); });
   fullscreenEls.close.addEventListener('click', (event) => {
     event.stopPropagation();
