@@ -29,7 +29,7 @@
       <div>
         <p class="eyebrow">AW139</p>
         <h1>AW139 WAT Companion</h1>
-        <p class="subtitle">Calcula CAT A Offshore Helideck, CAT A Offshore Enhanced, CAT A Clear Area, CAT B e CAT A Confined Area para AW139 6800 / 7000.</p>
+        <p class="subtitle">Envelope check com roteamento por faixa de peso para AW139 6800 / 7000 + Offshore Enhanced</p>
         <p class="build-version">Build v16.9.1</p>
       </div>
       <button id="installBtn" class="ghost hidden">Instalar</button>
@@ -108,11 +108,11 @@
         </label>
       </div>
 
-      <div class="action-row">
+      <div class="action-row wat-entry-actions">
         <button id="runBtn" class="primary">Check WAT</button>
-        <button id="demoBtn" class="ghost">Demo 7000</button>
+        <button id="resetBtn" class="ghost">Reset</button>
       </div>
-      <p id="formHint" class="hint">Perfis calculados: CAT A Offshore Helideck, CAT A Offshore Enhanced, CAT A Clear Area, CAT B e CAT A Confined Area. Na aeronave 7000, CAT A Clear Area e CAT B usam o Supp 90 quando aplicável.</p>
+      <p id="formHint" class="hint hidden" hidden></p>
     </section>
 
     <section id="statusCard" class="card status neutral">
@@ -140,7 +140,6 @@
       <div class="card-title-row">
         <h2>Interpolação visual</h2>
         <div class="toolbar-row">
-          <button id="toggleChart" class="ghost small">Ocultar gráfico</button>
           <button id="exportPdfBtn" class="ghost small">Compartilhar / Baixar PDF</button>
         </div>
       </div>
@@ -155,21 +154,20 @@
           <span><i class="dot green"></i> Dentro</span>
           <span><i class="dot red"></i> Fora</span>
         </div>
-        <p id="chartHint" class="hint">Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.</p>
+        <p id="chartHint" class="hint hidden" hidden></p>
         <p id="chartReference" class="chart-reference"><strong>Gráfico em uso:</strong> Figure 4-7 — Weight Limitations for CAT A Offshore Helideck Procedure.<br><strong>Suplemento:</strong> Supplement 50<br><strong>Página:</strong> S50-30<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.</p>
       </div>
     </section>
-
-    <section class="card compact">
-      <h2>Motor WAT</h2>
-      <ul class="clean-list">
-        <li>Banco de dados em JSON por procedimento/configuração</li>
-        <li>Motor de interpolação separado da interface</li>
-        <li>Camada gráfica independente para visualização do envelope</li>
-        <li>Suporte nativo a uso offline via service worker</li>
-      </ul>
-    </section>
   </main>
+
+  <div id="chartFullscreenOverlay" class="chart-fullscreen-overlay" hidden>
+    <div class="chart-fullscreen-top">
+      <button id="chartFullscreenClose" class="chart-fullscreen-close" type="button" aria-label="Fechar tela cheia">✕</button>
+    </div>
+    <div id="chartFullscreenViewport" class="chart-fullscreen-viewport">
+      <canvas id="chartFullscreenCanvas" class="chart-fullscreen-canvas" width="1" height="1"></canvas>
+    </div>
+  </div>
 
   <script src="app.js?v=v16_9_7-offshore-label-fix" defer></script>
   <script src="../shared/module-bridge.js"></script>

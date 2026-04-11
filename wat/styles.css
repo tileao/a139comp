@@ -187,3 +187,17 @@ label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;c
 
 
 .product-icon img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
+
+.chart-stage{cursor:zoom-in;}
+.action-row .ghost{height:42px;border-radius:10px;}
+.chart-fullscreen-overlay{position:fixed;inset:0;z-index:1000;background:#02060d;display:grid;grid-template-rows:auto 1fr}
+.chart-fullscreen-overlay[hidden]{display:none!important}
+.chart-fullscreen-top{display:flex;justify-content:flex-end;padding:10px 12px}
+.chart-fullscreen-close{width:42px;height:42px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(15,23,32,.86);color:#fff;font-size:22px;cursor:pointer}
+.chart-fullscreen-viewport{position:relative;overflow:hidden;touch-action:none}
+.chart-fullscreen-canvas{position:absolute;left:0;top:0;transform-origin:0 0;box-shadow:0 18px 40px rgba(0,0,0,.35);background:#111827;border-radius:0}
+body.fullscreen-body{overflow:hidden}
+
+.wat-entry-actions{grid-template-columns:1fr 1fr}
+.wat-entry-actions .primary{grid-column:auto}
+.wat-entry-actions .ghost{grid-column:auto}

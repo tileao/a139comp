@@ -12,6 +12,7 @@ const paNegativeBtn = document.getElementById('paNegativeBtn');
 const oatNegativeBtn = document.getElementById('oatNegativeBtn');
 const runBtn = document.getElementById('runBtn');
 const demoBtn = document.getElementById('demoBtn');
+const resetBtn = document.getElementById('resetBtn');
 const toggleChart = document.getElementById('toggleChart');
 const exportPdfBtn = document.getElementById('exportPdfBtn');
 const chartPanel = document.getElementById('chartPanel');
@@ -27,12 +28,19 @@ const statusTitle = document.getElementById('statusTitle');
 const statusText = document.getElementById('statusText');
 const maxWeightEl = document.getElementById('maxWeight');
 const marginEl = document.getElementById('margin');
+const fullscreenEls = {
+  overlay: document.getElementById('chartFullscreenOverlay'),
+  viewport: document.getElementById('chartFullscreenViewport'),
+  canvas: document.getElementById('chartFullscreenCanvas'),
+  close: document.getElementById('chartFullscreenClose'),
+};
+const fullscreenState = { active: false, scale: 1, minScale: 1, maxScale: 4, x: 0, y: 0, startX: 0, startY: 0, dragging: false, moved: false };
+
 
 const WAT_PARAMS = new URLSearchParams(window.location.search);
 const WAT_IS_EMBED = WAT_PARAMS.get('embed') === '1';
 if (!WAT_IS_EMBED) {
   chartPanel.classList.remove('hidden');
-  if (toggleChart) toggleChart.textContent = 'Ocultar gráfico';
 }
 
 const OFFSHORE_STANDARD_EXACT = {"image": "assets/offshore_standard_chart_clip.png", "main": {"xMin": 81.379, "xMax": 271.707, "kgMin": 5800, "kgMax": 6800, "yZeroFt": 388.388, "yTopFt": 165.047, "maxPaFt": 5000}, "headwind": {"yTop": 436.584, "yBottom": 488.12, "maxKt": 20}, "tempCurves": {"-40": [[271.707, 433.182], [271.707, 165.047]], "-30": [[271.707, 433.182], [271.707, 182.876], [270.762, 180.671], [270.223, 179.962], [269.681, 179.253], [269.138, 178.546], [268.592, 177.839], [268.045, 177.133], [267.497, 176.428], [266.947, 175.723], [266.397, 175.018], [265.846, 174.314], [265.295, 173.609], [264.744, 172.905], [264.193, 172.2], [263.643, 171.495], [263.093, 170.789], [262.545, 170.083], [261.998, 169.376], [261.452, 168.669], [260.908, 167.96], [260.367, 167.251], [258.603, 165.047]], "-20": [[271.707, 433.182], [271.707, 232.017], [271.329, 229.812], [269.628, 227.544], [267.183, 224.395], [264.741, 221.243], [262.302, 218.087], [259.867, 214.928], [257.435, 211.766], [255.005, 208.601], [252.579, 205.433], [250.156, 202.263], [247.736, 199.09], [245.319, 195.914], [242.906, 192.736], [240.495, 189.557], [238.087, 186.375], [235.682, 183.191], [233.28, 180.006], [230.88, 176.819], [228.484, 173.631], [226.091, 170.442], [223.7, 167.251], [221.999, 165.047]], "-10": [[271.707, 433.182], [271.707, 278.954], [271.329, 276.686], [267.927, 272.275], [263.739, 266.802], [259.558, 261.324], [255.383, 255.841], [251.216, 250.353], [247.055, 244.859], [242.902, 239.359], [238.756, 233.854], [234.619, 228.343], [230.491, 222.825], [226.371, 217.301], [222.26, 211.77], [218.159, 206.232], [214.067, 200.686], [209.986, 195.134], [205.915, 189.573], [201.855, 184.005], [197.806, 178.429], [193.768, 172.844], [189.742, 167.251], [188.167, 165.047]], "0": [[271.707, 433.182], [271.707, 323.622], [270.762, 321.417], [264.724, 313.528], [258.712, 305.628], [252.727, 297.715], [246.767, 289.79], [240.83, 281.854], [234.915, 273.905], [229.022, 265.944], [223.148, 257.971], [217.293, 249.985], [211.456, 241.988], [205.635, 233.978], [199.828, 225.956], [194.036, 217.921], [188.256, 209.875], [182.487, 201.816], [176.728, 193.745], [170.979, 185.661], [165.237, 177.565], [159.501, 169.457], [156.351, 165.047]], "10": [[271.707, 433.182], [271.707, 368.29], [271.139, 366.085], [269.438, 363.817], [267.738, 361.612], [264.391, 357.175], [261.048, 352.735], [257.709, 348.292], [254.375, 343.845], [251.045, 339.396], [247.719, 334.943], [244.399, 330.487], [241.083, 326.027], [237.773, 321.563], [234.468, 317.095], [231.168, 312.623], [227.874, 308.147], [224.586, 303.667], [221.304, 299.182], [218.028, 294.693], [214.758, 290.198], [211.495, 285.699], [208.238, 281.195], [204.988, 276.686], [203.35, 274.481], [201.775, 272.275], [200.137, 270.007], [198.812, 268.123], [197.487, 266.239], [196.16, 264.356], [194.833, 262.474], [193.505, 260.593], [192.176, 258.712], [190.847, 256.832], [189.517, 254.952], [188.187, 253.073], [186.856, 251.194], [185.525, 249.315], [184.194, 247.437], [182.862, 245.558], [181.531, 243.68], [180.199, 241.801], [178.867, 239.923], [177.536, 238.044], [176.204, 236.165], [174.873, 234.285], [173.298, 232.017], [171.723, 229.812], [170.296, 227.816], [168.872, 225.819], [167.448, 223.82], [166.026, 221.821], [164.605, 219.82], [163.184, 217.819], [161.764, 215.817], [160.344, 213.815], [158.925, 211.813], [157.506, 209.811], [156.086, 207.809], [154.666, 205.807], [153.245, 203.806], [151.823, 201.806], [150.401, 199.806], [148.977, 197.808], [147.551, 195.811], [146.124, 193.816], [144.695, 191.822], [142.805, 189.617], [140.978, 187.349], [139.151, 185.144]], "20": [[271.707, 433.182], [271.707, 410.753], [270.825, 408.485], [269.124, 406.28], [265.788, 401.851], [262.457, 397.417], [259.133, 392.979], [255.814, 388.537], [252.502, 384.09], [249.194, 379.639], [245.893, 375.184], [242.597, 370.724], [239.307, 366.261], [236.022, 361.794], [232.742, 357.322], [229.468, 352.847], [226.198, 348.368], [222.934, 343.885], [219.676, 339.399], [216.422, 334.909], [213.173, 330.415], [209.928, 325.918], [206.689, 321.417], [205.114, 319.149], [203.539, 316.944], [201.964, 314.676], [200.633, 312.796], [199.302, 310.915], [197.971, 309.033], [196.64, 307.152], [195.309, 305.27], [193.978, 303.388], [192.647, 301.506], [191.315, 299.624], [189.983, 297.743], [188.651, 295.861], [187.319, 293.98], [185.986, 292.099], [184.652, 290.219], [183.318, 288.34], [181.983, 286.461], [180.648, 284.583], [179.312, 282.706], [177.975, 280.829], [176.637, 278.954], [175.062, 276.686], [171.912, 272.275], [170.455, 270.248], [169.007, 268.215], [167.566, 266.177], [166.128, 264.136], [164.693, 262.093], [163.257, 260.05], [161.819, 258.01], [160.377, 255.973], [158.927, 253.941], [157.468, 251.916], [155.998, 249.9], [154.514, 247.894], [153.015, 245.9], [151.497, 243.92], [149.959, 241.956], [148.399, 240.008], [146.814, 238.079], [145.202, 236.171], [143.561, 234.285], [141.734, 232.017], [139.907, 229.812], [138.08, 227.544]], "30": [[258.036, 433.182], [257.972, 433.119], [256.335, 430.851], [253.392, 426.884], [250.455, 422.914], [247.525, 418.942], [244.601, 414.965], [241.684, 410.986], [238.772, 407.003], [235.866, 403.016], [232.966, 399.026], [230.072, 395.032], [227.182, 391.035], [224.298, 387.033], [221.42, 383.028], [218.546, 379.018], [215.676, 375.004], [212.812, 370.987], [209.952, 366.964], [207.096, 362.938], [204.245, 358.907], [201.397, 354.871], [199.759, 352.666], [198.184, 350.461], [196.609, 348.193], [195.343, 346.431], [194.078, 344.668], [192.814, 342.905], [191.55, 341.141], [190.287, 339.377], [189.024, 337.613], [187.762, 335.848], [186.499, 334.083], [185.237, 332.318], [183.975, 330.553], [182.713, 328.788], [181.451, 327.023], [180.188, 325.258], [178.926, 323.494], [177.663, 321.729], [176.399, 319.965], [175.135, 318.202], [173.871, 316.439], [172.606, 314.676], [171.031, 312.471], [169.392, 310.203], [167.82, 308.329], [166.249, 306.454], [164.681, 304.577], [163.113, 302.699], [161.547, 300.819], [159.982, 298.939], [158.418, 297.058], [156.855, 295.176], [155.292, 293.293], [153.729, 291.411], [152.167, 289.528], [150.605, 287.645], [149.042, 285.763], [147.479, 283.881], [145.916, 281.999], [144.352, 280.118], [142.788, 278.238], [141.222, 276.359], [139.655, 274.481], [137.829, 272.275], [136.001, 270.007], [134.174, 267.802]], "40": [[228.677, 433.182], [228.613, 433.119], [226.976, 430.851], [225.401, 428.646], [224.553, 427.468], [223.706, 426.29], [222.858, 425.112], [222.01, 423.934], [221.162, 422.756], [220.314, 421.578], [219.466, 420.4], [218.618, 419.222], [217.77, 418.044], [216.921, 416.867], [216.072, 415.689], [215.224, 414.512], [214.374, 413.335], [213.525, 412.159], [212.675, 410.982], [211.825, 409.806], [210.974, 408.63], [210.123, 407.455], [209.272, 406.28], [207.697, 404.075], [206.059, 401.807], [205.122, 400.516], [204.186, 399.223], [203.251, 397.93], [202.316, 396.637], [201.383, 395.342], [200.45, 394.048], [199.517, 392.753], [198.584, 391.458], [197.652, 390.163], [196.719, 388.868], [195.786, 387.573], [194.853, 386.279], [193.919, 384.985], [192.984, 383.691], [192.048, 382.398], [191.111, 381.106], [190.173, 379.815], [189.234, 378.525], [188.293, 377.236], [186.403, 375.031], [184.513, 372.763], [182.686, 370.558], [180.133, 367.511], [177.582, 364.463], [175.034, 361.412], [172.488, 358.36], [169.943, 355.307], [167.4, 352.252], [164.859, 349.196], [162.319, 346.139], [159.781, 343.08], [157.243, 340.021], [154.706, 336.961], [152.171, 333.901], [149.635, 330.84], [147.1, 327.779], [144.566, 324.717], [142.031, 321.655], [139.496, 318.594], [136.961, 315.532], [134.426, 312.471], [132.599, 310.203], [130.772, 307.997]], "50": [[194.845, 433.182], [194.782, 433.119], [192.901, 430.887], [191.019, 428.656], [189.136, 426.426], [187.253, 424.197], [185.37, 421.967], [183.486, 419.738], [181.603, 417.509], [179.721, 415.279], [177.839, 413.049], [175.959, 410.817], [174.08, 408.585], [172.202, 406.351], [170.326, 404.116], [168.452, 401.879], [166.581, 399.639], [164.712, 397.397], [162.846, 395.153], [160.983, 392.906], [159.123, 390.656], [157.296, 388.388]]}, "headwindCurves": {"5800": [[81.379, 437.089], [82.198, 439.105], [84.34, 441.688], [87.49, 444.271], [89.369, 445.469], [91.312, 446.604], [93.312, 447.681], [95.364, 448.701], [97.462, 449.67], [99.6, 450.591], [101.772, 451.466], [103.972, 452.3], [106.195, 453.097], [108.435, 453.859], [110.686, 454.591], [112.941, 455.296], [115.196, 455.977], [117.444, 456.638], [119.679, 457.283], [121.897, 457.915], [124.089, 458.538], [126.252, 459.155], [128.379, 459.77], [138.207, 462.353], [148.539, 464.873], [152.774, 465.885], [157.015, 466.885], [161.262, 467.873], [165.514, 468.849], [169.771, 469.816], [174.032, 470.775], [178.296, 471.726], [182.563, 472.67], [186.832, 473.61], [191.102, 474.545], [195.373, 475.477], [199.645, 476.407], [203.915, 477.336], [208.185, 478.265], [212.453, 479.196], [216.719, 480.129], [220.981, 481.066], [225.24, 482.007], [229.495, 482.954], [240.08, 485.537], [249.153, 488.12]], "6000": [[119.432, 436.584], [120.251, 439.104], [122.456, 441.687], [126.11, 444.27], [131.213, 446.853], [133.291, 447.738], [135.393, 448.59], [137.519, 449.411], [139.665, 450.203], [141.83, 450.968], [144.01, 451.706], [146.205, 452.421], [148.411, 453.114], [150.626, 453.786], [152.849, 454.44], [155.076, 455.076], [157.305, 455.698], [159.535, 456.305], [161.764, 456.902], [163.987, 457.488], [166.205, 458.066], [168.413, 458.638], [170.611, 459.205], [172.795, 459.769], [183.316, 462.352], [194.341, 464.872], [197.318, 465.525], [200.291, 466.19], [203.259, 466.868], [206.225, 467.554], [209.188, 468.249], [212.148, 468.95], [215.108, 469.654], [218.066, 470.362], [221.025, 471.069], [223.983, 471.776], [226.943, 472.48], [229.904, 473.178], [232.867, 473.871], [235.834, 474.555], [238.803, 475.229], [241.777, 475.891], [244.755, 476.539], [247.739, 477.172], [250.728, 477.787], [260.682, 480.37], [269.691, 482.953], [271.707, 485.536], [271.707, 488.12]], "6200": [[157.485, 436.584], [158.871, 439.104], [161.832, 441.687], [166.179, 444.27], [171.975, 446.853], [178.969, 449.436], [187.033, 452.019], [195.979, 454.603], [205.807, 457.186], [216.392, 459.769], [227.606, 462.352], [237.56, 464.872], [247.704, 467.455], [258.539, 470.038], [270.132, 472.621], [271.707, 475.204], [271.707, 488.12]], "6400": [[195.538, 436.584], [197.869, 439.104], [201.649, 441.687], [204.433, 443.117], [207.255, 444.45], [210.11, 445.693], [212.997, 446.854], [215.911, 447.941], [218.849, 448.961], [221.81, 449.924], [224.789, 450.835], [227.784, 451.704], [230.791, 452.538], [233.807, 453.345], [236.83, 454.133], [239.856, 454.909], [242.883, 455.682], [245.906, 456.459], [248.924, 457.249], [251.932, 458.058], [254.929, 458.896], [257.91, 459.769], [267.486, 462.352], [271.707, 464.872], [271.707, 488.12]], "6600": [[233.465, 436.584], [236.678, 439.104], [241.277, 441.687], [247.136, 444.27], [254.193, 446.853], [262.446, 449.436], [271.139, 452.019], [271.707, 454.603], [271.707, 488.12]], "6800": [[271.518, 436.584], [271.707, 439.104], [271.707, 488.12]]}, "limits": {"maxOat": [[157.296, 388.388], [155.847, 386.183], [154.461, 383.915], [153.075, 381.71], [151.626, 379.505], [150.24, 377.237], [148.854, 375.032], [147.468, 372.764], [146.019, 370.559], [144.633, 368.291], [143.246, 366.086], [141.861, 363.817], [140.537, 361.612], [139.025, 359.344], [137.45, 357.139], [135.938, 354.871], [134.489, 352.666], [133.104, 350.461], [131.591, 348.193], [130.016, 345.988], [128.378, 343.72], [126.74, 341.515], [125.165, 339.247], [123.59, 337.042]], "hdLimit": [[140.096, 165.047], [140.096, 168.89], [140.033, 173.174], [139.97, 177.458], [139.908, 181.679], [139.782, 185.901], [139.718, 190.122], [139.592, 194.343], [139.466, 198.564], [139.341, 202.722], [139.214, 206.943], [139.088, 211.101], [138.9, 215.259], [138.647, 219.354], [138.395, 223.513], [138.143, 227.608], [137.829, 231.766], [137.45, 235.861], [137.136, 239.893], [136.758, 243.988], [136.379, 248.083], [136.001, 252.115], [135.623, 256.147], [135.245, 260.18], [134.867, 264.212], [134.489, 268.181], [134.175, 272.213], [133.796, 276.182], [133.481, 280.151], [133.104, 284.12], [132.725, 288.089], [132.347, 292.058], [131.906, 295.965], [131.528, 299.871], [131.024, 303.777], [130.583, 307.683], [130.016, 311.589], [129.449, 315.495], [128.882, 319.338], [128.189, 323.244], [127.496, 327.087], [126.74, 330.931], [125.228, 334.774], [123.59, 338.554]]}};
@@ -438,7 +446,7 @@ function syncProfileUi() {
   activeProfile = getActiveProfile();
   const ref = activeProfile ? activeProfile.referenceHtml : '<strong>Gráfico em uso:</strong> perfil ainda não calibrado.<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.';
   chartReferenceEl.innerHTML = ref;
-  chartHintEl.textContent = procedureEl.value === 'offshore'
+  if (chartHintEl) chartHintEl.textContent = procedureEl.value === 'offshore'
     ? 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.'
     : 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual e peso máximo interpolado no gráfico principal.';
   formHintEl.textContent = getSelectedAircraftSet() === '7000'
@@ -825,7 +833,22 @@ function renderClearEapsOffAnnotatedCanvas(result=currentResult, options={}) { r
 function renderClearEapsOnAnnotatedCanvas(result=currentResult, options={}) { return renderGenericNoHeadwindPdfPage(result, options, clearEapsOnPageImage, PROFILE_MAP.clear_eaps_on, CLEAR_EAPS_ON_EXACT); }
 function renderConfinedEapsOnAnnotatedCanvas(result=currentResult, options={}) { return renderGenericNoHeadwindPlacedPage(result, options, confinedEapsOnPageImage, PROFILE_MAP.confined_eaps_on, CONFINED_EAPS_ON_EXACT, EAPS_PAGE_PLACEMENT); }
 function getRenderableProfile(profile) { return profile && typeof profile.render === 'function' ? profile : null; }
-function resetPendingState() { statusCard.className='card status neutral'; statusBadge.textContent='AGUARDANDO DADOS'; statusTitle.textContent='Envelope check'; statusText.textContent='Selecione a família da aeronave, o procedimento, a configuração e preencha altitude, OAT e peso atual.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; drawOverlay(); }
+function resetPendingState() { statusCard.className='card status neutral'; statusBadge.textContent='AGUARDANDO DADOS'; statusTitle.textContent='Envelope WAT'; statusText.textContent='Selecione a família da aeronave, o procedimento, a configuração e preencha altitude, OAT e peso atual.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; drawOverlay(); }
+function resetWatForm() {
+  const radio6800 = document.querySelector('input[name="aircraftSet"][value="6800"]');
+  if (radio6800) { radio6800.checked = true; radio6800.dispatchEvent(new Event('change', { bubbles:true })); }
+  procedureEl.value = 'offshore';
+  configurationEl.value = 'standard';
+  paEl.value = '';
+  oatEl.value = '';
+  weightEl.value = '';
+  headwindEl.value = '';
+  procedureEl.dispatchEvent(new Event('change', { bubbles:true }));
+  configurationEl.dispatchEvent(new Event('change', { bubbles:true }));
+  syncProfileUi();
+  resetPendingState();
+}
+
 function showUncalibratedProfileState() { statusCard.className='card status neutral'; statusBadge.textContent='PERFIL NÃO CALIBRADO'; statusTitle.textContent='Modo ainda não calibrado'; statusText.textContent='O perfil selecionado ainda não possui motor de cálculo calibrado nesta build.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; drawOverlay(); }
 function showRangeError(result) { statusCard.className='card status neutral'; statusBadge.textContent='PONTO FORA DA FAIXA'; statusTitle.textContent='Validação manual necessária'; statusText.textContent=result.error; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=result; drawOverlay(result); }
 function showSuccess(result, profile) { statusCard.className=`card status ${result.within ? 'within':'out'}`; statusBadge.textContent = profile.statusBadge || 'PERFIL CALIBRADO'; statusTitle.textContent = result.within ? 'WITHIN ENVELOPE' : 'OUT OF ENVELOPE'; statusText.textContent = result.resultDescription || profile.resultDescription || 'Resultado calculado com base nas curvas vetoriais do PDF.'; maxWeightEl.textContent=formatKg(result.maxWeight); marginEl.textContent=`${result.margin>=0?'+':''}${Math.round(result.margin).toLocaleString('pt-BR')} kg`; currentResult=result; drawOverlay(result); }
@@ -903,9 +926,10 @@ function runCalculation() {
   showSuccess(result, activeProfile);
 }
 
-toggleChart.addEventListener('click',()=>{ chartPanel.classList.toggle('hidden'); toggleChart.textContent=chartPanel.classList.contains('hidden')?'Mostrar gráfico':'Ocultar gráfico'; if(!chartPanel.classList.contains('hidden')) drawOverlay(currentResult); });
+toggleChart?.addEventListener('click',()=>{ chartPanel.classList.toggle('hidden'); toggleChart.textContent=chartPanel.classList.contains('hidden')?'Mostrar gráfico':'Ocultar gráfico'; if(!chartPanel.classList.contains('hidden')) drawOverlay(currentResult); });
 exportPdfBtn.addEventListener('click', ()=>{ exportInterpolatedPdf(); });
-demoBtn.addEventListener('click', loadDemo);
+demoBtn?.addEventListener('click', loadDemo);
+resetBtn?.addEventListener('click', resetWatForm);
 runBtn.addEventListener('click', runCalculation);
 procedureEl.addEventListener('change', ()=>{ toggleHeadwind(); syncProfileUi(); currentResult=null; drawOverlay(); runCalculation(); });
 configurationEl.addEventListener('change', ()=>{ syncProfileUi(); currentResult=null; drawOverlay(); runCalculation(); });
@@ -1112,7 +1136,7 @@ function syncProfileUi() {
   activeProfile = getActiveProfile();
   const ref = activeProfile ? activeProfile.referenceHtml : '<strong>Gráfico em uso:</strong> perfil ainda não calibrado.<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.';
   chartReferenceEl.innerHTML = ref;
-  chartHintEl.textContent = procedureEl.value === 'offshore' ? 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.' : 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual e peso máximo interpolado no gráfico principal.';
+  if (chartHintEl) if (chartHintEl) chartHintEl.textContent = procedureEl.value === 'offshore' ? 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.' : 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual e peso máximo interpolado no gráfico principal.';
   formHintEl.textContent = 'Nesta build, os perfis Confined usam somente as cartas do Supplement 50. As cartas do Supplement 12 permanecem fora do fluxo ativo.';
   chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
   chartBaseImage.alt = activeProfile ? activeProfile.previewTitle : 'Página completa do gráfico WAT';
@@ -1165,6 +1189,140 @@ function renderCompositeCanvas(result=currentResult) {
 }
 
 
+
+function buildFullscreenSourceCanvas() {
+  const width = Math.max(1, chartCanvas.width || Math.round(chartCanvas.getBoundingClientRect().width * (window.devicePixelRatio || 1)));
+  const height = Math.max(1, chartCanvas.height || Math.round(chartCanvas.getBoundingClientRect().height * (window.devicePixelRatio || 1)));
+  if (!width || !height) return null;
+  const out = document.createElement('canvas');
+  out.width = width;
+  out.height = height;
+  const ex = out.getContext('2d');
+  if (!ex) return null;
+  if (chartBaseImage?.complete && chartBaseImage.naturalWidth) ex.drawImage(chartBaseImage, 0, 0, width, height);
+  if (chartCanvas?.width && chartCanvas?.height) ex.drawImage(chartCanvas, 0, 0, width, height);
+  return out;
+}
+function applyFullscreenTransform() {
+  const vp = fullscreenEls.viewport;
+  const c = fullscreenEls.canvas;
+  if (!vp || !c) return;
+  const scaledW = c.width * fullscreenState.scale;
+  const scaledH = c.height * fullscreenState.scale;
+  const minX = Math.min(0, vp.clientWidth - scaledW);
+  const maxX = Math.max(0, vp.clientWidth - scaledW);
+  const minY = Math.min(0, vp.clientHeight - scaledH);
+  const maxY = Math.max(0, vp.clientHeight - scaledH);
+  if (scaledW <= vp.clientWidth) fullscreenState.x = (vp.clientWidth - scaledW) / 2; else fullscreenState.x = Math.min(maxX, Math.max(minX, fullscreenState.x));
+  if (scaledH <= vp.clientHeight) fullscreenState.y = (vp.clientHeight - scaledH) / 2; else fullscreenState.y = Math.min(maxY, Math.max(minY, fullscreenState.y));
+  c.style.transform = `translate(${fullscreenState.x}px, ${fullscreenState.y}px) scale(${fullscreenState.scale})`;
+}
+function fitFullscreenCanvas() {
+  const vp = fullscreenEls.viewport;
+  const c = fullscreenEls.canvas;
+  if (!vp || !c || !c.width || !c.height) return;
+  const scale = Math.min(vp.clientWidth / c.width, vp.clientHeight / c.height);
+  fullscreenState.scale = scale;
+  fullscreenState.minScale = scale;
+  fullscreenState.maxScale = Math.max(4, scale * 4);
+  fullscreenState.x = (vp.clientWidth - c.width * scale) / 2;
+  fullscreenState.y = (vp.clientHeight - c.height * scale) / 2;
+  applyFullscreenTransform();
+}
+function zoomFullscreen(nextScale, cx, cy) {
+  const vp = fullscreenEls.viewport;
+  const prevScale = fullscreenState.scale;
+  const clamped = Math.max(fullscreenState.minScale, Math.min(fullscreenState.maxScale, nextScale));
+  if (Math.abs(clamped - prevScale) < 0.001) return;
+  if (cx == null || cy == null) { cx = vp.clientWidth / 2; cy = vp.clientHeight / 2; }
+  const worldX = (cx - fullscreenState.x) / prevScale;
+  const worldY = (cy - fullscreenState.y) / prevScale;
+  fullscreenState.scale = clamped;
+  fullscreenState.x = cx - worldX * clamped;
+  fullscreenState.y = cy - worldY * clamped;
+  applyFullscreenTransform();
+}
+function closeFullscreenChart() {
+  fullscreenState.active = false;
+  fullscreenState.dragging = false;
+  fullscreenState.moved = false;
+  if (fullscreenEls.overlay) fullscreenEls.overlay.hidden = true;
+  document.body.classList.remove('fullscreen-body');
+}
+function openFullscreenChart() {
+  if (WAT_IS_EMBED) return;
+  const source = buildFullscreenSourceCanvas();
+  if (!source || !fullscreenEls.canvas) return;
+  fullscreenEls.canvas.width = source.width;
+  fullscreenEls.canvas.height = source.height;
+  const out = fullscreenEls.canvas.getContext('2d');
+  out.clearRect(0,0,source.width,source.height);
+  out.drawImage(source,0,0);
+  fullscreenState.active = true;
+  fullscreenState.moved = false;
+  fullscreenEls.overlay.hidden = false;
+  document.body.classList.add('fullscreen-body');
+  requestAnimationFrame(fitFullscreenCanvas);
+}
+function bindFullscreenEvents() {
+  if (!fullscreenEls.viewport || !fullscreenEls.canvas || WAT_IS_EMBED) return;
+  document.querySelector('.chart-stage')?.addEventListener('click', () => openFullscreenChart());
+  fullscreenEls.close?.addEventListener('click', (event) => { event.stopPropagation(); closeFullscreenChart(); });
+  fullscreenEls.viewport.addEventListener('click', (event) => {
+    if (event.target === fullscreenEls.close) return;
+    if (fullscreenState.scale <= fullscreenState.minScale + 0.01 && !fullscreenState.moved) closeFullscreenChart();
+    fullscreenState.moved = false;
+  });
+  fullscreenEls.viewport.addEventListener('wheel', (event) => {
+    event.preventDefault();
+    const rect = fullscreenEls.viewport.getBoundingClientRect();
+    const cx = event.clientX - rect.left;
+    const cy = event.clientY - rect.top;
+    const factor = event.deltaY < 0 ? 1.15 : 0.87;
+    zoomFullscreen(fullscreenState.scale * factor, cx, cy);
+  }, { passive:false });
+  fullscreenEls.viewport.addEventListener('pointerdown', (event) => {
+    if (fullscreenState.scale <= fullscreenState.minScale + 0.01) { fullscreenState.dragging = false; fullscreenState.moved = false; return; }
+    fullscreenState.dragging = true;
+    fullscreenState.moved = false;
+    fullscreenState.startX = event.clientX - fullscreenState.x;
+    fullscreenState.startY = event.clientY - fullscreenState.y;
+    fullscreenEls.viewport.setPointerCapture?.(event.pointerId);
+  });
+  fullscreenEls.viewport.addEventListener('pointermove', (event) => {
+    if (!fullscreenState.dragging) return;
+    fullscreenState.x = event.clientX - fullscreenState.startX;
+    fullscreenState.y = event.clientY - fullscreenState.startY;
+    fullscreenState.moved = true;
+    applyFullscreenTransform();
+  });
+  const endDrag = (event) => { fullscreenState.dragging = false; if (event?.pointerId != null) fullscreenEls.viewport.releasePointerCapture?.(event.pointerId); };
+  fullscreenEls.viewport.addEventListener('pointerup', endDrag);
+  fullscreenEls.viewport.addEventListener('pointercancel', endDrag);
+  let touchDist = null, touchScale = null, touchCenter = null;
+  fullscreenEls.viewport.addEventListener('touchstart', (event) => {
+    if (event.touches.length === 2) {
+      const [a,b] = event.touches;
+      touchDist = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+      touchScale = fullscreenState.scale;
+      const rect = fullscreenEls.viewport.getBoundingClientRect();
+      touchCenter = { x: ((a.clientX+b.clientX)/2)-rect.left, y: ((a.clientY+b.clientY)/2)-rect.top };
+      fullscreenState.moved = true;
+    }
+  }, { passive:true });
+  fullscreenEls.viewport.addEventListener('touchmove', (event) => {
+    if (event.touches.length === 2 && touchDist) {
+      const [a,b] = event.touches;
+      const newDist = Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+      zoomFullscreen(touchScale * (newDist / touchDist), touchCenter?.x, touchCenter?.y);
+      fullscreenState.moved = true;
+    }
+  }, { passive:true });
+  fullscreenEls.viewport.addEventListener('touchend', () => { touchDist = null; touchScale = null; touchCenter = null; });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && fullscreenState.active) closeFullscreenChart(); });
+  window.addEventListener('resize', () => { if (fullscreenState.active) fitFullscreenCanvas(); });
+}
+
 // --- v16.6.1 overrides: reintroduce Confined Supplement 12 below 6400 kg, keeping v16.5 stable base ---
 confinedStandard6400PageImage.addEventListener('load', ()=>{ if(activeProfile?.pageImage===confinedStandard6400PageImage && !chartPanel.classList.contains('hidden')) drawOverlay(currentResult); });
 confinedEapsOff6400PageImage.addEventListener('load', ()=>{ if(activeProfile?.pageImage===confinedEapsOff6400PageImage && !chartPanel.classList.contains('hidden')) drawOverlay(currentResult); });
@@ -1192,7 +1350,7 @@ function syncProfileUi() {
   activeProfile = getActiveProfile();
   const ref = activeProfile ? activeProfile.referenceHtml : '<strong>Gráfico em uso:</strong> perfil ainda não calibrado.<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.';
   chartReferenceEl.innerHTML = ref;
-  chartHintEl.textContent = procedureEl.value === 'offshore'
+  if (chartHintEl) chartHintEl.textContent = procedureEl.value === 'offshore'
     ? 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.'
     : 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual e peso máximo interpolado no gráfico principal.';
   if (getSelectedAircraftSet() === '7000') {
@@ -2362,9 +2520,7 @@ syncProfileUi();
   syncProfileUi = function() {
     syncProfileUi_v1690();
     const is7000 = getSelectedAircraftSet() === '7000';
-    formHintEl.textContent = is7000
-      ? 'Perfis calculados: CAT A Offshore Helideck, CAT A Offshore Enhanced, CAT A Clear Area, CAT B e CAT A Confined Area. Na aeronave 7000, Offshore Helideck e Confined usam a base 6800, Offshore Enhanced usa o Supplement 97 até 7000 kg, e CAT A Clear Area / CAT B usam o Supplement 90 quando os limitantes forem atendidos.'
-      : 'Perfis calculados: CAT A Offshore Helideck, CAT A Offshore Enhanced, CAT A Clear Area, CAT B e CAT A Confined Area. Na aeronave 6800, todos os perfis permanecem disponíveis; no CAT A Offshore Enhanced o cálculo usa o Supplement 97 com resultado final limitado a 6800 kg.';
+    if (formHintEl) { formHintEl.textContent = ''; formHintEl.hidden = true; }
     activeProfile = getActiveProfile();
     if (activeProfile?.referenceHtml) chartReferenceEl.innerHTML = activeProfile.referenceHtml;
     chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
@@ -2374,3 +2530,6 @@ syncProfileUi();
   // refresh initial UI after adding the new procedure
   syncProfileUi();
 })();
+
+
+window.addEventListener('load', () => { bindFullscreenEvents(); });
