@@ -20,6 +20,7 @@ const els = {
   wind: document.getElementById('headwind'),
   runBtn: document.getElementById('runBtn'),
   sharePdfBtn: document.getElementById('sharePdfBtn'),
+  resetBtn: document.getElementById('resetBtn'),
   visualSelect: document.getElementById('visualSelect'),
   registration: document.getElementById('aircraftRegistration'),
   statusChip: document.getElementById('statusChip'),
@@ -1559,7 +1560,7 @@ function openFullscreenChart(mode) {
 }
 
 function buildPdfBlobFromCanvas(canvas) {
-  const jpegData = canvas.toDataURL('image/jpeg', 0.97);
+  const jpegData = canvas.toDataURL('image/jpeg', 0.92);
   const base64 = jpegData.split(',')[1];
   const imageBytes = atob(base64);
   const pageWidth = 595.28;
@@ -1697,7 +1698,6 @@ function createCataPdfCanvas() {
     return cells.length >= 2 ? { point: cells[0], result: cells[1] } : null;
   }).filter(Boolean);
 
-  const exportScale = 1.65;
   const width = 1600;
   const margin = 48;
   const gap = 22;
@@ -1725,12 +1725,9 @@ function createCataPdfCanvas() {
 
   const height = margin + 74 + gap + metaH + gap + topCardH + gap + rtoCardH + gap + decisionH + margin;
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(width * exportScale);
-  canvas.height = Math.round(height * exportScale);
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext('2d');
-  ctx.scale(exportScale, exportScale);
-  ctx.imageSmoothingEnabled = true;
-  try { ctx.imageSmoothingQuality = 'high'; } catch {}
 
   const roundRect = (x, y, w, h, r = 22) => {
     ctx.beginPath();
@@ -1906,6 +1903,41 @@ function setVisualization(mode, forceShow = true) {
   });
 }
 
+
+function resetResultsPanel() {
+  els.statusChip.textContent = 'Aguardando cálculo';
+  els.statusChip.className = 'status-chip warn';
+  els.resultCard.classList.remove('result-ok', 'result-bad');
+  els.resultCard.classList.add('pending');
+  els.watMax.textContent = '—';
+  els.watSummary.textContent = 'Sem cálculo ainda.';
+  els.watMarginSummary.textContent = '—';
+  els.watBox.classList.remove('ok', 'bad');
+  els.rtoBox.classList.remove('ok', 'bad');
+  els.rtoMetric.textContent = '—';
+  els.rtoSummary.textContent = 'Sem cálculo ainda.';
+  els.decisionBody.innerHTML = '<tr><td colspan="2" class="muted-cell">Sem análise ainda.</td></tr>';
+}
+
+function resetFlowForm() {
+  clearAllModeDirty();
+  clearAdcDirty();
+  if (els.aircraftSet) els.aircraftSet.value = '7000';
+  if (els.config) els.config.value = 'standard';
+  if (els.registration) els.registration.value = '';
+  if (els.pa) els.pa.value = '';
+  if (els.oat) els.oat.value = '';
+  if (els.weight) els.weight.value = '';
+  if (els.wind) els.wind.value = '';
+  if (els.base?.options?.length) els.base.selectedIndex = 0;
+  if (els.departure?.options?.length) els.departure.selectedIndex = 0;
+  resetResultsPanel();
+  clearVisualization();
+  const input = collectInputs();
+  pushSharedContext(input, { cataLastResults: null, watMaxWeightKg: null, watMarginKg: null, rtoMeters: null, ctoMeters: null });
+  syncAdcSelection({ renderPreviewIfActive: false }).catch(console.warn);
+}
+
 function setupAutoAdvance() {
   const rules = [
     { el: els.aircraftSet, next: els.config },
@@ -1990,6 +2022,7 @@ function saveCurrentInputsForModuleOpen() {
 function bindEvents() {
   els.runBtn.addEventListener('click', runFlow);
   els.sharePdfBtn?.addEventListener('click', exportFlowPdf);
+  els.resetBtn?.addEventListener('click', resetFlowForm);
   els.visualSelect.addEventListener('change', e => setVisualization(e.target.value, !!e.target.value));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.addEventListener('click', () => setVisualization(btn.dataset.viz, true)));
   els.base.addEventListener('change', () => { markAdcDirty('a base'); syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
