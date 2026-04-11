@@ -1559,7 +1559,7 @@ function openFullscreenChart(mode) {
 }
 
 function buildPdfBlobFromCanvas(canvas) {
-  const jpegData = canvas.toDataURL('image/jpeg', 0.92);
+  const jpegData = canvas.toDataURL('image/jpeg', 0.97);
   const base64 = jpegData.split(',')[1];
   const imageBytes = atob(base64);
   const pageWidth = 595.28;
@@ -1697,6 +1697,7 @@ function createCataPdfCanvas() {
     return cells.length >= 2 ? { point: cells[0], result: cells[1] } : null;
   }).filter(Boolean);
 
+  const exportScale = 1.65;
   const width = 1600;
   const margin = 48;
   const gap = 22;
@@ -1724,9 +1725,12 @@ function createCataPdfCanvas() {
 
   const height = margin + 74 + gap + metaH + gap + topCardH + gap + rtoCardH + gap + decisionH + margin;
   const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = Math.round(width * exportScale);
+  canvas.height = Math.round(height * exportScale);
   const ctx = canvas.getContext('2d');
+  ctx.scale(exportScale, exportScale);
+  ctx.imageSmoothingEnabled = true;
+  try { ctx.imageSmoothingQuality = 'high'; } catch {}
 
   const roundRect = (x, y, w, h, r = 22) => {
     ctx.beginPath();
