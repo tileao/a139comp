@@ -352,7 +352,7 @@ let currentResult = null;
 let activeProfile = null;
 
 function getSelectedAircraftSet() {
-  return aircraftSetEls.find((el) => el.checked)?.value || '6800';
+  return aircraftSetEls.find((el) => el.checked)?.value || '7000';
 }
 function getAircraftMaxWeight() {
   return getSelectedAircraftSet() === '7000' ? 7000 : 6800;
@@ -835,8 +835,8 @@ function renderConfinedEapsOnAnnotatedCanvas(result=currentResult, options={}) {
 function getRenderableProfile(profile) { return profile && typeof profile.render === 'function' ? profile : null; }
 function resetPendingState() { statusCard.className='card status neutral'; statusBadge.textContent='AGUARDANDO DADOS'; statusTitle.textContent='Envelope WAT'; statusText.textContent='Selecione a família da aeronave, o procedimento, a configuração e preencha altitude, OAT e peso atual.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; drawOverlay(); }
 function resetWatForm() {
-  const radio6800 = document.querySelector('input[name="aircraftSet"][value="6800"]');
-  if (radio6800) { radio6800.checked = true; radio6800.dispatchEvent(new Event('change', { bubbles:true })); }
+  const radio7000 = document.querySelector('input[name="aircraftSet"][value="7000"]');
+  if (radio7000) { radio7000.checked = true; radio7000.dispatchEvent(new Event('change', { bubbles:true })); }
   procedureEl.value = 'offshore';
   configurationEl.value = 'standard';
   paEl.value = '';
@@ -1191,15 +1191,33 @@ function renderCompositeCanvas(result=currentResult) {
 
 
 function buildFullscreenSourceCanvas() {
-  const width = Math.max(1, chartCanvas.width || Math.round(chartCanvas.getBoundingClientRect().width * (window.devicePixelRatio || 1)));
-  const height = Math.max(1, chartCanvas.height || Math.round(chartCanvas.getBoundingClientRect().height * (window.devicePixelRatio || 1)));
+  const renderableProfile = getRenderableProfile(activeProfile, currentResult);
+  if (renderableProfile && currentResult && !currentResult.error) {
+    try {
+      const rendered = renderableProfile.render(currentResult, { includeFooter: false, includeSummaryBox: false, compactSummaryBox: false });
+      if (rendered?.width && rendered?.height) return rendered;
+    } catch (_) {}
+  }
+  const baseImage = activeProfile?.pageImage || chartBaseImage;
+  const width = Math.max(1,
+    baseImage?.naturalWidth ||
+    chartCanvas.width ||
+    Math.round(chartCanvas.getBoundingClientRect().width * (window.devicePixelRatio || 1))
+  );
+  const height = Math.max(1,
+    baseImage?.naturalHeight ||
+    chartCanvas.height ||
+    Math.round(chartCanvas.getBoundingClientRect().height * (window.devicePixelRatio || 1))
+  );
   if (!width || !height) return null;
   const out = document.createElement('canvas');
   out.width = width;
   out.height = height;
   const ex = out.getContext('2d');
   if (!ex) return null;
-  if (chartBaseImage?.complete && chartBaseImage.naturalWidth) ex.drawImage(chartBaseImage, 0, 0, width, height);
+  ex.fillStyle = '#ffffff';
+  ex.fillRect(0, 0, width, height);
+  if (baseImage?.complete && baseImage.naturalWidth) ex.drawImage(baseImage, 0, 0, width, height);
   if (chartCanvas?.width && chartCanvas?.height) ex.drawImage(chartCanvas, 0, 0, width, height);
   return out;
 }
@@ -1221,7 +1239,10 @@ function fitFullscreenCanvas() {
   const vp = fullscreenEls.viewport;
   const c = fullscreenEls.canvas;
   if (!vp || !c || !c.width || !c.height) return;
-  const scale = Math.min(vp.clientWidth / c.width, vp.clientHeight / c.height);
+  const pad = 16;
+  const availW = Math.max(1, vp.clientWidth - pad * 2);
+  const availH = Math.max(1, vp.clientHeight - pad * 2);
+  const scale = Math.min(availW / c.width, availH / c.height);
   fullscreenState.scale = scale;
   fullscreenState.minScale = scale;
   fullscreenState.maxScale = Math.max(4, scale * 4);
@@ -1262,7 +1283,7 @@ function openFullscreenChart() {
   fullscreenState.moved = false;
   fullscreenEls.overlay.hidden = false;
   document.body.classList.add('fullscreen-body');
-  requestAnimationFrame(fitFullscreenCanvas);
+  requestAnimationFrame(() => requestAnimationFrame(fitFullscreenCanvas));
 }
 function bindFullscreenEvents() {
   if (!fullscreenEls.viewport || !fullscreenEls.canvas || WAT_IS_EMBED) return;
