@@ -145,3 +145,5 @@ body.fullscreen-body{overflow:hidden}
 
 .chart-fullscreen-overlay{position:fixed;inset:0;z-index:1000;background:#02060d;display:grid;grid-template-rows:auto 1fr}.chart-fullscreen-overlay[hidden]{display:none!important}.chart-fullscreen-top{display:flex;justify-content:flex-end;padding:10px 12px}.chart-fullscreen-close{width:42px;height:42px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(15,23,32,.86);color:#fff;font-size:22px;cursor:pointer}.chart-fullscreen-viewport{position:relative;overflow:hidden;touch-action:none}.chart-fullscreen-canvas{position:absolute;left:0;top:0;transform-origin:0 0;box-shadow:0 18px 40px rgba(0,0,0,.35)}
 .is-hidden-field{display:none!important}.module-open-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.module-open-row .ghost-btn{height:38px;border-radius:8px;cursor:pointer}.full-span-mobile{grid-column:auto}@media (max-width: 640px){.module-open-row{grid-template-columns:repeat(3,minmax(0,1fr))}.module-open-row .ghost-btn{font-size:12px;padding:0 6px}}
+
+.action-row #sharePdfBtn{grid-column:1 / -1}
