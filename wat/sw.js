@@ -1,10 +1,10 @@
-const CACHE_NAME = 'aw139-wat-companion-v16-9-8-default7000-fullscreenfix';
+const CACHE_NAME = 'aw139-wat-companion-v16-9-9-fullscreen-hires';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './app.js?v=v16_9_8-wat-default7000-fullscreenfix',
+  './app.js?v=v16_9_9-wat-fullscreen-hires',
   './manifest.webmanifest',
   './README.md',
   './data/chart-schema.json',

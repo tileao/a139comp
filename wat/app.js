@@ -34,7 +34,7 @@ const fullscreenEls = {
   canvas: document.getElementById('chartFullscreenCanvas'),
   close: document.getElementById('chartFullscreenClose'),
 };
-const fullscreenState = { active: false, scale: 1, minScale: 1, maxScale: 4, x: 0, y: 0, startX: 0, startY: 0, dragging: false, moved: false };
+const fullscreenState = { active: false, scale: 1, minScale: 1, maxScale: 4, x: 0, y: 0, startX: 0, startY: 0, dragging: false, moved: false, contentWidth: 0, contentHeight: 0 };
 
 
 const WAT_PARAMS = new URLSearchParams(window.location.search);
@@ -1215,9 +1215,11 @@ function buildFullscreenSourceCanvas() {
 function applyFullscreenTransform() {
   const vp = fullscreenEls.viewport;
   const c = fullscreenEls.canvas;
-  if (!vp || !c) return;
-  const scaledW = c.width * fullscreenState.scale;
-  const scaledH = c.height * fullscreenState.scale;
+  const logicalW = fullscreenState.contentWidth || c?.width || 0;
+  const logicalH = fullscreenState.contentHeight || c?.height || 0;
+  if (!vp || !c || !logicalW || !logicalH) return;
+  const scaledW = logicalW * fullscreenState.scale;
+  const scaledH = logicalH * fullscreenState.scale;
   const minX = Math.min(0, vp.clientWidth - scaledW);
   const maxX = Math.max(0, vp.clientWidth - scaledW);
   const minY = Math.min(0, vp.clientHeight - scaledH);
@@ -1229,13 +1231,15 @@ function applyFullscreenTransform() {
 function fitFullscreenCanvas() {
   const vp = fullscreenEls.viewport;
   const c = fullscreenEls.canvas;
-  if (!vp || !c || !c.width || !c.height) return;
-  const scale = Math.min(vp.clientWidth / c.width, vp.clientHeight / c.height);
+  const logicalW = fullscreenState.contentWidth || c?.width || 0;
+  const logicalH = fullscreenState.contentHeight || c?.height || 0;
+  if (!vp || !c || !logicalW || !logicalH) return;
+  const scale = Math.min(vp.clientWidth / logicalW, vp.clientHeight / logicalH);
   fullscreenState.scale = scale;
   fullscreenState.minScale = scale;
   fullscreenState.maxScale = Math.max(4, scale * 4);
-  fullscreenState.x = (vp.clientWidth - c.width * scale) / 2;
-  fullscreenState.y = (vp.clientHeight - c.height * scale) / 2;
+  fullscreenState.x = (vp.clientWidth - logicalW * scale) / 2;
+  fullscreenState.y = (vp.clientHeight - logicalH * scale) / 2;
   applyFullscreenTransform();
 }
 function zoomFullscreen(nextScale, cx, cy) {
@@ -1255,6 +1259,8 @@ function closeFullscreenChart() {
   fullscreenState.active = false;
   fullscreenState.dragging = false;
   fullscreenState.moved = false;
+  fullscreenState.contentWidth = 0;
+  fullscreenState.contentHeight = 0;
   if (fullscreenEls.overlay) fullscreenEls.overlay.hidden = true;
   document.body.classList.remove('fullscreen-body');
 }
@@ -1262,11 +1268,20 @@ function openFullscreenChart() {
   if (WAT_IS_EMBED) return;
   const source = buildFullscreenSourceCanvas();
   if (!source || !fullscreenEls.canvas) return;
-  fullscreenEls.canvas.width = source.width;
-  fullscreenEls.canvas.height = source.height;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  fullscreenState.contentWidth = source.width;
+  fullscreenState.contentHeight = source.height;
+  fullscreenEls.canvas.width = Math.max(1, Math.round(source.width * dpr));
+  fullscreenEls.canvas.height = Math.max(1, Math.round(source.height * dpr));
+  fullscreenEls.canvas.style.width = `${source.width}px`;
+  fullscreenEls.canvas.style.height = `${source.height}px`;
   const out = fullscreenEls.canvas.getContext('2d');
+  if (!out) return;
+  out.setTransform(dpr, 0, 0, dpr, 0, 0);
+  out.imageSmoothingEnabled = true;
+  out.imageSmoothingQuality = 'high';
   out.clearRect(0,0,source.width,source.height);
-  out.drawImage(source,0,0);
+  out.drawImage(source,0,0,source.width,source.height);
   fullscreenState.active = true;
   fullscreenState.moved = false;
   fullscreenEls.overlay.hidden = false;
