@@ -1159,3 +1159,19 @@ label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;c
 
 
 .product-icon img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
+
+
+/* RTO visual cleanup v66 */
+#interpSection{display:none!important}
+#visualCard .card-title-row{align-items:flex-start}
+#visualCard .toolbar-row{justify-content:flex-end}
+#visualCard .chart-panel{display:flex!important;flex-direction:column;gap:12px}
+#visualCard .legend,#visualCard #chartHint,#visualCard #chartReference{display:none!important}
+.viewer-meta{display:grid;grid-template-columns:1fr;gap:10px;padding:12px 14px;background:#16212d;border-top:1px solid rgba(255,255,255,.08);margin-top:0}
+.viewer-meta-block{display:grid;gap:8px}
+.viewer-meta-title{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#E5EEF7;opacity:.8}
+.viz-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.viz-fact{background:#1E293B;border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:8px 10px;min-width:0}
+.viz-fact-label{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#A9B8C8;margin-bottom:4px}
+.viz-fact-value{display:block;font-size:13px;line-height:1.3;color:#E5EEF7;word-break:break-word}
+@media (max-width:640px){.viz-facts{grid-template-columns:1fr}}

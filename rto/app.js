@@ -29,6 +29,7 @@ const statusDetail = document.getElementById('statusDetail');
 const finalMetric = document.getElementById('finalMetric');
 const finalMetricFt = document.getElementById('finalMetricFt');
 const interpBox = document.getElementById('interpBox');
+const chartFacts = document.getElementById('chartFacts');
 
 const BASE_PAGE_WIDTH = 842;
 const BASE_PAGE_HEIGHT = 595;
@@ -94,6 +95,27 @@ function resolveEffectiveProfileKey(profileKey, weightKg = parseUnsignedField(we
 function getSelectedConfigurationLabel() {
   const selected = configurationEl?.selectedOptions?.[0]?.textContent?.trim();
   return selected || profiles[state.profileKey]?.label || '—';
+}
+
+function renderChartFacts(src) {
+  if (!chartFacts) return;
+  if (!src) {
+    chartFacts.innerHTML = '';
+    return;
+  }
+  const facts = [
+    ['Gráfico', `Figure ${src.figure}`],
+    ['Suplemento', `Supplement ${src.supplement}`],
+    ['Página', src.page || '—'],
+    ['Configuração', getSelectedConfigurationLabel()],
+    ['Fonte', src.rfm_source || '—'],
+  ];
+  chartFacts.innerHTML = facts.map(([label, value]) => `
+    <div class="viz-fact">
+      <span class="viz-fact-label">${label}</span>
+      <span class="viz-fact-value">${value}</span>
+    </div>
+  `).join('');
 }
 
 async function ensureEffectiveProfileLoaded({ preserveInputs = true, autoRun = false } = {}) {
@@ -668,7 +690,7 @@ function renderCompositeCanvas(result = state.currentResult) {
   ctx.fillStyle = '#0b0f14';
   ctx.font = `bold ${Math.round(24 * s)}px Inter, Arial, sans-serif`;
   const src = state.engine.source;
-  ctx.fillText(`AW139 RTO / CTO Module — Figure ${src.figure}`, 28 * s, baseCanvas.height + 38 * s);
+  ctx.fillText(`AW139 RTO Module — Figure ${src.figure}`, 28 * s, baseCanvas.height + 38 * s);
 
   ctx.font = `${Math.round(16 * s)}px Inter, Arial, sans-serif`;
   const lines = [
@@ -895,7 +917,7 @@ function loadDemo() {
 function clearResultsOnly() {
   state.currentResult = null;
   setMetricsEmpty();
-  interpBox.textContent = 'Sem cálculo ainda.';
+  if (interpBox) interpBox.textContent = 'Sem cálculo ainda.';
   const figure = state.engine?.source?.figure || '—';
   if (isReferenceOnlyEngine()) {
     setStatus('neutral', 'REFERÊNCIA', `RTO Figure ${figure}`, 'Visualização correta carregada.', 'Engine pendente para este perfil acima de 6800 kg.');
@@ -917,7 +939,7 @@ function toggleChartVisibility(forceShow = null) {
   if (forceShow === true) chartPanel.classList.remove('hidden');
   else if (forceShow === false) { chartPanel.classList.add('hidden'); closeFullscreenChart(); }
   else chartPanel.classList.toggle('hidden');
-  toggleChartBtn.textContent = chartPanel.classList.contains('hidden') ? 'Mostrar gráfico' : 'Ocultar gráfico';
+  if (toggleChartBtn) toggleChartBtn.textContent = chartPanel.classList.contains('hidden') ? 'Mostrar gráfico' : 'Ocultar gráfico';
   if (!chartPanel.classList.contains('hidden')) drawOverlay(state.currentResult);
 }
 
@@ -950,6 +972,7 @@ function updateProfileTexts() {
     }
   }
   chartReference.innerHTML = `<strong>Gráfico em uso:</strong> Figure ${src.figure} — ${src.title}.<br><strong>Suplemento:</strong> Supplement ${src.supplement}<br><strong>Página:</strong> ${src.page}<br><strong>Fonte:</strong> ${src.rfm_source}.`;
+  renderChartFacts(src);
   const chartHint = document.getElementById('chartHint');
   if (chartHint) {
     chartHint.textContent = isReferenceOnlyEngine()
@@ -1018,7 +1041,7 @@ async function init() {
   runBtn.addEventListener('click', runCalculation);
   if (demoBtn) demoBtn.addEventListener('click', loadDemo);
   resetBtn.addEventListener('click', resetForm);
-  toggleChartBtn.addEventListener('click', () => toggleChartVisibility());
+  if (toggleChartBtn) toggleChartBtn.addEventListener('click', () => toggleChartVisibility());
   exportPdfBtn.addEventListener('click', exportInterpolatedPdf);
   chartStage.addEventListener('click', () => openFullscreenChart());
   chartStage.addEventListener('keydown', (event) => {
