@@ -690,6 +690,25 @@
       border: 1px solid rgba(32,184,255,.12);
       background: #132132;
       color: #f4f8fb;
+      transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+    }
+    .result-panel.state-ok {
+      border-color: rgba(124,252,0,.30);
+      background: linear-gradient(180deg, rgba(26,56,34,.98) 0%, rgba(19,33,50,.98) 100%);
+      box-shadow: inset 0 1px 0 rgba(124,252,0,.08);
+    }
+    .result-panel.state-bad {
+      border-color: rgba(239,68,68,.32);
+      background: linear-gradient(180deg, rgba(64,26,31,.98) 0%, rgba(19,33,50,.98) 100%);
+      box-shadow: inset 0 1px 0 rgba(239,68,68,.08);
+    }
+    .result-panel.state-ok .result-top {
+      border-bottom-color: rgba(124,252,0,.16);
+      background: rgba(124,252,0,.06);
+    }
+    .result-panel.state-bad .result-top {
+      border-bottom-color: rgba(239,68,68,.18);
+      background: rgba(239,68,68,.07);
     }
     .result-top {
       padding: 14px 16px;
@@ -709,7 +728,7 @@
     .result-value {
       font-size: 28px;
       font-weight: 800;
-      color: #ffbf5f;
+      color: #7dd3fc;
     }
     .decision-table {
       width: 100%;
@@ -718,6 +737,12 @@
       background: #243447;
       border-radius: 12px;
       overflow: hidden;
+    }
+    .result-panel.state-ok .decision-table {
+      background: rgba(17,43,24,.92);
+    }
+    .result-panel.state-bad .decision-table {
+      background: rgba(56,24,29,.92);
     }
     .decision-table th, .decision-table td {
       padding: 10px 12px;
@@ -731,20 +756,58 @@
       color: #A9B8C8;
       background: #243447;
     }
+    .result-panel.state-ok .decision-table thead th {
+      background: rgba(124,252,0,.14);
+      color: #edfbe9;
+    }
+    .result-panel.state-bad .decision-table thead th {
+      background: rgba(239,68,68,.14);
+      color: #fff1f1;
+    }
     .decision-table tbody tr:nth-child(odd) td { background: rgba(255,255,255,.02); }
+    .result-panel.state-ok .decision-table tbody td {
+      background: rgba(124,252,0,.04);
+      border-bottom-color: rgba(124,252,0,.14);
+    }
+    .result-panel.state-ok .decision-table tbody tr:nth-child(odd) td {
+      background: rgba(124,252,0,.08);
+    }
+    .result-panel.state-bad .decision-table tbody td {
+      background: rgba(239,68,68,.04);
+      border-bottom-color: rgba(239,68,68,.14);
+    }
+    .result-panel.state-bad .decision-table tbody tr:nth-child(odd) td {
+      background: rgba(239,68,68,.08);
+    }
     .decision-table .td-ok {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 74px;
+      padding: 6px 10px;
       color: #eafff1;
       font-weight: 900;
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
       background: rgba(98,255,156,.18);
       box-shadow: inset 0 0 0 1px rgba(98,255,156,.36);
-      border-radius: 8px;
+      border-radius: 999px;
     }
     .decision-table .td-bad {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 74px;
+      padding: 6px 10px;
       color: #fff1f1;
       font-weight: 900;
+      font-size: 11px;
+      letter-spacing: .06em;
+      text-transform: uppercase;
       background: rgba(255,94,94,.18);
       box-shadow: inset 0 0 0 1px rgba(255,94,94,.34);
-      border-radius: 8px;
+      border-radius: 999px;
     }
     .result-meta {
       display: flex;
@@ -1097,6 +1160,6 @@
   </div>
 
   <script src="../shared/module-bridge.js"></script>
-  <script src="app.js"></script>
+  <script src="app.js?v=41"></script>
 </body>
 </html>

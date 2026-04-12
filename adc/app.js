@@ -937,6 +937,15 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       if (!a) return;
       const asdaMetric = document.getElementById('asdaMetric');
       if (asdaMetric) asdaMetric.textContent = `${Math.round(a.declared.asda)} m`;
+      const resultPanel = document.querySelector('.result-panel');
+      if (resultPanel) {
+        resultPanel.classList.remove('state-ok', 'state-bad');
+        const declaredAsda = Number(a?.declared?.asda);
+        const panelOk = Number.isFinite(a?.rto) && Number.isFinite(declaredAsda)
+          ? a.rto <= declaredAsda
+          : true;
+        resultPanel.classList.add(panelOk ? 'state-ok' : 'state-bad');
+      }
       document.getElementById('decisionTable').innerHTML = a.rows.map(r => `
         <tr>
           <td>${r.name}</td>
