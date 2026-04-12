@@ -39,7 +39,7 @@
         linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
     }
     .shell {
-      min-height: 100%;
+      min-height: calc(100% - 56px);
       display: grid;
       grid-template-columns: 460px 1fr;
       gap: 16px;
@@ -309,6 +309,7 @@
     }
     .note-box strong { display: block; margin-bottom: 4px; font-size: 12px; }
     .dev-hidden { display: none !important; }
+    .menu-toggle-card.dev-hidden, .advanced-wrap.dev-hidden { display: none !important; }
     .body-fullscreen { overflow: hidden; }
     .right.chart-only-fullscreen {
       position: fixed;
@@ -410,101 +411,74 @@
       color: #eef5fb;
       font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    .appbar {
-      height: 72px;
+    .topbar {
       display: grid;
-      grid-template-columns: auto 1fr auto;
-      align-items: center;
-      gap: 14px;
-      padding: 10px 18px;
-      border-bottom: 1px solid rgba(32, 184, 255, .12);
-      background: linear-gradient(180deg, rgba(8,18,31,.96), rgba(13,27,43,.92));
-      box-shadow: 0 10px 30px rgba(0,0,0,.16);
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-    .appbar-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-      padding-right: 10px;
-      border-right: 1px solid rgba(32, 184, 255, .12);
-    }
-    .appbar-home {
-      width: 36px;
-      height: 36px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(32, 184, 255, .18);
-      font-size: 16px;
-      color: #f4fbff;
-    }
-    .appbar-title {
-      font-size: 14px;
-      font-weight: 800;
-      letter-spacing: .01em;
-      color: #f4f8fc;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: inline-flex;
-      align-items: center;
-      min-width: 0;
-    }
-    .appbar-logo {
-      width: 22px;
-      height: 22px;
-      border-radius: 7px;
-      object-fit: cover;
-      flex: 0 0 22px;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 8px;
-      box-shadow: 0 0 0 1px rgba(32,184,255,.18);
-    }
-    .appbar-center {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-    }
-    .module-chip {
-      display: inline-flex;
-      align-items: center;
-      min-width: 0;
-      border: 1px solid rgba(32,184,255,.42);
-      background: rgba(11,22,35,.52);
-      color: #ecf4fb;
-      border-radius: 10px;
-      padding: 10px 14px;
-      font-size: 14px;
-      font-weight: 700;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-    }
-    .appbar-right {
-      display: inline-flex;
-      align-items: center;
+      grid-template-columns: 1fr auto;
       gap: 12px;
-    }
-    .mini-icon {
-      width: 34px;
-      height: 34px;
-      display: inline-flex;
       align-items: center;
-      justify-content: center;
-      border-radius: 10px;
-      border: 1px solid rgba(32,184,255,.16);
-      background: rgba(255,255,255,.05);
-      color: #eef5fb;
-      font-size: 16px;
+      background: #243447;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 18px;
+      padding: 10px 12px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.28);
+      margin: 12px 12px 0;
     }
+    .topbar-left, .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .product-tag {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-left: 0;
+    }
+    .product-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: #1E293B;
+      color: #E5EEF7;
+      font-size: 20px;
+      overflow: hidden;
+    }
+    .product-icon img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      border-radius: inherit;
+    }
+    .product-line {
+      font-size: 13px;
+      letter-spacing: .04em;
+      color: #E5EEF7;
+      opacity: .92;
+      text-transform: uppercase;
+    }
+    .product-sub {
+      font-size: 20px;
+      line-height: 1.05;
+      font-weight: 300;
+      letter-spacing: .02em;
+    }
+    .module-topbar {
+      padding: 8px 10px !important;
+      border-radius: 14px !important;
+    }
+    .module-topbar .product-icon {
+      width: 30px !important;
+      height: 30px !important;
+      font-size: 16px !important;
+      border-radius: 10px !important;
+    }
+    .module-topbar .product-line { font-size: 11px !important; }
+    .module-topbar .product-sub { font-size: 16px !important; font-weight: 500 !important; }
+    .module-topbar .topbar-left, .module-topbar .topbar-right { gap: 8px !important; }
     .shell {
       min-height: calc(100vh - 72px);
       grid-template-columns: minmax(0, 1fr) 348px;
@@ -631,7 +605,7 @@
     .workspace {
       display: flex;
       flex-direction: column;
-      min-height: 100%;
+      min-height: calc(100% - 56px);
       gap: 12px;
       padding: 0;
     }
@@ -735,7 +709,42 @@
     .result-value {
       font-size: 28px;
       font-weight: 800;
-      color: #7CFC00;
+      color: #ffbf5f;
+    }
+    .decision-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0;
+      background: #243447;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .decision-table th, .decision-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.10);
+      text-align: left;
+    }
+    .decision-table thead th {
+      font-size: 11px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: #A9B8C8;
+      background: #243447;
+    }
+    .decision-table tbody tr:nth-child(odd) td { background: rgba(255,255,255,.02); }
+    .decision-table .td-ok {
+      color: #eafff1;
+      font-weight: 900;
+      background: rgba(98,255,156,.18);
+      box-shadow: inset 0 0 0 1px rgba(98,255,156,.36);
+      border-radius: 8px;
+    }
+    .decision-table .td-bad {
+      color: #fff1f1;
+      font-weight: 900;
+      background: rgba(255,94,94,.18);
+      box-shadow: inset 0 0 0 1px rgba(255,94,94,.34);
+      border-radius: 8px;
     }
     .result-meta {
       display: flex;
@@ -865,8 +874,7 @@
       .viz-wrap { min-height: 50vh; }
     }
     @media (max-width: 720px) {
-      .appbar { grid-template-columns: 1fr auto; }
-      .appbar-center { display: none; }
+      .topbar { margin: 8px 8px 0; }
       .shell { padding: 8px; gap: 8px; }
       .config-card, .result-top, .menu-toggle-card, .advanced-card { padding-left: 12px; padding-right: 12px; }
       input, select, textarea, button { min-height: 46px; }
@@ -877,19 +885,18 @@
 </head>
 
 <body>
-  <div class="appbar">
-    <div class="appbar-badge">
-      <span class="appbar-home">⌂</span>
-      <div class="appbar-title"><img class="appbar-logo" src="../assets/icon-192.png" alt="">AW139 Companion · ADC</div>
+  <header class="topbar module-topbar adc-module-topbar">
+    <div class="topbar-left">
+      <div class="product-tag no-sep">
+        <div class="product-icon"><img src="../assets/icon-192.png" alt=""></div>
+        <div>
+          <div class="product-line">AW139 Companion</div>
+          <div class="product-sub">ADC</div>
+        </div>
+      </div>
     </div>
-    <div class="appbar-center">
-      <div class="module-chip">Aerodrome Decision Card</div>
-    </div>
-    <div class="appbar-right">
-      <span class="mini-icon">☰</span>
-      
-    </div>
-  </div>
+    <div class="topbar-right"></div>
+  </header>
 
   <div class="shell">
     <main class="pane right">
@@ -918,7 +925,7 @@
             <div class="result-value" id="asdaMetric">-</div>
           </div>
           <div class="decision-table-wrap">
-            <table>
+            <table class="decision-table">
               <thead>
                 <tr>
                   <th>Ponto</th>
@@ -931,7 +938,7 @@
           </div>
         </section>
 
-        <section class="menu-toggle-card">
+        <section class="menu-toggle-card dev-hidden" hidden>
           <div class="menu-toggle-copy">
             <strong>Biblioteca / engine / fine tune manual</strong>
             <span>Oculto por padrão para manter a interface simples. Ative só quando precisar editar, importar ou ajustar uma base.</span>
@@ -943,7 +950,7 @@
           </label>
         </section>
 
-        <div class="advanced-wrap" id="advancedWrap" hidden>
+        <div class="advanced-wrap dev-hidden" id="advancedWrap" hidden>
           <div class="advanced-inner">
             <section class="advanced-card">
               <div class="card-head">

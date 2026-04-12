@@ -941,7 +941,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
         <tr>
           <td>${r.name}</td>
           <td>${Math.round(r.availableAsda)} m</td>
-          <td class="${r.rtoOk ? 'yes' : 'no'}">${r.rtoOk ? 'OK' : 'NO'}</td>
+          <td><span class="${r.rtoOk ? 'td-ok' : 'td-bad'}">${r.rtoOk ? 'OK' : 'NO GO'}</span></td>
         </tr>`).join('');
     }
 
