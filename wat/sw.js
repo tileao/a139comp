@@ -1,12 +1,14 @@
-const CACHE_NAME = 'aw139-wat-companion-v17-0-2-landscape-scroll';
+const CACHE_NAME = 'aw139-wat-companion-v17-1-0-pwa-premium';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './app.js?v=v17_0_1-wat-ipad-landscape-scroll',
+  './app.js?v=v17_0_0-wat-ipad-layout-landscape',
   './manifest.webmanifest',
   './README.md',
+  './../shared/pwa.css',
+  './../shared/pwa.js',
   './data/chart-schema.json',
   './data/clear-standard-exact.json',
   './data/clear-eapsoff-exact.json',
@@ -81,9 +83,25 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      const cached = await caches.match('./index.html');
+      try {
+        const fresh = await fetch(event.request);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put('./index.html', fresh.clone());
+        return fresh;
+      } catch (error) {
+        return cached || caches.match('./');
+      }
+    })());
+    return;
+  }
+  event.respondWith(caches.match(event.request, { ignoreSearch: true }).then((cached) => cached || fetch(event.request)));
 });

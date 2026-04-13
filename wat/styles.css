@@ -335,11 +335,6 @@ body.tablet-dashboard .status-main {
   body.tablet-dashboard { overflow:hidden; }
   body.tablet-dashboard .app-shell {
     min-height:100dvh;
-    height:100dvh;
-    overflow-y:auto;
-    overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
     grid-template-columns:minmax(340px, .92fr) minmax(0, 1.35fr);
     grid-template-rows:auto auto minmax(0, 1fr);
     grid-template-areas:

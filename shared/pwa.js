@@ -1,17 +1,31 @@
 (function(){
+  const ua = navigator.userAgent || '';
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  const state = { installed: !!isStandalone, platform: detectPlatform() };
+  const state = {
+    installed: !!isStandalone,
+    platform: detectPlatform(),
+    deferredPrompt: null,
+    online: navigator.onLine !== false,
+  };
   window.__aw139PwaState = state;
 
+  const launchMask = createLaunchMask();
+  const networkChip = createNetworkChip();
+
   function detectPlatform(){
-    const ua = navigator.userAgent || '';
     if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
     if (/Android/.test(ua)) return 'android';
     return 'other';
   }
 
+  function pagePath(){
+    return location.pathname.replace(/\+/g, '/');
+  }
+
   function serviceWorkerConfig(){
-    const path = location.pathname;
+    const path = pagePath();
+    if (path.includes('/wat/')) return { url: 'sw.js', scope: './' };
+    if (path.includes('/rto/')) return { url: 'sw.js', scope: './' };
     if (path.includes('/cata/') || path.includes('/adc/')) return { url: '../sw.js', scope: '../' };
     return { url: 'sw.js', scope: './' };
   }
@@ -34,18 +48,6 @@
     }
   }
 
-  function notifyUpdate(reg){
-    const bar = ensureBar();
-    bar.querySelector('.pwa-toast-text').textContent = 'Nova versão disponível para o app.';
-    const btn = bar.querySelector('.pwa-toast-action');
-    btn.hidden = false;
-    btn.textContent = 'Atualizar';
-    btn.onclick = () => {
-      reg.waiting && reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    };
-    bar.hidden = false;
-  }
-
   function ensureBar(){
     let bar = document.getElementById('pwaToast');
     if (bar) return bar;
@@ -62,14 +64,118 @@
     return bar;
   }
 
+  function notifyUpdate(reg){
+    const bar = ensureBar();
+    bar.querySelector('.pwa-toast-text').textContent = 'Nova versão disponível para o app.';
+    const btn = bar.querySelector('.pwa-toast-action');
+    btn.hidden = false;
+    btn.textContent = 'Atualizar';
+    btn.onclick = () => { reg.waiting && reg.waiting.postMessage({ type: 'SKIP_WAITING' }); };
+    bar.hidden = false;
+  }
+
   function installGuideHtml(){
     if (state.platform === 'ios') {
       return '<strong>Instalar no iPhone/iPad</strong><br>Abra no Safari, toque em <em>Compartilhar</em> e depois em <em>Adicionar à Tela de Início</em>.';
     }
     if (state.platform === 'android') {
-      return '<strong>Instalar no Android</strong><br>Abra o menu do navegador e use <em>Instalar app</em> ou <em>Adicionar à tela inicial</em>.';
+      return '<strong>Instalar no Android</strong><br>Toque em <em>Instalar app</em> quando o navegador oferecer ou use o menu do navegador.';
     }
     return '<strong>Instalar como app</strong><br>Use a opção de instalar/adicionar à tela inicial no navegador compatível.';
+  }
+
+  function createLaunchMask(){
+    const mask = document.createElement('div');
+    mask.className = 'pwa-launch-mask';
+    mask.innerHTML = '<div class="pwa-launch-card"><div class="pwa-launch-icon"><img src="'+launchIconPath()+'" alt=""></div><div class="pwa-launch-title">AW139 Companion</div><div class="pwa-launch-subtitle">Carregando ambiente operacional…</div></div>';
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.appendChild(mask);
+    }, { once: true });
+    return mask;
+  }
+
+  function launchIconPath(){
+    const path = pagePath();
+    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/')) return '../assets/icon-192.png';
+    return 'assets/icon-192.png';
+  }
+
+  function hideLaunchMask(){
+    if (!launchMask || !launchMask.parentNode) return;
+    launchMask.classList.add('is-hiding');
+    window.setTimeout(() => {
+      if (launchMask.parentNode) launchMask.parentNode.removeChild(launchMask);
+    }, 260);
+  }
+
+  function createNetworkChip(){
+    const chip = document.createElement('div');
+    chip.className = 'pwa-network-chip';
+    chip.hidden = true;
+    chip.textContent = 'Online';
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.appendChild(chip);
+      updateNetworkChip();
+    }, { once: true });
+    return chip;
+  }
+
+  function updateNetworkChip(){
+    if (!networkChip) return;
+    state.online = navigator.onLine !== false;
+    if (state.online) {
+      networkChip.hidden = true;
+      networkChip.classList.remove('offline');
+      networkChip.textContent = 'Online';
+    } else {
+      networkChip.hidden = false;
+      networkChip.classList.add('offline');
+      networkChip.textContent = 'Modo offline';
+    }
+    updateInstallStatusText();
+  }
+
+  function updateInstallStatusText(){
+    const installStatus = document.getElementById('installStatusText');
+    if (!installStatus) return;
+    if (state.installed) {
+      installStatus.textContent = state.online ? 'App instalado e pronto para abrir em tela cheia.' : 'App instalado em modo offline. Alguns módulos dependem do cache já carregado.';
+      return;
+    }
+    if (state.platform === 'ios') {
+      installStatus.textContent = 'Instale pela Safari para abrir em tela cheia, com aparência de app e acesso mais rápido aos módulos.';
+      return;
+    }
+    installStatus.textContent = state.deferredPrompt ? 'Este navegador já permite instalar o app direto da tela inicial.' : 'Instale pelo navegador para abrir em tela cheia, com aparência de app e acesso mais rápido aos módulos.';
+  }
+
+  function wireInstallButton(){
+    const btn = document.getElementById('installGuideBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      if (state.deferredPrompt) {
+        state.deferredPrompt.prompt();
+        try { await state.deferredPrompt.userChoice; } catch (_) {}
+        state.deferredPrompt = null;
+        updateInstallStatusText();
+        return;
+      }
+      showAw139InstallGuide();
+    });
+  }
+
+  function showOnlineToast(message){
+    const bar = ensureBar();
+    const btn = bar.querySelector('.pwa-toast-action');
+    btn.hidden = true;
+    btn.onclick = null;
+    bar.querySelector('.pwa-toast-text').textContent = message;
+    bar.hidden = false;
+    window.clearTimeout(showOnlineToast._timer);
+    showOnlineToast._timer = window.setTimeout(() => {
+      if (bar && !bar.querySelector('.pwa-toast-action').hidden) return;
+      bar.hidden = true;
+    }, 2600);
   }
 
   window.showAw139InstallGuide = function(){
@@ -77,14 +183,49 @@
     bar.querySelector('.pwa-toast-text').innerHTML = installGuideHtml();
     const btn = bar.querySelector('.pwa-toast-action');
     btn.hidden = true;
+    btn.onclick = null;
     bar.hidden = false;
   };
 
-  window.addEventListener('load', register);
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    state.deferredPrompt = event;
+    updateInstallStatusText();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    state.installed = true;
+    state.deferredPrompt = null;
+    document.documentElement.classList.add('is-standalone');
+    document.body && document.body.classList.add('is-standalone');
+    updateInstallStatusText();
+    showOnlineToast('App instalado com sucesso.');
+  });
+
+  window.addEventListener('online', () => {
+    updateNetworkChip();
+    showOnlineToast('Conexão restabelecida.');
+  });
+  window.addEventListener('offline', () => {
+    updateNetworkChip();
+    showOnlineToast('Modo offline ativo.');
+  });
+
+  window.addEventListener('load', () => {
+    register();
+    hideLaunchMask();
+    updateNetworkChip();
+  });
+
   window.addEventListener('DOMContentLoaded', () => {
     document.documentElement.classList.toggle('is-standalone', state.installed);
     document.body.classList.toggle('is-standalone', state.installed);
+    updateInstallStatusText();
+    wireInstallButton();
     window.dispatchEvent(new CustomEvent('aw139-pwa-state', { detail: state }));
   });
-  navigator.serviceWorker && navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+  }
 })();
