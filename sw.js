@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v7-premium-phase6';
+const CACHE_NAME = 'aw139-companion-root-v8-premium-phase6b';
 const PRECACHE = [
   './',
   './index.html',
@@ -77,7 +77,7 @@ const PRECACHE = [
   './adc/sbvt_chart_p1.png',
   './adc/sbvt_chart_p2.png',
 ];
-const RUNTIME_CACHE = 'aw139-companion-runtime-v6-premium';
+const RUNTIME_CACHE = 'aw139-companion-runtime-v7-premium';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
