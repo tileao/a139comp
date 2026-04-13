@@ -2,14 +2,17 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#08121f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="AW139" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="format-detection" content="telephone=no" />
   <link rel="manifest" href="../manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icon-180.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="../assets/icon-192.png" />
   <title>AW139 Companion - ADC Module v36</title>
   <style>
 
@@ -1011,19 +1014,21 @@
     @media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
       .shell {
         min-height: calc(100dvh - 76px);
-        grid-template-columns: 380px minmax(0, 1fr);
-        gap: 12px;
-        padding: 12px;
+        grid-template-columns: 340px minmax(0, 1fr);
+        gap: 10px;
+        padding: 10px;
         align-items: stretch;
       }
       .pane.left,
       .pane.right {
         min-height: 0;
-        border-radius: 18px;
+        border-radius: 14px;
         overflow: hidden;
       }
       .pane.left {
         order: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
       .pane.right {
         order: 2;
@@ -1034,16 +1039,17 @@
       .config-card:last-child {
         grid-column: auto;
       }
+      .config-card { padding: 10px 12px; }
       .workspace {
         height: 100%;
         min-height: 0;
         grid-template-columns: 1fr;
         grid-template-rows: minmax(0, 1fr) auto;
-        gap: 12px;
-        padding: 14px;
+        gap: 10px;
+        padding: 12px;
       }
       .chart-frame {
-        min-height: calc(100dvh - 210px);
+        min-height: calc(100dvh - 200px);
       }
       .viz-wrap {
         min-height: 0;
@@ -1052,6 +1058,36 @@
       .result-panel {
         align-self: end;
       }
+      input, select, textarea { min-height: 38px; font-size: 14px; }
+    }
+
+    /* ── iPhone landscape ── */
+    @media (max-height: 440px) and (orientation: landscape) {
+      .shell {
+        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) !important;
+        gap: 6px !important;
+        padding: 6px !important;
+        min-height: 100dvh;
+        align-items: stretch;
+      }
+      .topbar { margin: 4px 6px 0 !important; padding: 6px 10px !important; border-radius: 10px !important; }
+      .product-sub { font-size: 14px !important; }
+      .pane.left { order: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
+      .pane.right { order: 2; border-radius: 10px; overflow: hidden; }
+      .config-panel { grid-template-columns: 1fr !important; }
+      .config-card { padding: 8px 10px !important; }
+      .config-header h2 { font-size: 14px !important; }
+      .step-badge { font-size: 10px !important; padding: 3px 6px !important; }
+      input, select, textarea, button { min-height: 30px !important; font-size: 12px !important; border-radius: 8px !important; }
+      label, .field-label { font-size: 10px !important; }
+      .action-row { margin-top: 6px !important; gap: 6px !important; }
+      .workspace { padding: 8px !important; gap: 6px !important; }
+      .chart-frame { min-height: 0 !important; }
+      .viz-wrap { min-height: calc(100dvh - 60px); }
+      .viz-title { font-size: 13px !important; }
+      .result-top { padding: 8px !important; }
+      .result-value { font-size: 20px !important; }
+      .decision-table th, .decision-table td { padding: 6px 8px !important; font-size: 12px !important; }
     }
 
   </style>

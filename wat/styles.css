@@ -335,13 +335,29 @@ body.tablet-dashboard .status-main {
   body.tablet-dashboard { overflow:hidden; }
   body.tablet-dashboard .app-shell {
     min-height:100dvh;
-    grid-template-columns:minmax(340px, .92fr) minmax(0, 1.35fr);
+    height:100dvh;
+    grid-template-columns:minmax(300px, .88fr) minmax(0, 1.4fr);
     grid-template-rows:auto auto minmax(0, 1fr);
     grid-template-areas:
       "top top"
       "sidebar viewer"
       "result viewer";
     align-content:stretch;
+    gap:10px;
+    padding:10px;
+  }
+  body.tablet-dashboard .topbar{border-radius:14px;padding:8px 12px}
+  body.tablet-dashboard #formSection{
+    padding:10px 12px;
+    border-radius:14px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  body.tablet-dashboard #statusCard{
+    padding:10px 12px;
+    border-radius:14px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
   }
   body.tablet-dashboard #formSection,
   body.tablet-dashboard #statusCard,
@@ -350,7 +366,10 @@ body.tablet-dashboard .status-main {
     align-self:stretch;
   }
   body.tablet-dashboard #visualCard {
-    min-height:calc(100dvh - 120px);
+    min-height:0;
+    height:calc(100dvh - 80px);
+    border-radius:14px;
+    overflow:hidden;
   }
   body.tablet-dashboard .chart-panel,
   body.tablet-dashboard .chart-stage {
@@ -363,4 +382,43 @@ body.tablet-dashboard .status-main {
   body.tablet-dashboard #chartBaseImage {
     max-height:100%;
   }
+  body.tablet-dashboard .compact-grid{gap:8px}
+  body.tablet-dashboard input,
+  body.tablet-dashboard select{min-height:36px;height:36px;font-size:13px;border-radius:8px}
+  body.tablet-dashboard .sign-toggle{height:36px;min-height:36px;width:36px;min-width:36px;max-width:36px}
+  body.tablet-dashboard .segment-option span{min-height:36px;font-size:13px}
+  body.tablet-dashboard .action-row .primary{height:38px}
+  body.tablet-dashboard .action-row .ghost{height:36px}
+}
+
+/* ── iPhone landscape: compact single-scroll layout ── */
+@media (max-height: 440px) and (orientation: landscape) {
+  .app-shell{
+    grid-template-columns:minmax(260px,.85fr) minmax(0,1.2fr)!important;
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+    grid-template-areas:"top top" "sidebar viewer" "result viewer"!important;
+    height:100dvh;
+    padding:6px!important;
+    gap:6px!important;
+    overflow:hidden;
+  }
+  .topbar{padding:6px 10px!important;border-radius:10px!important}
+  .product-sub{font-size:14px!important}
+  .form-card,#statusCard{padding:8px!important;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(50dvh - 30px)}
+  #visualCard,.viewer-card{overflow:hidden!important}
+  h2{font-size:16px!important}
+  label span,.label{font-size:9px!important;margin-bottom:2px!important}
+  input,select{min-height:30px!important;height:30px!important;font-size:12px!important;border-radius:6px!important;padding:0 8px!important}
+  .sign-toggle{height:30px!important;min-height:30px!important;width:30px!important;min-width:30px!important;max-width:30px!important;font-size:16px!important;border-radius:6px!important}
+  .segment-option span{min-height:30px!important;font-size:12px!important;border-radius:8px!important}
+  .action-row{margin-top:6px!important;gap:6px!important}
+  .action-row .primary{height:32px!important;border-radius:8px!important;font-size:13px!important}
+  .action-row .ghost{height:30px!important;font-size:12px!important}
+  .card-title-row{margin-bottom:6px!important}
+  .status-main{gap:8px}
+  .metric{padding:8px;border-radius:8px}
+  .metric strong{font-size:18px!important}
+  .status h2{font-size:17px!important}
+  .status-badge{padding:4px 8px;font-size:10px}
+  .chart-stage{min-height:0!important}
 }

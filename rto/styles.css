@@ -1181,31 +1181,43 @@ label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;c
   body.tablet-dashboard { overflow:hidden; }
   body.tablet-dashboard .app-shell {
     min-height:100dvh;
+    height:100dvh;
     max-width:none;
     margin:0;
-    padding:12px;
+    padding:10px;
     display:grid;
-    grid-template-columns:minmax(340px, .92fr) minmax(0, 1.35fr);
+    grid-template-columns:minmax(300px, .88fr) minmax(0, 1.4fr);
     grid-template-rows:auto auto minmax(0, 1fr);
     grid-template-areas:
       "top top"
       "form viewer"
       "status viewer";
-    gap:12px;
+    gap:10px;
     align-content:stretch;
   }
-  body.tablet-dashboard .topbar { grid-area:top; }
+  body.tablet-dashboard .topbar { grid-area:top; border-radius:14px; padding:8px 12px; }
   body.tablet-dashboard #heroHeader,
   body.tablet-dashboard #interpSection { display:none !important; }
-  body.tablet-dashboard #formSection { grid-area:form; margin:0; min-height:0; align-self:stretch; }
-  body.tablet-dashboard #statusCard { grid-area:status; margin:0; min-height:0; align-self:stretch; }
+  body.tablet-dashboard #formSection {
+    grid-area:form; margin:0; min-height:0; align-self:stretch;
+    padding:10px 12px; border-radius:14px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
+  body.tablet-dashboard #statusCard {
+    grid-area:status; margin:0; min-height:0; align-self:stretch;
+    padding:10px 12px; border-radius:14px;
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+  }
   body.tablet-dashboard #visualCard {
     grid-area:viewer;
     margin:0;
-    min-height:calc(100dvh - 120px);
+    min-height:0;
+    height:calc(100dvh - 80px);
     align-self:stretch;
     display:flex;
     flex-direction:column;
+    border-radius:14px;
+    overflow:hidden;
   }
   body.tablet-dashboard #chartPanel,
   body.tablet-dashboard .chart-stage {
@@ -1216,4 +1228,48 @@ label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;c
   body.tablet-dashboard .chart-stage {
     align-items:center;
   }
+  body.tablet-dashboard input,
+  body.tablet-dashboard select{min-height:36px;height:36px;font-size:13px;border-radius:8px;padding:0 10px}
+  body.tablet-dashboard .sign-toggle{min-height:36px;font-size:16px}
+  body.tablet-dashboard .input-with-toggle{grid-template-columns:36px 1fr}
+  body.tablet-dashboard .compact-grid{gap:8px}
+  body.tablet-dashboard .action-row .primary{min-height:38px}
+  body.tablet-dashboard .action-row .ghost{min-height:36px}
+}
+
+/* ── iPhone landscape: compact two-column layout ── */
+@media (max-height: 440px) and (orientation: landscape) {
+  .app-shell{
+    grid-template-columns:minmax(240px,.82fr) minmax(0,1.2fr)!important;
+    grid-template-rows:auto auto minmax(0,1fr)!important;
+    grid-template-areas:"top top" "sidebar viewer" "result viewer"!important;
+    height:100dvh;
+    padding:6px!important;
+    gap:6px!important;
+    overflow:hidden;
+  }
+  .topbar{padding:6px 10px!important;border-radius:10px!important}
+  .product-sub{font-size:14px!important}
+  #formSection{padding:8px!important;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(50dvh - 30px)}
+  #statusCard{padding:8px!important;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(50dvh - 30px);position:static!important}
+  #visualCard{overflow:hidden!important}
+  h2{font-size:16px!important}
+  label span,.label{font-size:9px!important;margin-bottom:2px!important}
+  input,select{min-height:30px!important;height:30px!important;font-size:12px!important;border-radius:6px!important;padding:0 8px!important}
+  .sign-toggle{min-height:30px!important;height:30px!important;font-size:16px!important;border-radius:6px!important}
+  .input-with-toggle{grid-template-columns:30px 1fr!important;gap:6px!important}
+  .action-row{margin-top:6px!important;gap:6px!important}
+  .action-row .primary{min-height:32px!important;font-size:13px!important}
+  .action-row .ghost{min-height:30px!important;font-size:12px!important}
+  .card-title-row{margin-bottom:6px!important}
+  .status-grid{gap:6px!important}
+  .status-summary h2{font-size:15px!important}
+  .status-badge{padding:4px 8px!important;font-size:9px!important}
+  .result-main strong{font-size:24px!important}
+  .result-main{padding:8px!important}
+  .chart-stage{min-height:0!important}
+  .viz-facts{gap:4px!important}
+  .viz-fact{padding:4px 6px!important}
+  .viz-fact-label{font-size:9px!important}
+  .viz-fact-value{font-size:11px!important}
 }
