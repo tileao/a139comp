@@ -1618,8 +1618,7 @@ ${xrefStart}
   return new Blob(pdfParts, { type: 'application/pdf' });
 }
 
-async function shareOrDownloadPdfFromCanvas(canvas, fileName) {
-  const blob = buildPdfBlobFromCanvas(canvas);
+async function shareOrDownloadPdfBlob(blob, fileName) {
   const file = new File([blob], fileName, { type: 'application/pdf' });
   if (navigator.canShare && navigator.share) {
     try {
@@ -1647,6 +1646,11 @@ async function shareOrDownloadPdfFromCanvas(canvas, fileName) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function shareOrDownloadPdfFromCanvas(canvas, fileName) {
+  const blob = buildPdfBlobFromCanvas(canvas);
+  await shareOrDownloadPdfBlob(blob, fileName);
 }
 
 function updateSharePdfButtonLabel() {
@@ -1685,6 +1689,206 @@ function getModeSnapshotCanvas(mode) {
   } catch {
     return null;
   }
+}
+
+
+function getModePdfCanvas(mode) {
+  try {
+    const src = getSourceCanvas(mode);
+    if (src && src.width > 16 && src.height > 16) {
+      const crop = getCanvasCrop(src, mode);
+      if (crop?.w && crop?.h) {
+        const tmp = document.createElement('canvas');
+        tmp.width = crop.w;
+        tmp.height = crop.h;
+        tmp.getContext('2d').drawImage(src, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+        return tmp;
+      }
+    }
+  } catch {}
+  return getModeSnapshotCanvas(mode);
+}
+
+function buildPdfBlobFromCanvases(canvases) {
+  const valid = (canvases || []).filter(c => c && c.width > 0 && c.height > 0);
+  if (!valid.length) return buildPdfBlobFromCanvas(createCataPdfCanvas());
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const encoder = new TextEncoder();
+  const pdfParts = [];
+  const push = (s) => pdfParts.push(typeof s === 'string' ? s : s);
+  const offset = () => pdfParts.reduce((n, part) => n + (typeof part === 'string' ? encoder.encode(part).length : part.length), 0);
+  push(`%PDF-1.4
+`);
+  const pageCount = valid.length;
+  const imageObjStart = 3 + pageCount * 2;
+  const contentObjStart = imageObjStart + pageCount;
+  const totalObjs = contentObjStart + pageCount - 1;
+  const offsets = [];
+
+  offsets[1] = offset(); push(`1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+`);
+  const kids = Array.from({ length: pageCount }, (_, i) => `${3 + i} 0 R`).join(' ');
+  offsets[2] = offset(); push(`2 0 obj
+<< /Type /Pages /Kids [${kids}] /Count ${pageCount} >>
+endobj
+`);
+
+  valid.forEach((canvas, idx) => {
+    const pageObj = 3 + idx;
+    const imageObj = imageObjStart + idx;
+    const contentObj = contentObjStart + idx;
+    offsets[pageObj] = offset();
+    push(`${pageObj} 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] /Resources << /XObject << /Im0 ${imageObj} 0 R >> >> /Contents ${contentObj} 0 R >>
+endobj
+`);
+  });
+
+  valid.forEach((canvas, idx) => {
+    const jpegData = canvas.toDataURL('image/jpeg', 0.97);
+    const base64 = jpegData.split(',')[1];
+    const imageBytes = atob(base64);
+    const bin = Uint8Array.from(imageBytes, c => c.charCodeAt(0));
+    const imageObj = imageObjStart + idx;
+    offsets[imageObj] = offset();
+    push(`${imageObj} 0 obj
+<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bin.length} >>
+stream
+`);
+    push(bin);
+    push(`
+endstream
+endobj
+`);
+  });
+
+  valid.forEach((canvas, idx) => {
+    const contentObj = contentObjStart + idx;
+    const fitScale = Math.min(pageWidth / canvas.width, pageHeight / canvas.height);
+    const drawW = canvas.width * fitScale;
+    const drawH = canvas.height * fitScale;
+    const x = (pageWidth - drawW) / 2;
+    const y = (pageHeight - drawH) / 2;
+    const content = `q
+${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm
+/Im0 Do
+Q
+`;
+    offsets[contentObj] = offset();
+    push(`${contentObj} 0 obj
+<< /Length ${encoder.encode(content).length} >>
+stream
+${content}endstream
+endobj
+`);
+  });
+
+  const xrefStart = offset();
+  push(`xref
+0 ${totalObjs + 1}
+0000000000 65535 f 
+`);
+  for (let i = 1; i <= totalObjs; i++) push(`${String(offsets[i]).padStart(10, '0')} 00000 n 
+`);
+  push(`trailer
+<< /Size ${totalObjs + 1} /Root 1 0 R >>
+startxref
+${xrefStart}
+%%EOF`);
+  return new Blob(pdfParts, { type: 'application/pdf' });
+}
+
+function createCataPdfModulePageCanvas(mode, title, srcCanvas) {
+  const inputs = collectInputs();
+  const width = 1800;
+  const height = 2546;
+  const margin = 72;
+  const headerH = 220;
+  const metaH = 240;
+  const footerH = 80;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+
+  const roundRect = (x, y, w, h, r = 22) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
+  const text = (str, x, y, size = 28, color = '#102033', weight = '600', align = 'left') => {
+    ctx.fillStyle = color;
+    ctx.font = `${weight} ${size}px Inter, Arial, sans-serif`;
+    ctx.textAlign = align;
+    ctx.fillText(String(str || ''), x, y);
+  };
+  const drawMeta = (label, value, x, y) => {
+    text(label, x, y, 18, '#6c7b90', '700');
+    text(value || '—', x, y + 30, 28, '#102033', '700');
+  };
+
+  ctx.fillStyle = '#eef3f9';
+  ctx.fillRect(0, 0, width, height);
+  text('AW139 Companion — CAT A Clear Area', margin, margin + 12, 40, '#102033', '800');
+  text(`Exportação do fluxo — ${title}`, margin, margin + 58, 24, '#4e637c', '700');
+  text(new Date().toLocaleString('pt-BR'), width - margin, margin + 58, 20, '#6f7f93', '600', 'right');
+
+  const metaY = margin + 90;
+  ctx.fillStyle = '#ffffff';
+  roundRect(margin, metaY, width - margin * 2, metaH, 28);
+  ctx.fill();
+  ctx.strokeStyle = '#d6deea';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  drawMeta('Base', inputs.base || '—', margin + 28, metaY + 48);
+  drawMeta('Cabeceira', inputs.departureEnd || '—', margin + 330, metaY + 48);
+  drawMeta('PA', `${inputs.pressureAltitudeFt || 0} ft`, margin + 560, metaY + 48);
+  drawMeta('OAT', `${inputs.oatC || 0} °C`, margin + 760, metaY + 48);
+  drawMeta('Peso', `${inputs.weightKg || 0} kg`, margin + 980, metaY + 48);
+  drawMeta('Headwind', `${inputs.headwindKt || 0} kt`, margin + 1230, metaY + 48);
+  drawMeta('Configuração', els.config.options[els.config.selectedIndex]?.text || inputs.configuration || '—', margin + 28, metaY + 136);
+  drawMeta('Status', els.statusChip.textContent || '—', margin + 560, metaY + 136);
+  drawMeta('WAT', els.watMax.textContent || '—', margin + 900, metaY + 136);
+  drawMeta('RTO', els.rtoMetric.textContent || '—', margin + 1170, metaY + 136);
+
+  const cardY = metaY + metaH + 28;
+  const cardW = width - margin * 2;
+  const cardH = height - cardY - footerH - margin;
+  ctx.fillStyle = '#ffffff';
+  roundRect(margin, cardY, cardW, cardH, 30);
+  ctx.fill();
+  ctx.strokeStyle = '#d6deea';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  text(title, margin + 28, cardY + 42, 30, '#102033', '800');
+
+  if (srcCanvas && srcCanvas.width > 16 && srcCanvas.height > 16) {
+    const pad = 26;
+    const maxW = cardW - pad * 2;
+    const maxH = cardH - 86;
+    const scale = Math.min(maxW / srcCanvas.width, maxH / srcCanvas.height);
+    const drawW = Math.round(srcCanvas.width * scale);
+    const drawH = Math.round(srcCanvas.height * scale);
+    const drawX = margin + Math.round((cardW - drawW) / 2);
+    const drawY = cardY + 60 + Math.round((maxH - drawH) / 2);
+    ctx.fillStyle = '#0f1a28';
+    roundRect(drawX - 10, drawY - 10, drawW + 20, drawH + 20, 18);
+    ctx.fill();
+    ctx.drawImage(srcCanvas, drawX, drawY, drawW, drawH);
+  } else {
+    text('Carta indisponível para exportação.', margin + 28, cardY + 120, 24, '#6a7a8e', '600');
+  }
+
+  text('PDF em alta resolução por módulo.', margin, height - margin + 6, 18, '#6f7f93', '600');
+  return canvas;
 }
 
 function createCataPdfCanvas() {
@@ -1844,12 +2048,21 @@ async function exportFlowPdf() {
     await Promise.all(['adc', 'wat', 'rto'].map(async (mode) => {
       try {
         await prepareEmbeddedView(mode);
-        await nextFrame(1);
+        await nextFrame(2);
       } catch {}
     }));
-    const canvas = createCataPdfCanvas();
+
+    const adcCanvas = getModePdfCanvas('adc');
+    const watCanvas = getModePdfCanvas('wat');
+    const rtoCanvas = getModePdfCanvas('rto');
+    const pages = [
+      createCataPdfModulePageCanvas('adc', 'ADC', adcCanvas),
+      createCataPdfModulePageCanvas('wat', 'WAT', watCanvas),
+      createCataPdfModulePageCanvas('rto', 'RTO', rtoCanvas),
+    ];
+    const blob = buildPdfBlobFromCanvases(pages);
     const safeBase = String((collectInputs().base || 'base')).toLowerCase();
-    await shareOrDownloadPdfFromCanvas(canvas, `aw139-cata-${safeBase}.pdf`);
+    await shareOrDownloadPdfBlob(blob, `aw139-cata-${safeBase}.pdf`);
   } finally {
     setVisualization(previousMode, true);
   }
