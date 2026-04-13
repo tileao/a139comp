@@ -1,10 +1,10 @@
-const CACHE_NAME = 'aw139-wat-companion-v16-9-9-fullscreen-hires';
+const CACHE_NAME = 'aw139-wat-companion-v17-0-0-ipad-layout';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './app.js?v=v16_9_9-wat-fullscreen-hires',
+  './app.js?v=v17_0_0-wat-ipad-layout',
   './manifest.webmanifest',
   './README.md',
   './data/chart-schema.json',
