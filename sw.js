@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v5-premium';
+const CACHE_NAME = 'aw139-companion-root-v6-premium-landscape-scroll';
 const PRECACHE = [
   './',
   './index.html',
@@ -76,7 +76,7 @@ const PRECACHE = [
   './adc/sbvt_chart_p1.png',
   './adc/sbvt_chart_p2.png',
 ];
-const RUNTIME_CACHE = 'aw139-companion-runtime-v5-premium';
+const RUNTIME_CACHE = 'aw139-companion-runtime-v6-premium-landscape-scroll';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
