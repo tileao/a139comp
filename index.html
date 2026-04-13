@@ -8,35 +8,46 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=45">
 </head>
 <body>
   <main class="home-shell">
     <header class="home-topbar">
       <div class="home-brand">
         <div class="brand-mark" aria-hidden="true"><img src="assets/icon-192.png" alt=""></div>
-        <div>
+        <div class="brand-copy">
           <div class="brand-title">AW139 Companion</div>
-          <div class="brand-subtitle">Performance & operational tools</div>
+          <div class="brand-subtitle">Companion app para performance e decisão operacional</div>
         </div>
+      </div>
+      <div class="topbar-badges" aria-label="Plataformas e modo do app">
+        <span class="topbar-chip">iPhone</span>
+        <span class="topbar-chip">iPad</span>
+        <span class="topbar-chip accent">PWA</span>
       </div>
     </header>
 
     <section class="hero-panel">
       <div class="hero-copy">
-        <span class="eyebrow">Fluxo disponível</span>
-        <h1>Pronto para teste com pilotos.</h1>
-        <p>Abra o fluxo principal, retome o último contexto salvo ou acesse diretamente os módulos que já estão operacionais.</p>
+        <span class="eyebrow">Fluxo principal</span>
+        <h1>CAT A Clear Area com continuidade entre WAT, RTO e ADC.</h1>
+        <p>Abra o fluxo principal para calcular, revisar a carta operacional e compartilhar o resultado em PDF. Os módulos independentes continuam disponíveis para consulta direta e conferência rápida.</p>
         <div class="hero-actions">
-          <a class="hero-btn primary" href="cata/">Abrir Cat A Clear Area</a>
+          <a class="hero-btn primary" href="cata/">Abrir fluxo CAT A</a>
           <a class="hero-btn" href="#modules">Abrir módulos</a>
+        </div>
+        <div class="hero-highlights" aria-label="Destaques do aplicativo">
+          <span class="hero-pill">Fluxo operacional</span>
+          <span class="hero-pill">PDF compartilhável</span>
+          <span class="hero-pill">Uso em iPhone e iPad</span>
         </div>
       </div>
       <aside class="resume-card" id="resumeCard">
-        <span class="resume-tag">Último contexto</span>
+        <span class="resume-tag">Retomar contexto</span>
         <h2 id="resumeTitle">Sem contexto salvo</h2>
         <p id="resumeSummary">Abra um fluxo ou módulo para começar.</p>
         <div class="resume-chips" id="resumeChips"></div>
+        <a id="continueLinkHero" class="resume-link disabled" href="cata/" aria-disabled="true">Continuar</a>
       </aside>
     </section>
 
@@ -44,14 +55,22 @@
       <div class="section-head">
         <div>
           <span class="section-kicker">Fluxo operacional</span>
-          <h2>Comece pelo Cat A Clear Area</h2>
+          <h2>Comece pelo fluxo integrado</h2>
         </div>
       </div>
       <div class="flow-grid single-flow">
         <a class="flow-card featured" href="cata/">
-          <span class="card-tag">Fluxo principal</span>
-          <h3>Cat A Clear Area</h3>
-          <p>WAT, RTO e decisão por ponto em um único fluxo operacional pronto para teste de campo.</p>
+          <div class="card-head-row">
+            <span class="card-tag">Fluxo principal</span>
+            <span class="card-badge">Integrado</span>
+          </div>
+          <h3>CAT A Clear Area</h3>
+          <p>Entradas, cálculo, tabela de decisão, visualização e exportação em uma única sequência operacional.</p>
+          <ul class="feature-list">
+            <li>Integra WAT, RTO e ADC</li>
+            <li>Atualização visual protegida</li>
+            <li>PDF pronto para compartilhar</li>
+          </ul>
           <span class="card-cta">Abrir fluxo</span>
         </a>
       </div>
@@ -61,25 +80,34 @@
       <div class="section-head split">
         <div>
           <span class="section-kicker">Módulos</span>
-          <h2>Abra uma ferramenta específica</h2>
+          <h2>Ferramentas individuais</h2>
         </div>
         <button id="clearContextBtn" class="ghost-btn" type="button">Limpar contexto</button>
       </div>
       <div class="module-grid">
         <a class="module-card" href="wat/?back=1&return=../index.html">
-          <span class="card-tag">Módulo</span>
-          <h3>WAT</h3>
-          <p>Peso máximo disponível e margem operacional com visualização por gráfico.</p>
+          <div class="card-head-row">
+            <span class="card-tag">Módulo</span>
+            <span class="module-key">WAT</span>
+          </div>
+          <h3>Weight Altitude Temperature</h3>
+          <p>Cálculo de peso máximo e margem operacional com apoio visual por gráfico.</p>
         </a>
         <a class="module-card" href="rto/?back=1&return=../index.html">
-          <span class="card-tag">Módulo</span>
-          <h3>RTO / CTO</h3>
-          <p>Distância requerida e apoio à decisão por ponto de decolagem.</p>
+          <div class="card-head-row">
+            <span class="card-tag">Módulo</span>
+            <span class="module-key">RTO</span>
+          </div>
+          <h3>Required Takeoff Run</h3>
+          <p>Distância requerida e apoio à decisão por pista, cabeceira e ponto de saída.</p>
         </a>
         <a class="module-card" href="adc/?back=1&return=../index.html">
-          <span class="card-tag">Módulo</span>
-          <h3>ADC</h3>
-          <p>Carta operacional e análise de viabilidade por pista e cabeceira.</p>
+          <div class="card-head-row">
+            <span class="card-tag">Módulo</span>
+            <span class="module-key">ADC</span>
+          </div>
+          <h3>Aerodrome Chart</h3>
+          <p>Carta operacional com análise por pista, ASDA e taxiways no padrão do fluxo.</p>
         </a>
       </div>
     </section>
@@ -100,6 +128,6 @@
       </article>
     </section>
   </main>
-  <script src="shared/home.js"></script>
+  <script src="shared/home.js?v=45"></script>
 </body>
 </html>
