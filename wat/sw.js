@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-wat-companion-v17-1-0-pwa-premium';
+const CACHE_NAME = 'aw139-wat-companion-v17-2-0-pwa-premium-phase6';
 const APP_ASSETS = [
   './',
   './index.html',
