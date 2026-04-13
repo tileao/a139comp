@@ -1,10 +1,10 @@
-const CACHE_NAME = 'aw139-wat-companion-v17-0-0-ipad-layout';
+const CACHE_NAME = 'aw139-wat-companion-v17-0-1-landscape';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './app.js?v=v17_0_0-wat-ipad-layout',
+  './app.js?v=v17_0_0-wat-ipad-layout-landscape',
   './manifest.webmanifest',
   './README.md',
   './data/chart-schema.json',
