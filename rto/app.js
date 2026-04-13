@@ -180,7 +180,7 @@ const autoAdvanceRules = [
   { el: paEl, next: oatEl, minDigits: 3, maxDigits: 4 },
   { el: oatEl, next: weightEl, minDigits: 2, maxDigits: 2 },
   { el: weightEl, next: windEl, minDigits: 4, maxDigits: 4 },
-  { el: windEl, next: runBtn, minDigits: 1, maxDigits: 2 },
+  { el: windEl, next: runBtn, minDigits: 2, maxDigits: 2 },
 ];
 
 function fmt(num, digits = 0) {
