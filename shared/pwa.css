@@ -88,3 +88,47 @@ body.is-standalone .adc-module-topbar {
   .pwa-launch-card { width: min(260px, calc(100vw - 32px)); }
   .pwa-network-chip { left: max(12px, var(--pwa-safe-left)); right: auto; }
 }
+
+body:not(.pwa-shell-ready) .home-shell,
+body:not(.pwa-shell-ready) .app-shell,
+body:not(.pwa-shell-ready) .cockpit-shell,
+body:not(.pwa-shell-ready) .shell {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.home-shell,
+.app-shell,
+.cockpit-shell,
+.shell {
+  transition: opacity .24s ease, transform .24s ease;
+}
+body.pwa-shell-ready .home-shell,
+body.pwa-shell-ready .app-shell,
+body.pwa-shell-ready .cockpit-shell,
+body.pwa-shell-ready .shell {
+  opacity: 1;
+  transform: none;
+}
+body.is-standalone .home-topbar,
+body.is-standalone .topbar,
+body.is-standalone .module-topbar,
+body.is-standalone .adc-module-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+body.is-standalone.is-scrolled .home-topbar,
+body.is-standalone.is-scrolled .topbar,
+body.is-standalone.is-scrolled .module-topbar,
+body.is-standalone.is-scrolled .adc-module-topbar {
+  box-shadow: 0 16px 34px rgba(0,0,0,.24);
+  border-color: rgba(255,255,255,.14);
+  background: rgba(11,18,32,.92);
+}
+body.is-standalone .home-shell,
+body.is-standalone .app-shell,
+body.is-standalone .cockpit-shell,
+body.is-standalone .shell {
+  padding-left: max(12px, var(--pwa-safe-left));
+  padding-right: max(12px, var(--pwa-safe-right));
+}

@@ -11,6 +11,7 @@
 
   const launchMask = createLaunchMask();
   const networkChip = createNetworkChip();
+  let lastScrollState = false;
 
   function detectPlatform(){
     if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
@@ -28,6 +29,19 @@
     if (path.includes('/rto/')) return { url: 'sw.js', scope: './' };
     if (path.includes('/cata/') || path.includes('/adc/')) return { url: '../sw.js', scope: '../' };
     return { url: 'sw.js', scope: './' };
+  }
+
+  function setShellReady(){
+    if (!document.body) return;
+    document.body.classList.add('pwa-shell-ready');
+  }
+
+  function updateScrollState(){
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    const scrolled = y > 8;
+    if (!document.body || scrolled === lastScrollState) return;
+    lastScrollState = scrolled;
+    document.body.classList.toggle('is-scrolled', scrolled);
   }
 
   async function register(){
@@ -101,10 +115,14 @@
   }
 
   function hideLaunchMask(){
-    if (!launchMask || !launchMask.parentNode) return;
+    if (!launchMask || !launchMask.parentNode) {
+      setShellReady();
+      return;
+    }
     launchMask.classList.add('is-hiding');
     window.setTimeout(() => {
       if (launchMask.parentNode) launchMask.parentNode.removeChild(launchMask);
+      setShellReady();
     }, 260);
   }
 
@@ -215,7 +233,16 @@
     register();
     hideLaunchMask();
     updateNetworkChip();
+    updateScrollState();
   });
+
+  window.addEventListener('pageshow', () => {
+    setShellReady();
+    updateScrollState();
+  });
+
+  window.addEventListener('scroll', updateScrollState, { passive: true });
+  window.addEventListener('resize', updateScrollState, { passive: true });
 
   window.addEventListener('DOMContentLoaded', () => {
     document.documentElement.classList.toggle('is-standalone', state.installed);
