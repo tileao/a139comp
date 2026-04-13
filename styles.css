@@ -143,10 +143,59 @@ a{color:inherit}
 .utility-link.disabled{opacity:.45;pointer-events:none}
 .empty-state{color:var(--muted);font-size:14px}
 
+/* ── iPad landscape (1024–1366px) ── */
+@media (min-width:1024px) and (max-width:1366px) and (orientation:landscape){
+  .home-shell{padding:16px;gap:14px;max-width:none}
+  .hero-panel{grid-template-columns:minmax(0,1.5fr) minmax(280px,.8fr);gap:14px;padding:20px}
+  .hero-copy h1{font-size:38px}
+  .hero-copy p{font-size:15px}
+  .flow-grid,.module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .utility-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .flow-card,.module-card,.utility-card{min-height:160px}
+  .section-head h2{font-size:26px}
+}
+
+/* ── iPad portrait (768–1024px) ── */
+@media (min-width:768px) and (max-width:1024px) and (orientation:portrait){
+  .home-shell{padding:14px;gap:14px;max-width:none}
+  .hero-panel{grid-template-columns:1fr;gap:14px;padding:20px}
+  .hero-copy h1{font-size:36px}
+  .hero-copy p{font-size:15px}
+  .flow-grid,.module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .utility-grid{grid-template-columns:1fr 1fr 1fr}
+  .flow-card,.module-card,.utility-card{min-height:155px}
+  .section-head h2{font-size:26px}
+  .resume-card h2{font-size:24px}
+}
+
+/* ── Default tablet fallback ── */
 @media (max-width:1120px){
   .hero-panel{grid-template-columns:1fr}
   .flow-grid,.module-grid,.utility-grid{grid-template-columns:1fr 1fr}
 }
+
+/* ── iPhone landscape (short height, wide) ── */
+@media (max-height:440px) and (orientation:landscape){
+  .home-shell{padding:8px 16px;gap:10px}
+  .home-topbar{padding:8px 14px;flex-direction:row;align-items:center}
+  .hero-panel{grid-template-columns:minmax(0,1.4fr) minmax(220px,.7fr);gap:10px;padding:14px}
+  .hero-copy h1{font-size:26px}
+  .hero-copy p{font-size:13px;margin:0}
+  .hero-actions{margin-top:10px}
+  .hero-btn{min-height:38px;padding:0 12px;font-size:13px}
+  .flow-grid,.module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .utility-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .flow-card,.module-card,.utility-card{min-height:110px;padding:12px}
+  .flow-card h3,.module-card h3,.utility-card h3{font-size:20px}
+  .flow-card p,.module-card p,.utility-card p{font-size:12px;line-height:1.35}
+  .section-head h2{font-size:20px}
+  .brand-title{font-size:20px}
+  .brand-subtitle{font-size:12px}
+  .resume-card{padding:12px}
+  .resume-card h2{font-size:20px}
+}
+
+/* ── iPhone portrait ── */
 @media (max-width:760px){
   .home-shell{padding:10px;gap:12px}
   .home-topbar{padding:12px 14px;align-items:flex-start;flex-direction:column}
