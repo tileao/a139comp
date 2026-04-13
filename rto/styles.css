@@ -1181,11 +1181,6 @@ label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;c
   body.tablet-dashboard { overflow:hidden; }
   body.tablet-dashboard .app-shell {
     min-height:100dvh;
-    height:100dvh;
-    overflow-y:auto;
-    overflow-x:hidden;
-    -webkit-overflow-scrolling:touch;
-    overscroll-behavior:contain;
     max-width:none;
     margin:0;
     padding:12px;

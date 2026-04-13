@@ -1,5 +1,23 @@
-const CACHE_NAME='aw139-rto-s90-v68-landscape-scroll';
-const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./assets/icon.svg','./assets/icon-32.png','./assets/icon-180.png','./assets/icon-192.png','./assets/icon-512.png','./docs/page_s50_85_figure_4_54.png','./docs/page_s50_89_figure_4_56.png','./docs/page_s50_93_figure_4_58.png','./docs/page_s50_108a_figure_4_68a.png','./docs/page_s90_123_figure_4_92.png','./docs/page_s90_127_figure_4_94.png','./docs/figure_4_94_semantic_fresh_v46.png','./docs/figure_4_94_vector_only_fresh_v46.png','./docs/figure_4_94_combined_fresh_v46.png','./docs/page_s90_131_figure_4_96.png','./docs/page_s90_135_figure_4_98.png','./docs/figure_4_98_vector_exact_v62.png','./docs/figure_4_98_semantic_audit_sheet_v62.png','./docs/figure_4_98_left_semantic_audit_v62.png','./docs/figure_4_98_center_semantic_audit_v62.png','./docs/figure_4_98_right_semantic_audit_v62.png','./data/figure_4_94_reference.json','./data/figure_4_96_reference.json','./data/figure_4_98_engine_data.json','./data/figure_4_98_reference.json','./data/figure_4_96_engine_data.json','./data/figure_4_54_engine_data.json','./data/figure_4_56_engine_data.json','./data/figure_4_58_engine_data.json','./data/figure_4_68a_engine_data.json','./data/figure_4_92_engine_data.json'];
+const CACHE_NAME='aw139-rto-s90-v68-pwa-premium';
+const ASSETS=['./','./index.html','./styles.css','./app.js','./manifest.webmanifest','./../shared/pwa.css','./../shared/pwa.js','./assets/icon.svg','./assets/icon-32.png','./assets/icon-180.png','./assets/icon-192.png','./assets/icon-512.png','./docs/page_s50_85_figure_4_54.png','./docs/page_s50_89_figure_4_56.png','./docs/page_s50_93_figure_4_58.png','./docs/page_s50_108a_figure_4_68a.png','./docs/page_s90_123_figure_4_92.png','./docs/page_s90_127_figure_4_94.png','./docs/figure_4_94_semantic_fresh_v46.png','./docs/figure_4_94_vector_only_fresh_v46.png','./docs/figure_4_94_combined_fresh_v46.png','./docs/page_s90_131_figure_4_96.png','./docs/page_s90_135_figure_4_98.png','./docs/figure_4_98_vector_exact_v62.png','./docs/figure_4_98_semantic_audit_sheet_v62.png','./docs/figure_4_98_left_semantic_audit_v62.png','./docs/figure_4_98_center_semantic_audit_v62.png','./docs/figure_4_98_right_semantic_audit_v62.png','./data/figure_4_94_reference.json','./data/figure_4_96_reference.json','./data/figure_4_98_engine_data.json','./data/figure_4_98_reference.json','./data/figure_4_96_engine_data.json','./data/figure_4_54_engine_data.json','./data/figure_4_56_engine_data.json','./data/figure_4_58_engine_data.json','./data/figure_4_68a_engine_data.json','./data/figure_4_92_engine_data.json'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+self.addEventListener('message',e=>{ if(e.data && e.data.type==='SKIP_WAITING') self.skipWaiting(); });
+self.addEventListener('fetch',e=>{
+  if (e.request.method !== 'GET') return;
+  if (e.request.mode === 'navigate') {
+    e.respondWith((async()=>{
+      const cached = await caches.match('./index.html');
+      try {
+        const fresh = await fetch(e.request);
+        const cache = await caches.open(CACHE_NAME);
+        cache.put('./index.html', fresh.clone());
+        return fresh;
+      } catch (error) {
+        return cached || caches.match('./');
+      }
+    })());
+    return;
+  }
+  e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(r=>r||fetch(e.request)));
+});

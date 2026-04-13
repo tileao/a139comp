@@ -1153,10 +1153,6 @@ async function init() {
     refreshWeightSensitiveProfileIfNeeded().catch(() => {});
   });
 
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
-  }
-
   await loadProfile(configurationEl.value || 'standard', { preserveInputs: false });
   applyAdaptiveLayout();
 }
