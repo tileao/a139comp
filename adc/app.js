@@ -171,6 +171,38 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       };
     })();
 
+
+    (function patchSbcbAndSbjrLogic() {
+      const sbcb = BUILTIN_BASES?.SBCB?.runways?.find(r => r.id === 'RWY_10_28');
+      if (sbcb) {
+        sbcb.distanceLogic = {
+          ...(sbcb.distanceLogic || {}),
+          '10': {
+            ...(sbcb.distanceLogic?.['10'] || {}),
+            asda: { start: 'PAV:10', end: 'THR:28' }
+          },
+          '28': {
+            ...(sbcb.distanceLogic?.['28'] || {}),
+            asda: { start: 'PAV:28', end: 'THR:10' }
+          }
+        };
+      }
+      const sbjr = BUILTIN_BASES?.SBJR?.runways?.find(r => r.id === 'RWY_03_21');
+      if (sbjr) {
+        sbjr.distanceLogic = {
+          ...(sbjr.distanceLogic || {}),
+          '03': {
+            ...(sbjr.distanceLogic?.['03'] || {}),
+            asda: { start: 'THR:03', end: 'THR:21' }
+          },
+          '21': {
+            ...(sbjr.distanceLogic?.['21'] || {}),
+            asda: { start: 'THR:21', end: 'THR:03' }
+          }
+        };
+      }
+    })();
+
     function clone(v) { return JSON.parse(JSON.stringify(v)); }
     function round2(v) { return Math.round(v * 100) / 100; }
     function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
