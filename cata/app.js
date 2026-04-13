@@ -613,11 +613,23 @@ function digitsOnlyLength(el) {
   return String(el.value ?? '').replace(/[^0-9]/g, '').length;
 }
 
-function focusNext(target) {
+function focusNext(target, options = {}) {
   if (!target) return;
-  if (target === els.runBtn) { els.runBtn.focus(); return; }
-  target.focus();
-  target.select?.();
+  const { delay = 0, openPicker = false } = options || {};
+  const apply = () => {
+    if (!target || typeof target.focus !== 'function') return;
+    if (target === els.runBtn) { els.runBtn.focus(); return; }
+    target.focus();
+    if (typeof target.select === 'function' && target.tagName !== 'SELECT') target.select();
+    if (openPicker && target.tagName === 'SELECT') {
+      try { target.showPicker?.(); } catch {}
+    }
+  };
+  if (delay > 0) {
+    window.setTimeout(apply, delay);
+    return;
+  }
+  apply();
 }
 
 
@@ -2167,7 +2179,10 @@ function setupAutoAdvance() {
   rules.forEach((rule) => {
     if (!rule.el) return;
     if (rule.el.tagName === 'SELECT') {
-      rule.el.addEventListener('change', () => focusNext(rule.next));
+      rule.el.addEventListener('change', () => {
+        const nextIsSelect = rule.next?.tagName === 'SELECT';
+        focusNext(rule.next, nextIsSelect ? { delay: 120, openPicker: true } : { delay: 50 });
+      });
       return;
     }
 
