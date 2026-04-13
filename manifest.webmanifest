@@ -1,8 +1,11 @@
 {
   "name": "AW139 Companion",
   "short_name": "AW139",
-  "start_url": "./index.html",
+  "id": "./",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#0b1220",
   "theme_color": "#0b1220",
   "description": "AW139 Companion app com módulos CAT A, WAT, RTO e ADC.",

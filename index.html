@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b1220">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AW139">
   <title>AW139 Companion</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
@@ -69,7 +72,7 @@
         <a class="module-card" href="wat/?back=1&return=../index.html">
           <span class="card-tag">Módulo</span>
           <h3>WAT</h3>
-          <p>Peso máximo disponível e margem operacional com visualização por gráfico.</p>
+          <p>Cálculos de CAT A Clear Area, Offshore, Enhanced, Confined e CAT B com visualização por gráfico.</p>
         </a>
         <a class="module-card" href="rto/?back=1&return=../index.html">
           <span class="card-tag">Módulo</span>
@@ -85,6 +88,15 @@
     </section>
 
     <section class="home-section utility-grid">
+      <article class="utility-card install-card">
+        <span class="card-tag">Instalação</span>
+        <h3>Usar como app no iPhone e iPad</h3>
+        <p id="installStatusText">Instale pela Safari para abrir em tela cheia, com aparência de app e acesso mais rápido aos módulos.</p>
+        <div class="install-actions">
+          <button id="installGuideBtn" class="utility-link install-btn" type="button">Como instalar</button>
+        </div>
+      </article>
+
       <article class="utility-card">
         <span class="card-tag">Retomada</span>
         <h3>Continuar de onde parou</h3>
@@ -100,6 +112,7 @@
       </article>
     </section>
   </main>
+  <script src="shared/pwa.js"></script>
   <script src="shared/home.js"></script>
 </body>
 </html>
