@@ -822,9 +822,17 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       renderChartPageControls();
       const chart = currentDisplayChart(base, runway);
       const src = chartSource(base, runway);
-      state.chartRequestedKey = chartKey(src);
-      state.chartLoadedKey = '';
-      if (chartImg.src !== src) chartImg.src = src; else if (src) chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      const nextKey = chartKey(src);
+      const currentKey = state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || '');
+      state.chartRequestedKey = nextKey;
+      if (nextKey && currentKey !== nextKey) {
+        state.chartLoadedKey = '';
+        if (chartImg.src !== src) chartImg.src = src;
+        else chartImg.src = src + (src.includes('?') ? '&' : '?') + 'v=' + Date.now();
+      } else if (!canvas?.width || !canvas?.height) {
+        try { resizeCanvas(); } catch {}
+        try { draw(); } catch {}
+      }
       document.getElementById('vizSubtitle').textContent = `${base.id} • ${runway.label} • ${chart.label} • toque na carta para abrir em tela cheia.`;
     }
 
@@ -929,11 +937,20 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       if (!a) return;
       const asdaMetric = document.getElementById('asdaMetric');
       if (asdaMetric) asdaMetric.textContent = `${Math.round(a.declared.asda)} m`;
+      const resultPanel = document.querySelector('.result-panel');
+      if (resultPanel) {
+        resultPanel.classList.remove('state-ok', 'state-bad');
+        const declaredAsda = Number(a?.declared?.asda);
+        const panelOk = Number.isFinite(a?.rto) && Number.isFinite(declaredAsda)
+          ? a.rto <= declaredAsda
+          : true;
+        resultPanel.classList.add(panelOk ? 'state-ok' : 'state-bad');
+      }
       document.getElementById('decisionTable').innerHTML = a.rows.map(r => `
         <tr>
           <td>${r.name}</td>
           <td>${Math.round(r.availableAsda)} m</td>
-          <td class="${r.rtoOk ? 'yes' : 'no'}">${r.rtoOk ? 'OK' : 'NO'}</td>
+          <td><span class="${r.rtoOk ? 'td-ok' : 'td-bad'}">${r.rtoOk ? 'OK' : 'NO GO'}</span></td>
         </tr>`).join('');
     }
 
@@ -1469,11 +1486,11 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     }
     function measureLabelBox(textLines, x, y, align = 'left') {
       ctx.save();
-      ctx.font = '800 14px Inter, sans-serif';
-      const padX = 10, lineH = 16;
+      ctx.font = '800 13px Inter, sans-serif';
+      const padX = 9, lineH = 15;
       const widths = textLines.map(t => ctx.measureText(t).width);
       const w = Math.max(...widths, 32) + padX * 2;
-      const h = textLines.length * lineH + 12;
+      const h = textLines.length * lineH + 11;
       let left = align === 'right' ? x - w : x;
       left = Math.max(8, Math.min(left, canvas.clientWidth - w - 8));
       let top = Math.max(8, Math.min(y, canvas.clientHeight - h - 8));
@@ -1488,8 +1505,8 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     function drawLabelBox(textLines, x, y, color, align = 'left', register = true) {
       const box = measureLabelBox(textLines, x, y, align);
       ctx.save();
-      ctx.font = '800 17px Inter, sans-serif';
-      const padX = 12, lineH = 19, w = box.width, h = box.height, left = box.left, top = box.top;
+      ctx.font = '800 13px Inter, sans-serif';
+      const padX = 9, lineH = 15, w = box.width, h = box.height, left = box.left, top = box.top;
       ctx.shadowColor = 'rgba(0,0,0,.18)';
       ctx.shadowBlur = 9;
       ctx.fillStyle = 'rgba(8,18,31,.92)';
@@ -1510,7 +1527,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = color;
-      textLines.forEach((line, i) => ctx.fillText(line, left + padX, top + 21 + i * lineH));
+      textLines.forEach((line, i) => ctx.fillText(line, left + padX, top + 17 + i * lineH));
       ctx.restore();
       if (register) labelBoxes.push(box);
       return box;
@@ -1903,12 +1920,6 @@ async function analyzeFromBridge(ctx = {}) {
   renderDeclaredInputs();
   if (ctx.rto != null) document.getElementById('rtoInput').value = String(ctx.rto);
   analyze();
-  try {
-    const readyBase = currentBase();
-    const readyRunway = currentRunway(readyBase);
-    const readySrc = chartSource(readyBase, readyRunway);
-    await waitForChart(readySrc, 3200);
-  } catch (error) {}
   saveUiState();
   return getBridgePayload();
 }
@@ -1917,34 +1928,22 @@ async function analyzeFromBridge(ctx = {}) {
 async function waitForChart(targetSrc = '', timeoutMs = 2200) {
   const targetKey = chartKey(targetSrc);
   const deadline = Date.now() + timeoutMs;
-  let stableCount = 0;
-  let lastSignature = '';
   while (Date.now() < deadline) {
     const currentKey = state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || '');
     const requestedKey = state.chartRequestedKey || currentKey;
     const canvasReady = canvas && canvas.width > 32 && canvas.height > 32;
-    const keyMatches = targetKey ? currentKey === targetKey : true;
-    const signature = `${currentKey}|${requestedKey}|${canvas?.width || 0}x${canvas?.height || 0}|${state.chartRenderStamp}`;
-    if (canvasReady && keyMatches) {
-      if (signature === lastSignature) stableCount += 1;
-      else stableCount = 1;
-      lastSignature = signature;
-      if (stableCount >= 2) {
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        return {
-          ok: true,
-          loadedKey: currentKey,
-          requestedKey,
-          renderStamp: state.chartRenderStamp,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height
-        };
-      }
-    } else {
-      stableCount = 0;
-      lastSignature = signature;
+    if ((!targetKey || currentKey === targetKey || requestedKey === targetKey) && canvasReady) {
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      return {
+        ok: true,
+        loadedKey: currentKey,
+        requestedKey,
+        renderStamp: state.chartRenderStamp,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height
+      };
     }
-    await new Promise(resolve => setTimeout(resolve, 70));
+    await new Promise(resolve => setTimeout(resolve, 30));
   }
   return {
     ok: false,
@@ -1953,35 +1952,6 @@ async function waitForChart(targetSrc = '', timeoutMs = 2200) {
     renderStamp: state.chartRenderStamp,
     canvasWidth: canvas?.width || 0,
     canvasHeight: canvas?.height || 0
-  };
-}
-
-
-async function getSnapshotDataUrl(targetSrc = '', timeoutMs = 2600) {
-  const info = await waitForChart(targetSrc, timeoutMs);
-  const currentKey = state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || '');
-  const requestedKey = state.chartRequestedKey || currentKey;
-  if (!canvas || canvas.width <= 32 || canvas.height <= 32) {
-    return {
-      ok: false,
-      loadedKey: currentKey,
-      requestedKey,
-      renderStamp: state.chartRenderStamp,
-      canvasWidth: canvas?.width || 0,
-      canvasHeight: canvas?.height || 0,
-      dataUrl: ''
-    };
-  }
-  let dataUrl = '';
-  try { dataUrl = canvas.toDataURL('image/png'); } catch (error) {}
-  return {
-    ok: !!(info?.ok && dataUrl),
-    loadedKey: info?.loadedKey || currentKey,
-    requestedKey: info?.requestedKey || requestedKey,
-    renderStamp: info?.renderStamp || state.chartRenderStamp,
-    canvasWidth: canvas.width,
-    canvasHeight: canvas.height,
-    dataUrl
   };
 }
 
@@ -1997,7 +1967,6 @@ window.__adcBridge = {
     departureEnd: state.departureEnd,
     vizPage: state.vizPage
   }),
-  getSnapshotDataUrl,
   getRenderInfo: () => ({
     requestedKey: state.chartRequestedKey,
     loadedKey: state.chartLoadedKey || chartKey(chartImg.currentSrc || chartImg.src || ''),
