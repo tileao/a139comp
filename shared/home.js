@@ -5,7 +5,6 @@ const resumeSummary=document.getElementById('resumeSummary');
 const resumeChips=document.getElementById('resumeChips');
 const continueText=document.getElementById('continueText');
 const continueLink=document.getElementById('continueLink');
-const continueLinkHero=document.getElementById('continueLinkHero');
 const preferenceList=document.getElementById('preferenceList');
 
 function loadCtx(){
@@ -26,23 +25,6 @@ function routeForModule(lastModule){
   return 'cata/';
 }
 
-function labelConfig(v){
-  const map={standard:'Clean Air Intake',eaps_off:'EAPS OFF',eaps_on:'EAPS ON',ibf:'IBF'};
-  return map[v]||String(v||'').toUpperCase();
-}
-
-function syncContinueLink(link, enabled, href){
-  if(!link) return;
-  link.href=href;
-  if(enabled){
-    link.classList.remove('disabled');
-    link.removeAttribute('aria-disabled');
-  }else{
-    link.classList.add('disabled');
-    link.setAttribute('aria-disabled','true');
-  }
-}
-
 function renderPreferences(ctx){
   preferenceList.innerHTML='';
   const prefs=[];
@@ -57,6 +39,11 @@ function renderPreferences(ctx){
   prefs.slice(0,6).forEach(item=>preferenceList.appendChild(chip(item,'pref-chip')));
 }
 
+function labelConfig(v){
+  const map={standard:'Clean Air Intake',eaps_off:'EAPS OFF',eaps_on:'EAPS ON',ibf:'IBF'};
+  return map[v]||String(v||'').toUpperCase();
+}
+
 function render(){
   const ctx=loadCtx();
   const hasCtx=Object.keys(ctx).length>0;
@@ -64,16 +51,17 @@ function render(){
 
   if(!hasCtx){
     resumeTitle.textContent='Sem contexto salvo';
-    resumeSummary.textContent='Abra o fluxo principal ou um módulo para começar.';
+    resumeSummary.textContent='Abra um fluxo ou módulo para começar.';
     continueText.textContent='Ainda não há um último módulo salvo.';
-    syncContinueLink(continueLink,false,'cata/');
-    syncContinueLink(continueLinkHero,false,'cata/');
+    continueLink.classList.add('disabled');
+    continueLink.setAttribute('aria-disabled','true');
+    continueLink.href='cata/';
     renderPreferences(ctx);
     return;
   }
 
   const lastModule=ctx.lastModule||'cata';
-  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC'})[lastModule]||'CAT A Clear Area';
+  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC'})[lastModule]||'Cat A Clear Area';
   resumeTitle.textContent=lastLabel;
 
   const summaryParts=[];
@@ -94,10 +82,10 @@ function render(){
   if(ctx.weightKg!=null) resumeChips.appendChild(chip(`Peso ${ctx.weightKg}`));
   if(ctx.rtoMeters!=null) resumeChips.appendChild(chip(`RTO ${ctx.rtoMeters} m`));
 
-  const targetHref=routeForModule(lastModule);
   continueText.textContent=`Retomar ${lastLabel} com o último contexto salvo.`;
-  syncContinueLink(continueLink,true,targetHref);
-  syncContinueLink(continueLinkHero,true,targetHref);
+  continueLink.href=routeForModule(lastModule);
+  continueLink.classList.remove('disabled');
+  continueLink.removeAttribute('aria-disabled');
 
   renderPreferences(ctx);
 }
