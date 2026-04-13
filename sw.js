@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v6-premium';
+const CACHE_NAME = 'aw139-companion-root-v7-premium-phase6';
 const PRECACHE = [
   './',
   './index.html',
