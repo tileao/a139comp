@@ -113,86 +113,16 @@ body.fullscreen-body{overflow:hidden}
 
 .sidebar-collapsed .workspace{grid-template-columns:1fr}
 .sidebar-collapsed .sidebar{display:none}
+
+/* ── Fallbacks genéricos (devem vir PRIMEIRO) ── */
 @media (max-width: 1180px){
   .workspace{grid-template-columns:minmax(340px, 40%) 1fr}
   .panel h1{font-size:24px}
 }
-
-/* ── iPad landscape: sidebar + viewer side by side, full height ── */
-@media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape){
-  .cockpit-shell{padding:10px;gap:10px;height:100dvh;overflow:hidden}
-  .workspace{grid-template-columns:minmax(320px, 360px) 1fr;gap:10px;height:calc(100dvh - 80px);overflow:hidden}
-  .sidebar{overflow-y:auto;max-height:100%;-webkit-overflow-scrolling:touch}
-  .viewer-pane{height:100%;overflow:hidden;align-self:stretch}
-  .viewer-stage{flex:1;min-height:0;overflow:hidden}
-  .viz-preview-canvas{max-height:calc(100dvh - 180px);object-fit:contain}
-  .panel{padding:10px}
-  .panel h1{font-size:22px}
-  .panel h2{font-size:20px}
-  .section-label{margin:8px 0 4px}
-  .field input,.field select{height:36px;font-size:13px}
-  .sign-toggle{width:36px;height:36px;flex:0 0 36px}
-  .run-btn{height:40px}
-  .result-value{font-size:28px}
-  .result-label{font-size:11px}
-  .viewer-header{padding:10px 14px}
-  .viewer-tab{height:36px;padding:0 12px;font-size:13px}
-  .viz-facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-  .viz-fact{padding:6px 8px}
-}
-
-/* ── iPad portrait: sidebar on top, viewer below ── */
-@media (min-width: 768px) and (max-width: 1024px) and (orientation: portrait){
-  .cockpit-shell{padding:10px;gap:10px}
-  .workspace{grid-template-columns:1fr 1fr;gap:10px}
-  .sidebar{display:grid;grid-template-columns:1fr 1fr;gap:10px;grid-column:1 / -1}
-  .entry-panel,.result-panel{min-height:0}
-  .viewer-pane{grid-column:1 / -1;min-height:50vh}
-  .viewer-stage{flex:1;min-height:0}
-  .panel{padding:10px}
-  .panel h1{font-size:22px}
-  .panel h2{font-size:20px}
-  .field input,.field select{height:36px;font-size:13px}
-  .sign-toggle{width:36px;height:36px;flex:0 0 36px}
-  .run-btn{height:40px}
-  .result-value{font-size:28px}
-  .viewer-tab{height:36px;padding:0 12px;font-size:13px}
-}
-
 @media (max-width: 900px){
-  .workspace{grid-template-columns:minmax(320px, 40%) 1fr}
-  .viewer-pane{min-height:72vh}
+  .workspace{grid-template-columns:minmax(280px, 40%) 1fr}
+  .viewer-pane{min-height:60vh}
 }
-
-/* ── iPhone landscape: compact horizontal layout ── */
-@media (max-height: 440px) and (orientation: landscape){
-  .cockpit-shell{padding:6px;gap:6px;height:100dvh;overflow:hidden}
-  .topbar{padding:6px 10px;border-radius:10px}
-  .product-sub{font-size:15px}
-  .workspace{grid-template-columns:minmax(260px, 300px) 1fr;gap:6px;height:calc(100dvh - 55px);overflow:hidden}
-  .sidebar{overflow-y:auto;max-height:100%;-webkit-overflow-scrolling:touch}
-  .panel{padding:8px}
-  .panel h1{font-size:18px}
-  .panel h2{font-size:16px}
-  .section-label{margin:6px 0 3px;font-size:9px}
-  .field input,.field select{height:32px;font-size:12px}
-  .field span{font-size:9px}
-  .sign-toggle{width:32px;height:32px;flex:0 0 32px;font-size:18px}
-  .run-btn{height:34px;font-size:13px}
-  .action-row{margin-top:6px;gap:6px}
-  .result-value{font-size:24px}
-  .result-label{font-size:10px}
-  .viewer-pane{height:100%;overflow:hidden;align-self:stretch}
-  .viewer-header{padding:6px 10px}
-  .viewer-title{font-size:14px}
-  .viewer-tab{height:30px;padding:0 10px;font-size:11px;border-radius:8px}
-  .viewer-meta{padding:6px 10px}
-  .viz-fact{padding:4px 6px}
-  .viz-fact-label{font-size:9px}
-  .viz-fact-value{font-size:11px}
-}
-
-/* ── iPhone portrait ── */
 @media (max-width: 640px){
   .workspace{grid-template-columns:1fr;grid-template-areas:"sidebar" "viewer"}
   .sidebar{grid-area:sidebar}
@@ -212,6 +142,166 @@ body.fullscreen-body{overflow:hidden}
   .viewer-tabs{width:auto}
   .viewer-tab{height:40px;border-radius:10px}
   .viz-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ── iPhone landscape ── */
+@media (max-height: 440px) and (orientation: landscape){
+  .cockpit-shell{padding:6px;gap:6px;height:100dvh;overflow:hidden}
+  .topbar{padding:6px 10px;border-radius:10px}
+  .product-sub{font-size:15px}
+  .workspace{grid-template-columns:minmax(260px, 300px) 1fr;gap:6px;height:calc(100dvh - 55px);overflow:hidden}
+  .sidebar{overflow-y:auto;max-height:100%;-webkit-overflow-scrolling:touch}
+  .panel{padding:8px}
+  .panel h1{font-size:18px}
+  .panel h2{font-size:16px}
+  .section-label{margin:6px 0 3px;font-size:9px}
+  .field input,.field select{height:32px;font-size:12px}
+  .field span{font-size:9px}
+  .sign-toggle{width:32px;height:32px;flex:0 0 32px;font-size:18px}
+  .run-btn{height:34px;font-size:13px}
+  .action-row{margin-top:6px;gap:6px}
+  .result-value{font-size:24px}
+  .result-label{font-size:10px}
+  .viewer-pane{height:100%;overflow:hidden;align-self:stretch;min-height:0}
+  .viewer-header{padding:6px 10px}
+  .viewer-title{font-size:14px}
+  .viewer-tab{height:30px;padding:0 10px;font-size:11px;border-radius:8px}
+  .viewer-meta{padding:6px 10px}
+  .viz-fact{padding:4px 6px}
+  .viz-fact-label{font-size:9px}
+  .viz-fact-value{font-size:11px}
+}
+
+/* ══════════════════════════════════════════════════════════
+   iPad – devem vir POR ÚLTIMO para sobrescrever fallbacks
+   ══════════════════════════════════════════════════════════ */
+
+/* ── iPad portrait (768–1366 portrait): entry+result lado a lado, viewer abaixo ── */
+@media (min-width: 768px) and (orientation: portrait){
+  html,body{height:100%;overflow-x:hidden;overflow-y:auto}
+  .cockpit-shell{
+    padding:10px;gap:10px;
+    min-height:100dvh;height:auto;
+    overflow:visible;
+  }
+  .topbar{border-radius:16px;padding:10px 14px}
+  .workspace{
+    grid-template-columns:1fr;
+    gap:10px;
+    height:auto;
+    overflow:visible;
+  }
+  .sidebar{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    flex-direction:row;
+  }
+  .entry-panel{
+    border-radius:16px;
+    min-height:0;
+    align-self:start;
+  }
+  .result-panel{
+    border-radius:16px;
+    min-height:0;
+    align-self:start;
+  }
+  .viewer-pane{
+    min-height:55vh;
+    border-radius:16px;
+    overflow:hidden;
+    align-self:start;
+  }
+  .viewer-stage{flex:1;min-height:0}
+  .panel{padding:12px;border-radius:16px}
+  .panel h1{font-size:22px}
+  .panel h2{font-size:20px}
+  .field input,.field select{height:38px;font-size:14px;border-radius:10px}
+  .sign-toggle{width:38px;height:38px;flex:0 0 38px;border-radius:10px}
+  .run-btn{height:44px;border-radius:12px;font-size:15px}
+  .action-row .ghost-btn{height:40px;border-radius:10px}
+  .result-value{font-size:30px}
+  .result-label{font-size:12px}
+  .result-sub{font-size:13px}
+  .result-box{border-radius:12px;padding:12px}
+  .result-band{border-radius:12px}
+  .decision-table{border-radius:14px}
+  .decision-table th,.decision-table td{padding:10px 12px;font-size:13px}
+  .viewer-header{padding:12px 14px}
+  .viewer-tab{height:40px;padding:0 14px;font-size:14px;border-radius:12px}
+  .viewer-meta{padding:10px 14px}
+  .viz-facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .viz-fact{padding:8px 10px;border-radius:10px}
+  .section-label{margin:10px 0 6px;font-size:11px}
+  .form-grid{gap:8px}
+  .form-grid-2{grid-template-columns:1fr 1fr}
+  .mini-chip,.status-chip{padding:8px 12px;font-size:12px}
+}
+
+/* ── iPad landscape (qualquer largura ≥768 em landscape): sidebar+viewer full-height ── */
+@media (min-width: 768px) and (orientation: landscape){
+  html,body{height:100%;overflow:hidden}
+  .cockpit-shell{
+    padding:10px;gap:10px;
+    height:100dvh;
+    overflow:hidden;
+  }
+  .topbar{border-radius:14px;padding:8px 12px}
+  .workspace{
+    grid-template-columns:minmax(300px, 340px) 1fr;
+    gap:10px;
+    height:calc(100dvh - 70px);
+    overflow:hidden;
+    align-items:stretch;
+  }
+  .sidebar{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    max-height:100%;
+  }
+  .viewer-pane{
+    height:100%;
+    min-height:0;
+    overflow:hidden;
+    align-self:stretch;
+    border-radius:14px;
+  }
+  .viewer-stage{flex:1;min-height:0;overflow:hidden}
+  .viz-preview-canvas{max-height:calc(100dvh - 160px);object-fit:contain}
+  .panel{padding:10px;border-radius:14px}
+  .panel h1{font-size:20px}
+  .panel h2{font-size:18px}
+  .section-label{margin:8px 0 4px;font-size:10px}
+  .field input,.field select{height:34px;font-size:13px;border-radius:8px}
+  .field span{font-size:9px}
+  .sign-toggle{width:34px;height:34px;flex:0 0 34px}
+  .run-btn{height:38px;border-radius:10px;font-size:14px}
+  .action-row{margin-top:8px;gap:6px}
+  .action-row .ghost-btn{height:34px;border-radius:8px;font-size:12px}
+  .result-value{font-size:26px}
+  .result-label{font-size:11px}
+  .result-sub{font-size:11px;min-height:20px}
+  .result-box{border-radius:10px;padding:10px;min-height:80px}
+  .result-band{border-radius:10px;padding:8px;font-size:12px}
+  .result-grid{gap:6px}
+  .decision-table th,.decision-table td{padding:8px;font-size:12px}
+  .viewer-header{padding:8px 12px}
+  .viewer-title{font-size:15px}
+  .viewer-tab{height:34px;padding:0 12px;font-size:13px;border-radius:10px}
+  .viewer-meta{padding:8px 12px}
+  .viz-facts{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .viz-fact{padding:6px 8px;border-radius:8px}
+  .viz-fact-label{font-size:9px}
+  .viz-fact-value{font-size:12px}
+  .form-grid{gap:6px;margin-bottom:6px}
+  .mini-chip,.status-chip{padding:7px 10px;font-size:11px}
+  .mini-row{margin-top:8px;gap:8px}
+  .module-open-row{gap:6px;margin-top:6px}
+  .module-open-row .ghost-btn{height:34px;font-size:12px}
 }
 
 
