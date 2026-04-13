@@ -5,7 +5,7 @@ const rtoFrame = document.getElementById('rtoFrame');
 const frameMap = { adc: adcFrame, wat: watFrame, rto: rtoFrame };
 const adcPreviewState = { payload: null };
 const imageCache = new Map();
-const vizRuntime = { renderSeq: 0, adcSyncSeq: 0, adcDirty: false, modeDirty: { adc: false, wat: false, rto: false } };
+const vizRuntime = { renderSeq: 0, adcSyncSeq: 0, adcDecisionSeq: 0, adcDirty: false, modeDirty: { adc: false, wat: false, rto: false } };
 
 const els = {
   base: document.getElementById('baseSelect'),
@@ -1041,6 +1041,69 @@ function saveResultSnapshot(input, wat, rto, adc) {
       savedAt: new Date().toISOString()
     }
   });
+}
+
+function getSavedResultsSnapshot() {
+  return loadCtx()?.cataLastResults || null;
+}
+
+function sameCalcInputsExceptAdc(current, saved = {}) {
+  return [
+    current.aircraftSet === saved.aircraftSet,
+    current.configuration === saved.configuration,
+    Number(current.pressureAltitudeFt || 0) === Number(saved.pressureAltitudeFt || 0),
+    Number(current.oatC || 0) === Number(saved.oatC || 0),
+    Number(current.weightKg || 0) === Number(saved.weightKg || 0),
+    Number(current.headwindKt || 0) === Number(saved.headwindKt || 0)
+  ].every(Boolean);
+}
+
+function invalidateAdcDecisionPanel(reason = 'seleção alterada') {
+  const detail = /base/i.test(reason) ? 'base selecionada' : /cabeceira/i.test(reason) ? 'cabeceira selecionada' : 'seleção atual';
+  els.statusChip.textContent = 'Atualizando decisão';
+  els.statusChip.className = 'status-chip warn';
+  els.resultCard.classList.remove('result-ok', 'result-bad');
+  els.resultCard.classList.add('pending');
+  els.rtoBox.classList.remove('ok', 'bad');
+  els.rtoSummary.textContent = `Atualizando decisão para a ${detail}.`;
+  els.decisionBody.innerHTML = '<tr><td colspan="2" class="muted-cell">Atualizando decisão…</td></tr>';
+}
+
+async function refreshAdcDecisionForSelection(reason = 'seleção alterada') {
+  const seq = ++vizRuntime.adcDecisionSeq;
+  const input = collectInputs();
+  const snap = getSavedResultsSnapshot();
+  const canReuse = !!(snap?.wat && snap?.rto && sameCalcInputsExceptAdc(input, snap.input || {}));
+
+  markAdcDirty(reason);
+  invalidateAdcDecisionPanel(reason);
+  pushSharedContext(input);
+
+  if (!canReuse) {
+    syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn);
+    return;
+  }
+
+  try {
+    const adc = await runADC(input, snap.rto);
+    if (seq !== vizRuntime.adcDecisionSeq) return;
+    renderResults(snap.wat, snap.rto, adc);
+    saveResultSnapshot(input, snap.wat, snap.rto, adc);
+    clearAdcDirty();
+    clearModeDirty('adc');
+    if ((els.visualSelect.value || '') === 'adc') {
+      const renderSeq = ++vizRuntime.renderSeq;
+      await prepareEmbeddedView('adc');
+      if (seq !== vizRuntime.adcDecisionSeq || renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== 'adc') return;
+      await renderPreview('adc');
+      if (seq !== vizRuntime.adcDecisionSeq || renderSeq !== vizRuntime.renderSeq || (els.visualSelect.value || '') !== 'adc') return;
+      renderVisualizationMeta('adc');
+    }
+  } catch (error) {
+    console.warn('Falha ao atualizar a decisão ADC após trocar seleção.', error);
+    if (seq !== vizRuntime.adcDecisionSeq) return;
+    syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn);
+  }
 }
 
 function restoreSavedResults() {
@@ -2254,8 +2317,8 @@ function bindEvents() {
   els.resetBtn?.addEventListener('click', resetFlowForm);
   els.visualSelect.addEventListener('change', e => setVisualization(e.target.value, !!e.target.value));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.addEventListener('click', () => setVisualization(btn.dataset.viz, true)));
-  els.base.addEventListener('change', () => { markAdcDirty('a base'); syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
-  els.departure.addEventListener('change', () => { markAdcDirty('a cabeceira'); syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn); });
+  els.base.addEventListener('change', () => { refreshAdcDecisionForSelection('a base').catch(console.warn); });
+  els.departure.addEventListener('change', () => { refreshAdcDecisionForSelection('a cabeceira').catch(console.warn); });
   [els.aircraftSet, els.config, els.pa, els.oat, els.weight, els.wind].forEach(el => el?.addEventListener('change', () => { markCalculationDirty('parâmetros alterados'); }));
   els.openWATBtn.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
