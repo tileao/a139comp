@@ -928,6 +928,79 @@
       .result-value { font-size: 24px; }
     }
 
+
+    @media (min-width: 768px) and (max-width: 1366px) {
+      .shell {
+        min-height: auto;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding: 12px;
+      }
+      .left,
+      .right {
+        order: initial;
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      .left {
+        background: linear-gradient(180deg, var(--panel-flat), var(--panel-flat-2));
+      }
+      .config-panel {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: stretch;
+      }
+      .config-header {
+        grid-column: 1 / -1;
+      }
+      .config-card {
+        padding: 14px;
+      }
+      .config-card.compact {
+        min-height: 100%;
+      }
+      .config-card:last-child {
+        grid-column: 1 / -1;
+      }
+      .action-row {
+        margin-top: 0;
+      }
+      .action-row .primary {
+        width: 100%;
+      }
+      .workspace {
+        padding: 14px;
+        gap: 12px;
+      }
+      .result-panel {
+        order: 1;
+        border-radius: 18px;
+        overflow: hidden;
+      }
+      .chart-frame {
+        order: 2;
+        border-radius: 18px;
+        overflow: hidden;
+        min-height: 56vh;
+      }
+      .viz-wrap {
+        min-height: 56vh;
+      }
+      .decision-table th,
+      .decision-table td {
+        padding: 12px 14px;
+      }
+    }
+    @media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+      .config-panel {
+        grid-template-columns: 1fr;
+      }
+      .chart-frame,
+      .viz-wrap {
+        min-height: 52vh;
+      }
+    }
+
   </style>
 </head>
 
