@@ -613,6 +613,16 @@ function digitsOnlyLength(el) {
   return String(el.value ?? '').replace(/[^0-9]/g, '').length;
 }
 
+function isIPadLikeDevice() {
+  try {
+    const ua = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    return /iPad/i.test(ua) || (platform === 'MacIntel' && Number(navigator.maxTouchPoints || 0) > 1);
+  } catch {
+    return false;
+  }
+}
+
 function focusNext(target, options = {}) {
   if (!target) return;
   const { delay = 0, openPicker = false } = options || {};
@@ -752,7 +762,7 @@ function collectInputs() {
     oatC: Number(els.oat.value || 0),
     weightKg: Number(els.weight.value || 0),
     headwindKt: Number(els.wind.value || 0),
-    registration: (els.registration?.value || '').trim()
+    registration: ''
   };
 }
 
@@ -2005,7 +2015,6 @@ function createCataPdfCanvas() {
   rowText('Configuração', els.config.options[els.config.selectedIndex]?.text || inputs.configuration || '—', margin + 28, y + 118);
   rowText('Peso', `${inputs.weightKg || 0} kg`, margin + 520, y + 118);
   rowText('Headwind', `${inputs.headwindKt || 0} kt`, margin + 760, y + 118);
-  rowText('Matrícula', inputs.registration || '—', margin + 1020, y + 118);
   rowText('Status', els.statusChip.textContent || '—', margin + 28, y + 188);
   rowText('WAT', els.watMax.textContent || '—', margin + 520, y + 188);
   rowText('RTO', els.rtoMetric.textContent || '—', margin + 760, y + 188);
@@ -2169,7 +2178,6 @@ function setupAutoAdvance() {
     { el: els.config, next: els.base },
     { el: els.base, next: els.departure },
     { el: els.departure, next: els.pa },
-    { el: els.registration, next: els.pa },
     { el: els.pa, next: els.oat, minDigits: 3, maxDigits: 5 },
     { el: els.oat, next: els.weight, minDigits: 2, maxDigits: 2 },
     { el: els.weight, next: els.wind, minDigits: 4, maxDigits: 4 },
@@ -2181,19 +2189,12 @@ function setupAutoAdvance() {
     if (rule.el.tagName === 'SELECT') {
       rule.el.addEventListener('change', () => {
         const nextIsSelect = rule.next?.tagName === 'SELECT';
-        focusNext(rule.next, nextIsSelect ? { delay: 120, openPicker: true } : { delay: 50 });
+        const openNextPicker = nextIsSelect && !isIPadLikeDevice();
+        focusNext(rule.next, openNextPicker ? { delay: 120, openPicker: true } : { delay: 80 });
       });
       return;
     }
 
-    if (rule.el === els.registration) {
-      rule.el.addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter') return;
-        event.preventDefault();
-        focusNext(rule.next);
-      });
-      return;
-    }
 
     rule.el.addEventListener('input', () => {
       sanitizeDigitsInput(rule.el, rule.maxDigits);
