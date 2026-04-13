@@ -1011,6 +1011,11 @@
     @media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
       .shell {
         min-height: calc(100dvh - 76px);
+        height: calc(100dvh - 76px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
         grid-template-columns: 380px minmax(0, 1fr);
         gap: 12px;
         padding: 12px;
@@ -1021,6 +1026,10 @@
         min-height: 0;
         border-radius: 18px;
         overflow: hidden;
+      }
+      .pane.left {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
       .pane.left {
         order: 1;
