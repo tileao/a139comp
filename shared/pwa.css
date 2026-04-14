@@ -7,33 +7,7 @@
 }
 html, body { min-height: 100%; }
 body { min-height: 100svh; }
-
-/* iOS PWA: prevent rubber-band bounce, double-tap zoom, callout menus */
-body.is-standalone {
-  overscroll-behavior-y: contain;
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-/* Allow text selection inside inputs, textareas, and content areas */
-body.is-standalone input,
-body.is-standalone textarea,
-body.is-standalone select,
-body.is-standalone .interp-box,
-body.is-standalone .result-sub,
-body.is-standalone .status-detail,
-body.is-standalone .status-text,
-body.is-standalone .viz-fact-value {
-  -webkit-user-select: text;
-  user-select: text;
-}
-/* Prevent iOS overscroll on fixed/fullscreen overlays */
-body.is-standalone .chart-fullscreen,
-body.is-standalone .chart-fullscreen-overlay {
-  overscroll-behavior: none;
-  touch-action: none;
-}
+body.is-standalone { overscroll-behavior-y: contain; }
 body.is-standalone .home-shell,
 body.is-standalone .cockpit-shell,
 body.is-standalone .app-shell,
@@ -157,47 +131,4 @@ body.is-standalone .cockpit-shell,
 body.is-standalone .shell {
   padding-left: max(12px, var(--pwa-safe-left));
   padding-right: max(12px, var(--pwa-safe-right));
-}
-
-/* ── iOS landscape safe-area handling (notch/dynamic island on sides) ── */
-@media (orientation: landscape) {
-  body.is-standalone .home-shell,
-  body.is-standalone .app-shell,
-  body.is-standalone .cockpit-shell,
-  body.is-standalone .shell {
-    padding-left: max(16px, calc(var(--pwa-safe-left) + 4px));
-    padding-right: max(16px, calc(var(--pwa-safe-right) + 4px));
-  }
-  body.is-standalone .home-topbar,
-  body.is-standalone .topbar,
-  body.is-standalone .module-topbar,
-  body.is-standalone .adc-module-topbar {
-    padding-top: max(8px, calc(var(--pwa-safe-top) + 2px));
-  }
-}
-
-/* ── iPad-specific PWA refinements ── */
-@media (min-width: 768px) {
-  body.is-standalone .home-shell,
-  body.is-standalone .app-shell,
-  body.is-standalone .cockpit-shell,
-  body.is-standalone .shell {
-    padding-bottom: max(20px, calc(var(--pwa-safe-bottom) + 4px));
-  }
-}
-
-/* ── iPhone landscape: compact height ── */
-@media (max-height: 440px) and (orientation: landscape) {
-  body.is-standalone .home-topbar,
-  body.is-standalone .topbar,
-  body.is-standalone .module-topbar {
-    padding-top: max(4px, var(--pwa-safe-top));
-    padding-bottom: 4px;
-  }
-  body.is-standalone .home-shell,
-  body.is-standalone .app-shell,
-  body.is-standalone .cockpit-shell {
-    padding-top: max(4px, var(--pwa-safe-top));
-    padding-bottom: max(8px, var(--pwa-safe-bottom));
-  }
 }

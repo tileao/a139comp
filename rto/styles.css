@@ -1177,243 +1177,43 @@ label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;c
 @media (max-width:640px){.viz-facts{grid-template-columns:1fr}}
 
 
-/* ══════════════════════════════════════════════════════════
-   iPad tablet-dashboard — POR ÚLTIMO para sobrescrever tudo
-   ══════════════════════════════════════════════════════════ */
-
-/* ── iPad portrait: form+status lado a lado, chart abaixo ── */
-@media (min-width: 768px) and (orientation: portrait) {
-  body.tablet-dashboard { overflow:auto; }
-  body.tablet-dashboard .app-shell {
-    max-width:none;
-    min-height:100dvh;
-    height:auto;
-    margin:0;
-    padding:10px;
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    grid-template-rows:auto auto minmax(0, 1fr);
-    grid-template-areas:
-      "top top"
-      "form status"
-      "viewer viewer";
-    gap:10px;
-    align-content:start;
-    overflow:visible;
-  }
-  body.tablet-dashboard .topbar { grid-area:top; border-radius:16px; padding:10px 14px; }
-  body.tablet-dashboard #heroHeader { display:none !important; }
-  body.tablet-dashboard #interpSection { display:none !important; }
-  body.tablet-dashboard #formSection {
-    grid-area:form; margin:0; min-height:0;
-    padding:12px; border-radius:16px;
-    align-self:start;
-    background:rgba(18,25,34,.92); border:1px solid rgba(148,163,184,.18);
-  }
-  body.tablet-dashboard #statusCard {
-    grid-area:status; margin:0; min-height:0;
-    padding:12px; border-radius:16px;
-    position:static; top:auto;
-    align-self:start;
-    background:rgba(18,25,34,.92); border:1px solid rgba(148,163,184,.18);
-  }
-  body.tablet-dashboard #visualCard {
-    grid-area:viewer; margin:0;
-    padding:12px; border-radius:16px;
-    min-height:50vh;
-    display:flex; flex-direction:column;
-    background:rgba(18,25,34,.92); border:1px solid rgba(148,163,184,.18);
-    overflow:visible;
-  }
-  body.tablet-dashboard h1 { font-size:24px; }
-  body.tablet-dashboard h2 { font-size:18px; }
-  body.tablet-dashboard .card-title-row { margin-bottom:10px; }
-  body.tablet-dashboard .pill { padding:5px 9px; font-size:11px; }
-  body.tablet-dashboard .compact-grid {
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:8px 10px; align-items:end;
-  }
-  body.tablet-dashboard .select-block,
-  body.tablet-dashboard .compact-field,
-  body.tablet-dashboard .narrow-field,
-  body.tablet-dashboard .field-half { grid-column:span 1; }
-  body.tablet-dashboard label span,
-  body.tablet-dashboard .label { margin-bottom:5px; font-size:11px; }
-  body.tablet-dashboard input,
-  body.tablet-dashboard select {
-    min-height:42px; height:42px;
-    padding:9px 12px; font-size:15px; border-radius:12px;
-  }
-  body.tablet-dashboard button { border-radius:12px; }
-  body.tablet-dashboard .input-with-toggle { grid-template-columns:42px 1fr; gap:8px; }
-  body.tablet-dashboard .sign-toggle { min-height:42px; font-size:16px; border-radius:12px; }
-  body.tablet-dashboard .action-row { gap:8px; margin-top:10px; }
-  body.tablet-dashboard .action-row .primary { min-height:44px; font-size:15px; }
-  body.tablet-dashboard .action-row .ghost { min-height:40px; }
-  body.tablet-dashboard #formHint { display:none; }
-  body.tablet-dashboard .status-grid {
-    grid-template-columns:1fr;
-    grid-template-areas:"summary" "final"; gap:8px;
-  }
-  body.tablet-dashboard .status-badge { padding:6px 10px; font-size:11px; }
-  body.tablet-dashboard .status-summary h2 { font-size:18px; }
-  body.tablet-dashboard .status-text { font-size:13px; }
-  body.tablet-dashboard .status-detail { font-size:12px; }
-  body.tablet-dashboard .result-main { padding:12px; border-radius:12px; }
-  body.tablet-dashboard .result-main strong { font-size:30px; }
-  body.tablet-dashboard .compact-result-main { min-height:90px; }
-  body.tablet-dashboard .metric { border-radius:12px; }
-  body.tablet-dashboard #chartPanel,
-  body.tablet-dashboard #chartPanel.hidden {
-    display:flex !important; min-height:0;
-    margin-top:0; flex-direction:column;
-  }
-  body.tablet-dashboard .chart-stage {
-    min-height:260px; height:38vh; max-height:420px;
-    border-radius:14px;
-  }
-  body.tablet-dashboard canvas { width:100%; height:100%; object-fit:contain; }
-  body.tablet-dashboard .toolbar-row { gap:8px; }
-  body.tablet-dashboard .small { padding:8px 12px; font-size:13px; border-radius:10px; }
-  body.tablet-dashboard #toggleChart { display:none; }
-  body.tablet-dashboard .viewer-meta { padding:10px 12px; border-radius:0 0 14px 14px; }
-  body.tablet-dashboard .viz-facts { gap:8px; }
-  body.tablet-dashboard .viz-fact { border-radius:10px; padding:8px 10px; }
-}
-
-/* ── iPad landscape: form+status à esquerda, chart à direita full-height ── */
-@media (min-width: 768px) and (orientation: landscape) {
+@media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
   body.tablet-dashboard { overflow:hidden; }
   body.tablet-dashboard .app-shell {
-    max-width:none;
     min-height:100dvh;
-    height:100dvh;
+    max-width:none;
     margin:0;
-    padding:10px;
+    padding:12px;
     display:grid;
-    grid-template-columns:minmax(280px, 340px) minmax(0, 1fr);
+    grid-template-columns:minmax(340px, .92fr) minmax(0, 1.35fr);
     grid-template-rows:auto auto minmax(0, 1fr);
     grid-template-areas:
       "top top"
       "form viewer"
       "status viewer";
-    gap:10px;
+    gap:12px;
     align-content:stretch;
   }
-  body.tablet-dashboard .topbar { grid-area:top; border-radius:14px; padding:8px 12px; }
-  body.tablet-dashboard #heroHeader { display:none !important; }
+  body.tablet-dashboard .topbar { grid-area:top; }
+  body.tablet-dashboard #heroHeader,
   body.tablet-dashboard #interpSection { display:none !important; }
-  body.tablet-dashboard #formSection {
-    grid-area:form; margin:0; min-height:0; align-self:stretch;
-    padding:10px 12px; border-radius:14px;
-    overflow-y:auto; -webkit-overflow-scrolling:touch;
-    background:rgba(18,25,34,.92); border:1px solid rgba(148,163,184,.18);
-  }
-  body.tablet-dashboard #statusCard {
-    grid-area:status; margin:0; min-height:0; align-self:stretch;
-    padding:10px 12px; border-radius:14px;
-    position:static; top:auto;
-    overflow-y:auto; -webkit-overflow-scrolling:touch;
-    background:rgba(18,25,34,.92); border:1px solid rgba(148,163,184,.18);
-  }
+  body.tablet-dashboard #formSection { grid-area:form; margin:0; min-height:0; align-self:stretch; }
+  body.tablet-dashboard #statusCard { grid-area:status; margin:0; min-height:0; align-self:stretch; }
   body.tablet-dashboard #visualCard {
-    grid-area:viewer; margin:0;
-    min-height:0; align-self:stretch;
-    display:flex; flex-direction:column;
-    border-radius:14px; overflow:hidden;
-    background:rgba(18,25,34,.92); border:1px solid rgba(148,163,184,.18);
-    padding:10px;
+    grid-area:viewer;
+    margin:0;
+    min-height:calc(100dvh - 120px);
+    align-self:stretch;
+    display:flex;
+    flex-direction:column;
   }
-  body.tablet-dashboard h2 { font-size:17px; }
-  body.tablet-dashboard .card-title-row { margin-bottom:8px; }
-  body.tablet-dashboard .compact-grid {
-    grid-template-columns:repeat(2, minmax(0, 1fr));
-    gap:8px; align-items:end;
-  }
-  body.tablet-dashboard label span,
-  body.tablet-dashboard .label { margin-bottom:4px; font-size:10px; }
-  body.tablet-dashboard input,
-  body.tablet-dashboard select {
-    min-height:36px; height:36px;
-    font-size:13px; border-radius:10px; padding:0 10px;
-  }
-  body.tablet-dashboard button { border-radius:10px; }
-  body.tablet-dashboard .input-with-toggle { grid-template-columns:36px 1fr; gap:6px; }
-  body.tablet-dashboard .sign-toggle { min-height:36px; font-size:16px; border-radius:10px; }
-  body.tablet-dashboard .action-row { gap:6px; margin-top:8px; }
-  body.tablet-dashboard .action-row .primary { min-height:38px; }
-  body.tablet-dashboard .action-row .ghost { min-height:36px; }
-  body.tablet-dashboard #formHint { display:none; }
-  body.tablet-dashboard .status-grid {
-    grid-template-columns:1fr;
-    grid-template-areas:"summary" "final"; gap:6px;
-  }
-  body.tablet-dashboard .status-badge { padding:5px 8px; font-size:10px; }
-  body.tablet-dashboard .status-summary h2 { font-size:16px; }
-  body.tablet-dashboard .status-text { font-size:12px; }
-  body.tablet-dashboard .status-detail { font-size:11px; }
-  body.tablet-dashboard .result-main { padding:10px; border-radius:10px; }
-  body.tablet-dashboard .result-main strong { font-size:26px; }
-  body.tablet-dashboard .compact-result-main { min-height:80px; }
-  body.tablet-dashboard .metric { border-radius:10px; padding:10px; }
   body.tablet-dashboard #chartPanel,
-  body.tablet-dashboard #chartPanel.hidden {
-    display:flex !important;
-    margin-top:0; flex:1; min-height:0; flex-direction:column;
+  body.tablet-dashboard .chart-stage {
+    min-height:0;
+    height:100%;
+    flex:1;
   }
   body.tablet-dashboard .chart-stage {
-    flex:1; min-height:0; border-radius:12px;
     align-items:center;
   }
-  body.tablet-dashboard canvas { width:100%; height:100%; object-fit:contain; }
-  body.tablet-dashboard #chartCanvas {
-    max-width:100%; max-height:100%;
-    width:auto!important; height:auto!important;
-    object-fit:contain;
-  }
-  body.tablet-dashboard .toolbar-row { gap:6px; }
-  body.tablet-dashboard .small { padding:6px 10px; font-size:12px; border-radius:8px; }
-  body.tablet-dashboard #toggleChart { display:none; }
-  body.tablet-dashboard .viewer-meta { padding:8px 10px; }
-  body.tablet-dashboard .viz-facts { gap:6px; }
-  body.tablet-dashboard .viz-fact { border-radius:8px; padding:6px 8px; }
-  body.tablet-dashboard .viz-fact-label { font-size:9px; }
-  body.tablet-dashboard .viz-fact-value { font-size:12px; }
-}
-
-/* ── iPhone landscape ── */
-@media (max-height: 440px) and (orientation: landscape) {
-  .app-shell{
-    grid-template-columns:minmax(240px,.82fr) minmax(0,1.2fr)!important;
-    grid-template-rows:auto auto minmax(0,1fr)!important;
-    grid-template-areas:"top top" "sidebar viewer" "result viewer"!important;
-    height:100dvh;
-    padding:6px!important;
-    gap:6px!important;
-    overflow:hidden;
-  }
-  .topbar{padding:6px 10px!important;border-radius:10px!important}
-  .product-sub{font-size:14px!important}
-  #formSection{padding:8px!important;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(50dvh - 30px);border-radius:10px!important}
-  #statusCard{padding:8px!important;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(50dvh - 30px);position:static!important;border-radius:10px!important}
-  #visualCard{overflow:hidden!important;border-radius:10px!important}
-  h2{font-size:16px!important}
-  label span,.label{font-size:9px!important;margin-bottom:2px!important}
-  input,select{min-height:30px!important;height:30px!important;font-size:12px!important;border-radius:6px!important;padding:0 8px!important}
-  .sign-toggle{min-height:30px!important;height:30px!important;font-size:16px!important;border-radius:6px!important}
-  .input-with-toggle{grid-template-columns:30px 1fr!important;gap:6px!important}
-  .action-row{margin-top:6px!important;gap:6px!important}
-  .action-row .primary{min-height:32px!important;font-size:13px!important}
-  .action-row .ghost{min-height:30px!important;font-size:12px!important}
-  .card-title-row{margin-bottom:6px!important}
-  .status-grid{gap:6px!important}
-  .status-summary h2{font-size:15px!important}
-  .status-badge{padding:4px 8px!important;font-size:9px!important}
-  .result-main strong{font-size:24px!important}
-  .result-main{padding:8px!important}
-  .chart-stage{min-height:0!important}
-  .viz-facts{gap:4px!important}
-  .viz-fact{padding:4px 6px!important}
-  .viz-fact-label{font-size:9px!important}
-  .viz-fact-value{font-size:11px!important}
 }

@@ -15,8 +15,6 @@
 
   function detectPlatform(){
     if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
-    // iPadOS 13+ reports as Mac — detect via touch + Mac UA
-    if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return 'ios';
     if (/Android/.test(ua)) return 'android';
     return 'other';
   }
@@ -92,12 +90,7 @@
 
   function installGuideHtml(){
     if (state.platform === 'ios') {
-      const isTablet = Math.min(window.screen.width, window.screen.height) >= 768
-                    || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-      if (isTablet) {
-        return '<strong>Instalar no iPad</strong><br>1. Abra no <em>Safari</em><br>2. Toque no ícone <em>Compartilhar</em> (⎙) na barra superior<br>3. Role e toque em <em>Adicionar à Tela de Início</em><br>4. Confirme tocando em <em>Adicionar</em>';
-      }
-      return '<strong>Instalar no iPhone</strong><br>1. Abra no <em>Safari</em><br>2. Toque no ícone <em>Compartilhar</em> (⎙) na barra inferior<br>3. Role e toque em <em>Adicionar à Tela de Início</em><br>4. Confirme tocando em <em>Adicionar</em>';
+      return '<strong>Instalar no iPhone/iPad</strong><br>Abra no Safari, toque em <em>Compartilhar</em> e depois em <em>Adicionar à Tela de Início</em>.';
     }
     if (state.platform === 'android') {
       return '<strong>Instalar no Android</strong><br>Toque em <em>Instalar app</em> quando o navegador oferecer ou use o menu do navegador.';
@@ -164,7 +157,7 @@
     const installStatus = document.getElementById('installStatusText');
     if (!installStatus) return;
     if (state.installed) {
-      installStatus.textContent = state.online ? 'App instalado e pronto para abrir em tela cheia.' : 'App instalado em modo offline. Alguns módulos dependem do cache já carregado.';
+      installStatus.textContent = state.online ? 'App instalado e pronto para abrir em tela cheia.' : 'App instalado em modo offline. Home, Fluxo, WAT, RTO e ADC ficam disponíveis após a sincronização inicial online desta versão.';
       return;
     }
     if (state.platform === 'ios') {
@@ -236,32 +229,11 @@
     showOnlineToast('Modo offline ativo.');
   });
 
-  // iOS viewport height fix: set CSS variable for true viewport height
-  function updateViewportHeight(){
-    const vh = window.innerHeight * 0.01;
-    document.documentElement.style.setProperty('--vh', vh + 'px');
-  }
-
-  // iOS orientation change: update layout classes and viewport
-  function handleOrientationChange(){
-    updateViewportHeight();
-    const isLandscape = window.innerWidth > window.innerHeight;
-    document.body.classList.toggle('is-landscape', isLandscape);
-    document.body.classList.toggle('is-portrait', !isLandscape);
-    // iPad detection
-    const isTablet = Math.min(window.screen.width, window.screen.height) >= 768
-                  || (state.platform === 'ios' && /Macintosh/.test(ua));
-    document.body.classList.toggle('is-tablet', isTablet);
-    document.body.classList.toggle('is-phone', !isTablet && state.platform === 'ios');
-  }
-
   window.addEventListener('load', () => {
     register();
     hideLaunchMask();
     updateNetworkChip();
     updateScrollState();
-    updateViewportHeight();
-    handleOrientationChange();
   });
 
   window.addEventListener('pageshow', () => {
@@ -270,18 +242,7 @@
   });
 
   window.addEventListener('scroll', updateScrollState, { passive: true });
-  window.addEventListener('resize', () => {
-    updateScrollState();
-    updateViewportHeight();
-    handleOrientationChange();
-  }, { passive: true });
-  window.addEventListener('orientationchange', () => {
-    // iOS fires orientationchange before resize completes — delay slightly
-    setTimeout(() => {
-      updateViewportHeight();
-      handleOrientationChange();
-    }, 120);
-  });
+  window.addEventListener('resize', updateScrollState, { passive: true });
 
   window.addEventListener('DOMContentLoaded', () => {
     document.documentElement.classList.toggle('is-standalone', state.installed);
