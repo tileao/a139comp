@@ -13,6 +13,7 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="../shared/pwa.css">
+  <link rel="stylesheet" href="../shared/module-layout.css">
 </head>
 <body>
   <main class="app-shell">
@@ -122,7 +123,7 @@
     <section id="statusCard" class="card status neutral">
       <div class="status-badge">AGUARDANDO DADOS</div>
       <div class="status-main">
-        <div class="status-copy">
+        <div>
           <p class="label">Status</p>
           <h2 id="statusTitle">Envelope WAT</h2>
           <p id="statusText">Preencha os campos e execute o cálculo.</p>
@@ -159,25 +160,7 @@
           <span><i class="dot red"></i> Fora</span>
         </div>
         <p id="chartHint" class="hint hidden" hidden></p>
-        <div id="chartReferenceBlock" class="chart-reference-block">
-          <div class="chart-reference-item chart-reference-item-wide">
-            <span>Gráfico</span>
-            <strong id="chartRefFigure">Figure 4-7 — Weight Limitations for CAT A Offshore Helideck Procedure.</strong>
-          </div>
-          <div class="chart-reference-item">
-            <span>Suplemento</span>
-            <strong id="chartRefSupplement">Supplement 50</strong>
-          </div>
-          <div class="chart-reference-item">
-            <span>Página</span>
-            <strong id="chartRefPage">S50-30</strong>
-          </div>
-          <div class="chart-reference-item chart-reference-item-wide">
-            <span>Fonte</span>
-            <strong id="chartRefSource">Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.</strong>
-          </div>
-        </div>
-        <p id="chartReference" class="chart-reference hidden" hidden></p>
+        <p id="chartReference" class="chart-reference"><strong>Gráfico em uso:</strong> Figure 4-7 — Weight Limitations for CAT A Offshore Helideck Procedure.<br><strong>Suplemento:</strong> Supplement 50<br><strong>Página:</strong> S50-30<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.</p>
       </div>
     </section>
   </main>
@@ -191,7 +174,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=v17_2_2-wat-ipad-visual-fix" defer></script>
+  <script src="app.js?v=v17_1_0-pwa-premium" defer></script>
   <script src="../shared/module-bridge.js"></script>
 
   <script src="../shared/pwa.js"></script>
