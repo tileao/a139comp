@@ -47,13 +47,21 @@ button { cursor:pointer; }
 .hidden { display:none !important; }
 .action-row { display:flex; gap:12px; margin-top:16px; }
 .hint { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
+.status-copy{display:grid;gap:4px;}
+.status-copy .label{margin-bottom:2px;}
+.status-copy #statusText{margin:0;color:var(--muted);font-size:13px;line-height:1.35;}
+.chart-reference-block{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;}
+.chart-reference-item{background:#0f1722;border:1px solid var(--line);border-radius:16px;padding:12px;display:grid;gap:6px;}
+.chart-reference-item span{display:block;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;}
+.chart-reference-item strong{font-size:14px;line-height:1.35;color:var(--text);font-weight:600;}
+.chart-reference-item-wide{grid-column:1 / -1;}
 .status { overflow:hidden; }
 .status-badge { display:inline-block; padding:8px 12px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.08em; background:#203043; }
-.status-main { display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-top:14px; }
-.status h2 { font-size:28px; margin-top:4px; }
-.metrics { display:grid; grid-template-columns:1fr 1fr; gap:12px; min-width:260px; }
-.metric { background: rgba(11,15,20,.55); border:1px solid var(--line); border-radius:18px; padding:14px; }
-.metric strong { font-size:24px; }
+.status-main { display:flex; flex-direction:column; gap:14px; align-items:stretch; margin-top:14px; }
+.status h2 { font-size:24px; margin:0; }
+.metrics { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; min-width:0; width:100%; order:-1; }
+.metric { background: rgba(11,15,20,.55); border:1px solid var(--line); border-radius:18px; padding:14px; display:grid; gap:6px; align-content:start; }
+.metric strong { font-size:30px; line-height:1; }
 .status.within { background: linear-gradient(180deg, rgba(47,191,113,.18), rgba(18,25,34,.92)); border-color: rgba(47,191,113,.5); }
 .status.within .status-badge { background: rgba(47,191,113,.22); color:#b8f2d0; }
 .status.out { background: linear-gradient(180deg, rgba(217,79,79,.18), rgba(18,25,34,.92)); border-color: rgba(217,79,79,.52); }
@@ -171,7 +179,7 @@ body{min-height:100%}
 #visualCard .chart-panel,.viewer-card .chart-panel{display:block!important;margin-top:0;flex:1;min-height:0}
 #visualCard .chart-stage,.viewer-card .chart-stage{height:100%;min-height:0;background:#111827;border-radius:0;display:flex;align-items:flex-start;justify-content:center}
 #chartBaseImage{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;object-position:top center}
-#visualCard .legend,#visualCard #chartHint,#visualCard #chartReference,.viewer-card .legend,.viewer-card #chartHint,.viewer-card #chartReference{display:none}
+#visualCard .legend,#visualCard #chartHint,.viewer-card .legend,.viewer-card #chartHint{display:none}
 .toolbar-row{justify-content:flex-start}
 input,select{min-height:38px;height:38px;border-radius:8px;background:#243447;border-color:rgba(47,167,160,.55);padding:0 10px;font-size:14px}
 label span,.label{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#E5EEF7;opacity:.86;line-height:1.1;margin-bottom:4px}
@@ -203,54 +211,47 @@ body.fullscreen-body{overflow:hidden}
 .wat-entry-actions .ghost{grid-column:auto}
 
 
-/* ══════════════════════════════════════════════════════════
-   iPad tablet-dashboard — base (aplicado por JS em 768–1366px)
-   ══════════════════════════════════════════════════════════ */
+/* v17.0.0 — iPad layout aligned with Cat A / modules */
 body.tablet-dashboard { overflow:auto; }
 body.tablet-dashboard .app-shell {
   max-width:none;
-  min-height:100dvh;
+  min-height:100%;
   margin:0;
   padding:12px;
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:minmax(360px, .95fr) minmax(280px, .75fr);
   grid-template-rows:auto auto minmax(0, 1fr);
   grid-template-areas:
     "top top"
     "sidebar result"
     "viewer viewer";
-  gap:10px;
+  gap:12px;
   align-content:start;
 }
 body.tablet-dashboard .topbar {
   grid-area:top;
-  border-radius:16px;
-  padding:10px 14px;
+  border-radius:18px;
 }
 body.tablet-dashboard #formSection {
   grid-area:sidebar;
   margin:0;
   padding:14px;
-  border-radius:16px;
+  border-radius:18px;
   align-self:start;
   min-height:unset;
-  background:rgba(18,25,34,.92);
-  border:1px solid var(--line);
 }
 body.tablet-dashboard #statusCard {
   grid-area:result;
   margin:0;
   padding:14px;
-  border-radius:16px;
+  border-radius:18px;
   align-self:start;
-  background:rgba(18,25,34,.92);
-  border:1px solid var(--line);
 }
 body.tablet-dashboard #visualCard {
   grid-area:viewer;
   margin:0;
   padding:14px;
-  border-radius:16px;
+  border-radius:18px;
   min-height:0;
   display:flex;
   flex-direction:column;
@@ -258,7 +259,7 @@ body.tablet-dashboard #visualCard {
   border:1px solid var(--line);
 }
 body.tablet-dashboard #visualCard .card-title-row {
-  margin-bottom:10px;
+  margin-bottom:12px;
   align-items:flex-start;
   gap:12px;
 }
@@ -266,31 +267,12 @@ body.tablet-dashboard #visualCard .toolbar-row {
   margin-left:auto;
   justify-content:flex-end;
 }
-body.tablet-dashboard h2 { font-size:20px; }
-body.tablet-dashboard .pill { font-size:12px; background:#243447; }
 body.tablet-dashboard .compact-grid {
   grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:10px;
 }
 body.tablet-dashboard .control-block { grid-column:1 / -1; }
 body.tablet-dashboard .field-half { grid-column:span 1; }
-body.tablet-dashboard label span,
-body.tablet-dashboard .label { font-size:11px; margin-bottom:5px; }
-body.tablet-dashboard input,
-body.tablet-dashboard select {
-  min-height:42px; height:42px;
-  font-size:15px; border-radius:12px;
-  padding:0 12px;
-}
-body.tablet-dashboard .sign-toggle {
-  height:42px; min-height:42px;
-  width:42px; min-width:42px; max-width:42px;
-  border-radius:12px; font-size:20px;
-}
-body.tablet-dashboard .segment-option span {
-  min-height:44px; font-size:15px; border-radius:12px;
-}
-body.tablet-dashboard .segmented { gap:10px; }
 body.tablet-dashboard .wat-entry-actions {
   grid-template-columns:1fr 1fr;
 }
@@ -298,150 +280,100 @@ body.tablet-dashboard .wat-entry-actions .primary,
 body.tablet-dashboard .wat-entry-actions .ghost {
   grid-column:auto;
 }
-body.tablet-dashboard .action-row .primary {
-  height:46px; border-radius:12px; font-size:15px;
-}
-body.tablet-dashboard .action-row .ghost {
-  height:42px; border-radius:12px;
-}
-body.tablet-dashboard .status-main { align-items:stretch; }
-body.tablet-dashboard .status h2 { font-size:20px; }
-body.tablet-dashboard .metric {
-  border-radius:12px; background:#243447; padding:12px;
-}
-body.tablet-dashboard .metric strong { font-size:22px; }
-body.tablet-dashboard .status-badge { font-weight:900; font-size:11px; }
 body.tablet-dashboard .chart-panel {
-  margin-top:0; flex:1; min-height:0;
-  display:flex; flex-direction:column;
+  margin-top:0;
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
 }
 body.tablet-dashboard .chart-stage {
-  flex:1; min-height:300px;
-  display:flex; align-items:flex-start; justify-content:center;
-  background:#0f1722; border-radius:14px; overflow:hidden;
+  flex:1;
+  min-height:430px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  background:#0f1722;
+  border-radius:18px;
+  overflow:hidden;
 }
 body.tablet-dashboard #chartBaseImage {
-  width:auto; max-width:100%;
-  height:auto; max-height:none;
-  object-fit:contain; object-position:top center;
+  width:auto;
+  max-width:100%;
+  height:auto;
+  max-height:none;
+  object-fit:contain;
+  object-position:top center;
 }
-body.tablet-dashboard .legend { margin-top:10px; font-size:13px; }
-body.tablet-dashboard #chartReference {
-  display:block; margin-top:10px; font-size:13px; line-height:1.45;
+body.tablet-dashboard .legend {
+  margin-top:10px;
 }
-
-/* ── iPad portrait: tudo empilhado, form+status lado a lado ── */
-@media (min-width: 768px) and (orientation: portrait) {
+body.tablet-dashboard .chart-reference-block {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin-top:10px;
+}
+body.tablet-dashboard h2 {
+  font-size:22px;
+}
+body.tablet-dashboard .pill {
+  font-size:12px;
+}
+body.tablet-dashboard .status-main {
+  align-items:stretch;
+}
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   body.tablet-dashboard .app-shell {
-    grid-template-columns:1fr 1fr;
-    grid-template-rows:auto auto minmax(0,1fr);
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto auto minmax(0,1fr);
     grid-template-areas:
-      "top top"
-      "sidebar result"
-      "viewer viewer";
-    height:auto;
-    min-height:100dvh;
-    overflow:visible;
+      "top"
+      "sidebar"
+      "result"
+      "viewer";
   }
-  body.tablet-dashboard #formSection { align-self:stretch; }
-  body.tablet-dashboard #statusCard { align-self:stretch; }
-  body.tablet-dashboard #visualCard { min-height:50vh; }
-  body.tablet-dashboard .chart-stage { min-height:280px; }
+  body.tablet-dashboard #visualCard {
+    min-height:52vh;
+  }
 }
 
-/* ── iPad landscape: form+status à esquerda, chart à direita full-height ── */
-@media (min-width: 768px) and (orientation: landscape) {
+
+@media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
   body.tablet-dashboard { overflow:hidden; }
   body.tablet-dashboard .app-shell {
-    height:100dvh;
     min-height:100dvh;
-    grid-template-columns:minmax(280px, 340px) minmax(0, 1fr);
+    grid-template-columns:minmax(340px, .92fr) minmax(0, 1.35fr);
     grid-template-rows:auto auto minmax(0, 1fr);
     grid-template-areas:
       "top top"
       "sidebar viewer"
       "result viewer";
     align-content:stretch;
-    gap:10px;
-    padding:10px;
   }
-  body.tablet-dashboard .topbar { border-radius:14px; padding:8px 12px; }
-  body.tablet-dashboard #formSection {
-    padding:10px 12px; border-radius:14px;
-    overflow-y:auto; -webkit-overflow-scrolling:touch;
-    align-self:stretch;
-  }
-  body.tablet-dashboard #statusCard {
-    padding:10px 12px; border-radius:14px;
-    overflow-y:auto; -webkit-overflow-scrolling:touch;
+  body.tablet-dashboard #formSection,
+  body.tablet-dashboard #statusCard,
+  body.tablet-dashboard #visualCard {
+    min-height:0;
     align-self:stretch;
   }
   body.tablet-dashboard #visualCard {
-    min-height:0; border-radius:14px;
-    align-self:stretch; overflow:hidden;
+    min-height:calc(100dvh - 120px);
   }
   body.tablet-dashboard .chart-panel,
   body.tablet-dashboard .chart-stage {
-    min-height:0; height:100%;
+    min-height:0;
+    height:100%;
   }
   body.tablet-dashboard .chart-stage {
-    align-items:center; min-height:0;
-    border-radius:12px;
+    align-items:center;
   }
-  body.tablet-dashboard #chartBaseImage { max-height:100%; }
-  body.tablet-dashboard h2 { font-size:18px; }
-  body.tablet-dashboard .compact-grid { gap:8px; }
-  body.tablet-dashboard input,
-  body.tablet-dashboard select {
-    min-height:36px; height:36px; font-size:13px; border-radius:10px;
+  body.tablet-dashboard #chartBaseImage {
+    max-height:100%;
   }
-  body.tablet-dashboard .sign-toggle {
-    height:36px; min-height:36px;
-    width:36px; min-width:36px; max-width:36px;
-    border-radius:10px;
-  }
-  body.tablet-dashboard .segment-option span {
-    min-height:36px; font-size:13px; border-radius:10px;
-  }
-  body.tablet-dashboard .action-row .primary { height:40px; border-radius:10px; }
-  body.tablet-dashboard .action-row .ghost { height:36px; border-radius:10px; }
-  body.tablet-dashboard .metric { padding:10px; border-radius:10px; }
-  body.tablet-dashboard .metric strong { font-size:20px; }
-  body.tablet-dashboard .status h2 { font-size:18px; }
-  body.tablet-dashboard label span,
-  body.tablet-dashboard .label { font-size:10px; margin-bottom:4px; }
-  body.tablet-dashboard .legend { display:none; }
-  body.tablet-dashboard #chartReference { display:none; }
 }
 
-/* ── iPhone landscape ── */
-@media (max-height: 440px) and (orientation: landscape) {
-  .app-shell{
-    grid-template-columns:minmax(240px,.82fr) minmax(0,1.2fr)!important;
-    grid-template-rows:auto auto minmax(0,1fr)!important;
-    grid-template-areas:"top top" "sidebar viewer" "result viewer"!important;
-    height:100dvh;
-    padding:6px!important;
-    gap:6px!important;
-    overflow:hidden;
-  }
-  .topbar{padding:6px 10px!important;border-radius:10px!important}
-  .product-sub{font-size:14px!important}
-  .form-card,#statusCard{padding:8px!important;overflow-y:auto;-webkit-overflow-scrolling:touch;max-height:calc(50dvh - 30px);border-radius:10px!important}
-  #visualCard,.viewer-card{overflow:hidden!important;border-radius:10px!important}
-  h2{font-size:16px!important}
-  label span,.label{font-size:9px!important;margin-bottom:2px!important}
-  input,select{min-height:30px!important;height:30px!important;font-size:12px!important;border-radius:6px!important;padding:0 8px!important}
-  .sign-toggle{height:30px!important;min-height:30px!important;width:30px!important;min-width:30px!important;max-width:30px!important;font-size:16px!important;border-radius:6px!important}
-  .segment-option span{min-height:30px!important;font-size:12px!important;border-radius:8px!important}
-  .action-row{margin-top:6px!important;gap:6px!important}
-  .action-row .primary{height:32px!important;border-radius:8px!important;font-size:13px!important}
-  .action-row .ghost{height:30px!important;font-size:12px!important}
-  .card-title-row{margin-bottom:6px!important}
-  .status-main{gap:8px}
-  .metric{padding:8px;border-radius:8px}
-  .metric strong{font-size:18px!important}
-  .status h2{font-size:17px!important}
-  .status-badge{padding:4px 8px;font-size:10px}
-  .chart-stage{min-height:0!important}
+@media (max-width: 640px){
+  .chart-reference-block{grid-template-columns:1fr;}
+  .metric strong{font-size:26px;}
 }

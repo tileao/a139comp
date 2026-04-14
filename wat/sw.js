@@ -1,10 +1,10 @@
-const CACHE_NAME = 'aw139-wat-companion-v17-2-0-pwa-premium-phase6';
+const CACHE_NAME = 'aw139-wat-companion-v17-2-1-wat-ui-refine';
 const APP_ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
-  './app.js?v=v17_0_0-wat-ipad-layout-landscape',
+  './app.js?v=v17_2_1-wat-ui-refine',
   './manifest.webmanifest',
   './README.md',
   './../shared/pwa.css',

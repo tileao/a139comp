@@ -2,18 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b0f14">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="AW139">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="format-detection" content="telephone=no">
   <title>AW139 Companion — WAT</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/icon-180.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="../assets/icon-192.png">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="../shared/pwa.css">
 </head>
@@ -125,7 +122,7 @@
     <section id="statusCard" class="card status neutral">
       <div class="status-badge">AGUARDANDO DADOS</div>
       <div class="status-main">
-        <div>
+        <div class="status-copy">
           <p class="label">Status</p>
           <h2 id="statusTitle">Envelope WAT</h2>
           <p id="statusText">Preencha os campos e execute o cálculo.</p>
@@ -162,7 +159,25 @@
           <span><i class="dot red"></i> Fora</span>
         </div>
         <p id="chartHint" class="hint hidden" hidden></p>
-        <p id="chartReference" class="chart-reference"><strong>Gráfico em uso:</strong> Figure 4-7 — Weight Limitations for CAT A Offshore Helideck Procedure.<br><strong>Suplemento:</strong> Supplement 50<br><strong>Página:</strong> S50-30<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.</p>
+        <div id="chartReferenceBlock" class="chart-reference-block">
+          <div class="chart-reference-item chart-reference-item-wide">
+            <span>Gráfico</span>
+            <strong id="chartRefFigure">Figure 4-7 — Weight Limitations for CAT A Offshore Helideck Procedure.</strong>
+          </div>
+          <div class="chart-reference-item">
+            <span>Suplemento</span>
+            <strong id="chartRefSupplement">Supplement 50</strong>
+          </div>
+          <div class="chart-reference-item">
+            <span>Página</span>
+            <strong id="chartRefPage">S50-30</strong>
+          </div>
+          <div class="chart-reference-item chart-reference-item-wide">
+            <span>Fonte</span>
+            <strong id="chartRefSource">Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.</strong>
+          </div>
+        </div>
+        <p id="chartReference" class="chart-reference hidden" hidden></p>
       </div>
     </section>
   </main>
@@ -176,7 +191,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=v17_1_0-pwa-premium" defer></script>
+  <script src="app.js?v=v17_2_1-wat-ui-refine" defer></script>
   <script src="../shared/module-bridge.js"></script>
 
   <script src="../shared/pwa.js"></script>

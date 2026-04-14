@@ -19,6 +19,10 @@ const chartPanel = document.getElementById('chartPanel');
 const chartCanvas = document.getElementById('chartCanvas');
 const chartBaseImage = document.getElementById('chartBaseImage');
 const chartReferenceEl = document.getElementById('chartReference');
+const chartRefFigureEl = document.getElementById('chartRefFigure');
+const chartRefSupplementEl = document.getElementById('chartRefSupplement');
+const chartRefPageEl = document.getElementById('chartRefPage');
+const chartRefSourceEl = document.getElementById('chartRefSource');
 const formHintEl = document.getElementById('formHint');
 const chartHintEl = document.getElementById('chartHint');
 const ctx = chartCanvas.getContext('2d');
@@ -359,6 +363,48 @@ Object.values(PROFILE_MAP).forEach((profile) => {
   profile.referenceHtml = buildReferenceHtml(profile);
 });
 
+function getReferenceBlockData(profile = activeProfile, result = currentResult) {
+  const source = 'Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.';
+  if (!profile) return { figure: 'Perfil ainda não calibrado.', supplement: '—', page: '—', source };
+  let figure = profile.figureLabel || '—';
+  let supplement = (PROFILE_META[profile.id] || {}).supplement || '—';
+  let page = (PROFILE_META[profile.id] || {}).page || '—';
+
+  if (result?.chartFamily === '6400' && CONFINED_6400_VARIANTS[profile.id]) {
+    const variant = CONFINED_6400_VARIANTS[profile.id];
+    const meta = PROFILE_META_CONFINED_6400[profile.id] || {};
+    figure = variant.figureLabel || figure;
+    supplement = meta.supplement || supplement;
+    page = meta.page || page;
+  } else if (result?.chartFamily === '7000' && CLEAR_SUP90_VARIANTS[profile.id]) {
+    const variant = CLEAR_SUP90_VARIANTS[profile.id];
+    figure = variant.figureLabel || figure;
+    supplement = variant.supplement || supplement;
+    page = variant.page || page;
+  } else if (result?.chartFamily === '7000' && CATB_SUP90_VARIANTS[profile.id]) {
+    const variant = CATB_SUP90_VARIANTS[profile.id];
+    figure = variant.figureLabel || figure;
+    supplement = variant.supplement || supplement;
+    page = variant.page || page;
+  } else if (profile?.id?.startsWith('enhanced_') && ENHANCED_VARIANTS && ENHANCED_VARIANTS[profile.id]) {
+    const variant = ENHANCED_VARIANTS[profile.id];
+    figure = variant.figureLabel || figure;
+    supplement = variant.supplement || supplement;
+    page = variant.graphPage && variant.tablePage ? `${variant.graphPage} / ${variant.tablePage}` : (variant.graphPage || page);
+  }
+
+  return { figure, supplement, page, source };
+}
+
+function updateReferenceBlock(profile = activeProfile, result = currentResult) {
+  const data = getReferenceBlockData(profile, result);
+  if (chartRefFigureEl) chartRefFigureEl.textContent = data.figure;
+  if (chartRefSupplementEl) chartRefSupplementEl.textContent = data.supplement;
+  if (chartRefPageEl) chartRefPageEl.textContent = data.page;
+  if (chartRefSourceEl) chartRefSourceEl.textContent = data.source;
+  if (chartReferenceEl) chartReferenceEl.innerHTML = `<strong>Gráfico em uso:</strong> ${data.figure}<br><strong>Suplemento:</strong> ${data.supplement}<br><strong>Página:</strong> ${data.page}<br><strong>Fonte:</strong> ${data.source}`;
+}
+
 let currentResult = null;
 let activeProfile = null;
 
@@ -456,7 +502,7 @@ function syncProfileUi() {
   syncProcedureOptionsForAircraft();
   activeProfile = getActiveProfile();
   const ref = activeProfile ? activeProfile.referenceHtml : '<strong>Gráfico em uso:</strong> perfil ainda não calibrado.<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.';
-  chartReferenceEl.innerHTML = ref;
+  updateReferenceBlock(activeProfile, currentResult);
   if (chartHintEl) chartHintEl.textContent = procedureEl.value === 'offshore'
     ? 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.'
     : 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual e peso máximo interpolado no gráfico principal.';
@@ -844,7 +890,7 @@ function renderClearEapsOffAnnotatedCanvas(result=currentResult, options={}) { r
 function renderClearEapsOnAnnotatedCanvas(result=currentResult, options={}) { return renderGenericNoHeadwindPdfPage(result, options, clearEapsOnPageImage, PROFILE_MAP.clear_eaps_on, CLEAR_EAPS_ON_EXACT); }
 function renderConfinedEapsOnAnnotatedCanvas(result=currentResult, options={}) { return renderGenericNoHeadwindPlacedPage(result, options, confinedEapsOnPageImage, PROFILE_MAP.confined_eaps_on, CONFINED_EAPS_ON_EXACT, EAPS_PAGE_PLACEMENT); }
 function getRenderableProfile(profile) { return profile && typeof profile.render === 'function' ? profile : null; }
-function resetPendingState() { statusCard.className='card status neutral'; statusBadge.textContent='AGUARDANDO DADOS'; statusTitle.textContent='Envelope WAT'; statusText.textContent='Selecione a família da aeronave, o procedimento, a configuração e preencha altitude, OAT e peso atual.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; drawOverlay(); }
+function resetPendingState() { statusCard.className='card status neutral'; statusBadge.textContent='AGUARDANDO DADOS'; statusTitle.textContent='Envelope WAT'; statusText.hidden=false; statusText.textContent='Selecione a família da aeronave, o procedimento, a configuração e preencha altitude, OAT e peso atual.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; updateReferenceBlock(activeProfile, currentResult); drawOverlay(); }
 function resetWatForm() {
   const radio7000 = document.querySelector('input[name="aircraftSet"][value="7000"]');
   if (radio7000) { radio7000.checked = true; radio7000.dispatchEvent(new Event('change', { bubbles:true })); }
@@ -860,9 +906,9 @@ function resetWatForm() {
   resetPendingState();
 }
 
-function showUncalibratedProfileState() { statusCard.className='card status neutral'; statusBadge.textContent='PERFIL NÃO CALIBRADO'; statusTitle.textContent='Modo ainda não calibrado'; statusText.textContent='O perfil selecionado ainda não possui motor de cálculo calibrado nesta build.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; drawOverlay(); }
-function showRangeError(result) { statusCard.className='card status neutral'; statusBadge.textContent='PONTO FORA DA FAIXA'; statusTitle.textContent='Validação manual necessária'; statusText.textContent=result.error; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=result; drawOverlay(result); }
-function showSuccess(result, profile) { statusCard.className=`card status ${result.within ? 'within':'out'}`; statusBadge.textContent = profile.statusBadge || 'PERFIL CALIBRADO'; statusTitle.textContent = result.within ? 'WITHIN ENVELOPE' : 'OUT OF ENVELOPE'; statusText.textContent = result.resultDescription || profile.resultDescription || 'Resultado calculado com base nas curvas vetoriais do PDF.'; maxWeightEl.textContent=formatKg(result.maxWeight); marginEl.textContent=`${result.margin>=0?'+':''}${Math.round(result.margin).toLocaleString('pt-BR')} kg`; currentResult=result; drawOverlay(result); }
+function showUncalibratedProfileState() { statusCard.className='card status neutral'; statusBadge.textContent='PERFIL NÃO CALIBRADO'; statusTitle.textContent='Modo ainda não calibrado'; statusText.hidden=false; statusText.textContent='O perfil selecionado ainda não possui motor de cálculo calibrado nesta build.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; updateReferenceBlock(activeProfile, currentResult); drawOverlay(); }
+function showRangeError(result) { statusCard.className='card status neutral'; statusBadge.textContent='PONTO FORA DA FAIXA'; statusTitle.textContent='Validação manual necessária'; statusText.hidden=false; statusText.textContent=result.error; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=result; updateReferenceBlock(activeProfile, result); drawOverlay(result); }
+function showSuccess(result, profile) { statusCard.className=`card status ${result.within ? 'within':'out'}`; statusBadge.textContent = profile.statusBadge || 'PERFIL CALIBRADO'; statusTitle.textContent = result.within ? 'WITHIN ENVELOPE' : 'OUT OF ENVELOPE'; statusText.hidden=true; statusText.textContent = result.resultDescription || profile.resultDescription || 'Resultado calculado com base nas curvas vetoriais do PDF.'; maxWeightEl.textContent=formatKg(result.maxWeight); marginEl.textContent=`${result.margin>=0?'+':''}${Math.round(result.margin).toLocaleString('pt-BR')} kg`; currentResult=result; updateReferenceBlock(profile, result); drawOverlay(result); }
 function drawOverlay(result) { const renderableProfile=getRenderableProfile(activeProfile); if(!renderableProfile) return; const rect=chartCanvas.getBoundingClientRect(); const pageImage=renderableProfile.pageImage; if(!(pageImage.complete&&pageImage.naturalWidth)) return; const aspect=pageImage.naturalWidth/pageImage.naturalHeight; const displayWidth=Math.max(1,Math.round(rect.width||pageImage.naturalWidth)); const displayHeight=Math.max(1,Math.round(displayWidth/aspect)); const dpr=Math.max(1,window.devicePixelRatio||1); chartCanvas.width=Math.round(displayWidth*dpr); chartCanvas.height=Math.round(displayHeight*dpr); chartCanvas.style.height=`${displayHeight}px`; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,displayWidth,displayHeight); const preview = renderableProfile.render(result,{includeFooter:false,includeSummaryBox:true,compactSummaryBox:true}); if(preview) ctx.drawImage(preview,0,0,displayWidth,displayHeight); }
 function renderCompositeCanvas(result=currentResult) { const renderableProfile=getRenderableProfile(activeProfile); if(!renderableProfile) return null; return renderableProfile.render(result,{includeFooter:true,includeSummaryBox:true}); }
 function buildPdfBlobFromCanvas(canvas) { const jpegData=canvas.toDataURL('image/jpeg',0.92), base64=jpegData.split(',')[1], imageBytes=atob(base64), imgLen=imageBytes.length, pageWidth=595.28, pageHeight=pageWidth*canvas.height/canvas.width; const pdfParts=[], offsets=[]; const push=(s)=>pdfParts.push(typeof s==='string'?s:s); const offset=()=>pdfParts.reduce((n,part)=>n+(typeof part==='string'?new TextEncoder().encode(part).length:part.length),0); const bin=Uint8Array.from(imageBytes,c=>c.charCodeAt(0)); push(`%PDF-1.4
@@ -1148,7 +1194,7 @@ function getRenderableProfile(profile, result=currentResult) {
 function syncProfileUi() {
   activeProfile = getActiveProfile();
   const ref = activeProfile ? activeProfile.referenceHtml : '<strong>Gráfico em uso:</strong> perfil ainda não calibrado.<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.';
-  chartReferenceEl.innerHTML = ref;
+  updateReferenceBlock(activeProfile, currentResult);
   if (chartHintEl) if (chartHintEl) chartHintEl.textContent = procedureEl.value === 'offshore' ? 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.' : 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual e peso máximo interpolado no gráfico principal.';
   formHintEl.textContent = 'Nesta build, os perfis Confined usam somente as cartas do Supplement 50. As cartas do Supplement 12 permanecem fora do fluxo ativo.';
   chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
@@ -1159,34 +1205,37 @@ function showRangeError(result) {
   statusCard.className='card status neutral';
   statusBadge.textContent='PONTO FORA DA FAIXA';
   statusTitle.textContent='Validação manual necessária';
+  statusText.hidden=false;
   statusText.textContent=result.error;
   maxWeightEl.textContent='—';
   marginEl.textContent='—';
   currentResult=result;
-  if(result?.referenceHtml) chartReferenceEl.innerHTML = result.referenceHtml;
+  updateReferenceBlock(activeProfile, result);
   drawOverlay(result);
 }
 function showOutOfEnvelope(maxWeightKg, actualWeightKg, message, referenceHtml = activeProfile?.referenceHtml) {
   statusCard.className='card status out';
   statusBadge.textContent = activeProfile?.statusBadge || 'PERFIL CALIBRADO';
   statusTitle.textContent = 'OUT OF ENVELOPE';
+  statusText.hidden=false;
   statusText.textContent = message;
   maxWeightEl.textContent = formatKg(maxWeightKg);
   const margin = Number.isFinite(actualWeightKg) ? (maxWeightKg - actualWeightKg) : NaN;
   marginEl.textContent = Number.isFinite(margin) ? `${margin>=0?'+':''}${Math.round(margin).toLocaleString('pt-BR')} kg` : '—';
   currentResult = null;
-  if(referenceHtml) chartReferenceEl.innerHTML = referenceHtml;
+  updateReferenceBlock(activeProfile, currentResult);
   drawOverlay();
 }
 function showSuccess(result, profile) {
   statusCard.className=`card status ${result.within ? 'within':'out'}`;
   statusBadge.textContent = profile.statusBadge || 'PERFIL CALIBRADO';
   statusTitle.textContent = result.within ? 'WITHIN ENVELOPE' : 'OUT OF ENVELOPE';
+  statusText.hidden=true;
   statusText.textContent = result.resultDescription || profile.resultDescription || 'Resultado calculado com base nas curvas vetoriais do PDF.';
   maxWeightEl.textContent=formatKg(result.maxWeight);
   marginEl.textContent=`${result.margin>=0?'+':''}${Math.round(result.margin).toLocaleString('pt-BR')} kg`;
   currentResult=result;
-  if(result?.referenceHtml) chartReferenceEl.innerHTML = result.referenceHtml;
+  updateReferenceBlock(activeProfile, result);
   drawOverlay(result);
 }
 function drawOverlay(result) {
@@ -1386,7 +1435,7 @@ function syncProfileUi() {
   syncProcedureOptionsForAircraft();
   activeProfile = getActiveProfile();
   const ref = activeProfile ? activeProfile.referenceHtml : '<strong>Gráfico em uso:</strong> perfil ainda não calibrado.<br><strong>Fonte:</strong> Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2, Rev. 32.';
-  chartReferenceEl.innerHTML = ref;
+  updateReferenceBlock(activeProfile, currentResult);
   if (chartHintEl) chartHintEl.textContent = procedureEl.value === 'offshore'
     ? 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual, ponto sem vento e resultado final com headwind.'
     : 'Overlay direto sobre a página completa do RFM: altitude, curvas de temperatura, peso atual e peso máximo interpolado no gráfico principal.';
@@ -1737,7 +1786,7 @@ syncProfileUi = function() {
 
 syncProfileUi();
 if (currentResult) {
-  if (currentResult.referenceHtml) chartReferenceEl.innerHTML = currentResult.referenceHtml;
+  updateReferenceBlock(activeProfile, currentResult);
   drawOverlay(currentResult);
 }
 
@@ -2559,7 +2608,7 @@ syncProfileUi();
     const is7000 = getSelectedAircraftSet() === '7000';
     if (formHintEl) { formHintEl.textContent = ''; formHintEl.hidden = true; }
     activeProfile = getActiveProfile();
-    if (activeProfile?.referenceHtml) chartReferenceEl.innerHTML = activeProfile.referenceHtml;
+    updateReferenceBlock(activeProfile, currentResult);
     chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
     chartBaseImage.alt = activeProfile ? activeProfile.previewTitle : 'Página completa do gráfico WAT';
   };
