@@ -252,9 +252,10 @@ body.tablet-dashboard #visualCard {
   margin:0;
   padding:14px;
   border-radius:18px;
-  min-height:0;
+  min-height:auto;
   display:flex;
   flex-direction:column;
+  justify-content:flex-start;
   background:rgba(18,25,34,.92);
   border:1px solid var(--line);
 }
@@ -282,14 +283,14 @@ body.tablet-dashboard .wat-entry-actions .ghost {
 }
 body.tablet-dashboard .chart-panel {
   margin-top:0;
-  flex:1;
-  min-height:0;
+  flex:0 0 auto;
+  min-height:auto;
   display:flex;
   flex-direction:column;
 }
 body.tablet-dashboard .chart-stage {
-  flex:1;
-  min-height:430px;
+  flex:0 0 auto;
+  min-height:0;
   display:flex;
   align-items:flex-start;
   justify-content:center;
@@ -334,7 +335,10 @@ body.tablet-dashboard .status-main {
       "viewer";
   }
   body.tablet-dashboard #visualCard {
-    min-height:52vh;
+    min-height:auto;
+  }
+  body.tablet-dashboard .chart-stage {
+    min-height:0;
   }
 }
 
