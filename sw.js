@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v10-offline-hardened';
+const CACHE_NAME = 'aw139-companion-root-v11-offline-responsive';
 const PRECACHE = [
   "./",
   "./README.md",
@@ -114,6 +114,7 @@ const PRECACHE = [
   "./rto/sw.js",
   "./shared/home.js",
   "./shared/module-bridge.js",
+  "./shared/module-layout.css",
   "./shared/pwa.css",
   "./shared/pwa.js",
   "./styles.css",

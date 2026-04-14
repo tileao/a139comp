@@ -20,7 +20,53 @@
   }
 
   function pagePath(){
-    return location.pathname.replace(/\+/g, '/');
+    return location.pathname.replace(/\\+/g, '/');
+  }
+
+  function layoutHref(){
+    const path = pagePath();
+    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/')) {
+      return '../shared/module-layout.css';
+    }
+    return null;
+  }
+
+  function activeModuleClass(){
+    const path = pagePath();
+    if (path.includes('/wat/')) return 'module-shell-wat';
+    if (path.includes('/rto/')) return 'module-shell-rto';
+    if (path.includes('/adc/')) return 'module-shell-adc';
+    if (path.includes('/cata/')) return 'module-shell-cata';
+    return '';
+  }
+
+  function ensureModuleLayoutStyles(){
+    const href = layoutHref();
+    if (!href || document.getElementById('aw139ModuleLayoutStyles')) return;
+    const link = document.createElement('link');
+    link.id = 'aw139ModuleLayoutStyles';
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  function updateViewportClasses(){
+    if (!document.body) return;
+    const vv = window.visualViewport;
+    const width = Math.round((vv && vv.width) || window.innerWidth || document.documentElement.clientWidth || 0);
+    const height = Math.round((vv && vv.height) || window.innerHeight || document.documentElement.clientHeight || 0);
+    const isPortrait = height >= width;
+    const deviceClass = width < 768 ? 'aw-device-phone' : width <= 1366 ? 'aw-device-tablet' : 'aw-device-desktop';
+    document.body.classList.remove(
+      'aw-device-phone','aw-device-tablet','aw-device-desktop',
+      'aw-orientation-portrait','aw-orientation-landscape',
+      'module-shell-wat','module-shell-rto','module-shell-adc','module-shell-cata'
+    );
+    document.body.classList.add(deviceClass, isPortrait ? 'aw-orientation-portrait' : 'aw-orientation-landscape');
+    const moduleClass = activeModuleClass();
+    if (moduleClass) document.body.classList.add(moduleClass);
+    document.body.dataset.awDevice = deviceClass.replace('aw-device-','');
+    document.body.dataset.awOrientation = isPortrait ? 'portrait' : 'landscape';
   }
 
   function serviceWorkerConfig(){
@@ -157,14 +203,14 @@
     const installStatus = document.getElementById('installStatusText');
     if (!installStatus) return;
     if (state.installed) {
-      installStatus.textContent = state.online ? 'App instalado e pronto para abrir em tela cheia.' : 'App instalado em modo offline. Home, Fluxo, WAT, RTO e ADC ficam disponíveis após a sincronização inicial online desta versão.';
+      installStatus.textContent = state.online ? 'App instalado e pronto para abrir em tela cheia.' : 'App instalado em modo offline. Home, Cat A, WAT, RTO e ADC ficam disponíveis após a sincronização inicial online desta versão.';
       return;
     }
     if (state.platform === 'ios') {
-      installStatus.textContent = 'Instale pela Safari para abrir em tela cheia, com aparência de app e acesso mais rápido aos módulos.';
+      installStatus.textContent = 'Instale pela Safari para abrir em tela cheia, com aparência de app e acesso rápido aos módulos.';
       return;
     }
-    installStatus.textContent = state.deferredPrompt ? 'Este navegador já permite instalar o app direto da tela inicial.' : 'Instale pelo navegador para abrir em tela cheia, com aparência de app e acesso mais rápido aos módulos.';
+    installStatus.textContent = state.deferredPrompt ? 'Este navegador já permite instalar o app direto da tela inicial.' : 'Instale pelo navegador para abrir em tela cheia, com aparência de app e acesso rápido aos módulos.';
   }
 
   function wireInstallButton(){
@@ -234,21 +280,33 @@
     hideLaunchMask();
     updateNetworkChip();
     updateScrollState();
+    updateViewportClasses();
   });
 
   window.addEventListener('pageshow', () => {
+    ensureModuleLayoutStyles();
     setShellReady();
     updateScrollState();
+    updateViewportClasses();
   });
 
   window.addEventListener('scroll', updateScrollState, { passive: true });
-  window.addEventListener('resize', updateScrollState, { passive: true });
+  window.addEventListener('resize', () => {
+    updateScrollState();
+    updateViewportClasses();
+  }, { passive: true });
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', updateViewportClasses, { passive: true });
+  }
 
   window.addEventListener('DOMContentLoaded', () => {
+    ensureModuleLayoutStyles();
     document.documentElement.classList.toggle('is-standalone', state.installed);
     document.body.classList.toggle('is-standalone', state.installed);
     updateInstallStatusText();
     wireInstallButton();
+    updateViewportClasses();
     window.dispatchEvent(new CustomEvent('aw139-pwa-state', { detail: state }));
   });
 

@@ -1,5 +1,5 @@
-const CACHE_NAME = 'aw139-rto-offline-v1-fullcache';
-    const ASSETS = [
+const CACHE_NAME = 'aw139-rto-offline-v2-responsive';
+const ASSETS = [
   "./",
   "../assets/icon-180.png",
   "../assets/icon-192.png",
@@ -9,6 +9,7 @@ const CACHE_NAME = 'aw139-rto-offline-v1-fullcache';
   "../assets/icon.svg",
   "../offline.html",
   "../shared/module-bridge.js",
+  "../shared/module-layout.css",
   "../shared/pwa.css",
   "../shared/pwa.js",
   "./README.md",
@@ -60,44 +61,44 @@ const CACHE_NAME = 'aw139-rto-offline-v1-fullcache';
   "./sw.js"
 ];
 
-    self.addEventListener('install', (event) => {
-      self.skipWaiting();
-      event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
-    });
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)));
+});
 
-    self.addEventListener('activate', (event) => {
-      event.waitUntil(
-        caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
-          .then(() => self.clients.claim())
-      );
-    });
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
 
-    self.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
-    });
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
-    self.addEventListener('fetch', (event) => {
-      const request = event.request;
-      if (request.method !== 'GET') return;
-      const url = new URL(request.url);
-      if (url.origin !== self.location.origin) return;
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
 
-      event.respondWith((async () => {
-        const cached = await caches.match(request, { ignoreSearch: true });
-        if (cached) return cached;
-        try {
-          const fresh = await fetch(request);
-          if (fresh && fresh.ok) {
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(request, fresh.clone());
-          }
-          return fresh;
-        } catch (error) {
-          if (request.mode === 'navigate') {
-            const offline = await caches.match('./index.html', { ignoreSearch: true }) || await caches.match('../offline.html', { ignoreSearch: true });
-            if (offline) return offline;
-          }
-          throw error;
-        }
-      })());
-    });
+  event.respondWith((async () => {
+    const cached = await caches.match(request, { ignoreSearch: true });
+    if (cached) return cached;
+    try {
+      const fresh = await fetch(request);
+      if (fresh && fresh.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(request, fresh.clone());
+      }
+      return fresh;
+    } catch (error) {
+      if (request.mode === 'navigate') {
+        const offline = await caches.match('./index.html', { ignoreSearch: true }) || await caches.match('../offline.html', { ignoreSearch: true });
+        if (offline) return offline;
+      }
+      throw error;
+    }
+  })());
+});

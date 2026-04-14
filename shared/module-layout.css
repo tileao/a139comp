@@ -1,0 +1,358 @@
+
+:root{
+  --aw-safe-top: env(safe-area-inset-top, 0px);
+  --aw-safe-right: env(safe-area-inset-right, 0px);
+  --aw-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --aw-safe-left: env(safe-area-inset-left, 0px);
+  --aw-radius: 18px;
+  --aw-gap: 12px;
+  --aw-panel-bg: rgba(18,25,34,.92);
+  --aw-panel-line: rgba(255,255,255,.12);
+  --aw-panel-shadow: 0 18px 40px rgba(0,0,0,.28);
+}
+
+html, body{
+  min-height:100%;
+  overflow-x:hidden;
+}
+
+body.module-shell-wat,
+body.module-shell-rto,
+body.module-shell-cata,
+body.module-shell-adc{
+  min-height:100svh;
+}
+
+body.module-shell-wat .topbar,
+body.module-shell-rto .topbar,
+body.module-shell-cata .topbar,
+body.module-shell-adc .topbar{
+  border-radius:var(--aw-radius) !important;
+}
+
+body.module-shell-wat .card,
+body.module-shell-rto .card,
+body.module-shell-cata .panel,
+body.module-shell-cata .viewer-pane,
+body.module-shell-adc .pane{
+  border-radius:var(--aw-radius) !important;
+  box-shadow:var(--aw-panel-shadow);
+}
+
+body.module-shell-wat .app-shell,
+body.module-shell-rto .app-shell{
+  width:min(100%, 1440px);
+  margin:0 auto;
+  padding:max(10px, var(--aw-safe-top)) max(10px, var(--aw-safe-right)) max(14px, var(--aw-safe-bottom)) max(10px, var(--aw-safe-left)) !important;
+  gap:var(--aw-gap) !important;
+  display:grid !important;
+  align-content:start;
+  min-height:100svh;
+  grid-template-columns:1fr;
+  grid-template-areas:
+    "top"
+    "form"
+    "status"
+    "visual";
+}
+body.module-shell-wat .topbar{grid-area:top;}
+body.module-shell-rto .topbar{grid-area:top;}
+body.module-shell-rto #heroHeader{display:none !important;}
+body.module-shell-wat #formSection,
+body.module-shell-rto #formSection{grid-area:form; margin:0 !important; padding:14px !important;}
+body.module-shell-wat #statusCard,
+body.module-shell-rto #statusCard{grid-area:status; margin:0 !important; padding:14px !important; position:static !important; top:auto !important;}
+body.module-shell-wat #visualCard,
+body.module-shell-rto #visualCard{
+  grid-area:visual;
+  margin:0 !important;
+  padding:14px !important;
+  min-height:0;
+  display:flex !important;
+  flex-direction:column;
+  background:rgba(18,25,34,.92) !important;
+  overflow:hidden;
+}
+body.module-shell-rto #interpSection{display:none !important;}
+body.module-shell-wat .compact-grid,
+body.module-shell-rto .compact-grid{
+  grid-template-columns:repeat(2, minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+body.module-shell-wat .control-block,
+body.module-shell-rto .control-block{grid-column:1 / -1 !important;}
+body.module-shell-wat input,
+body.module-shell-wat select,
+body.module-shell-wat button,
+body.module-shell-rto input,
+body.module-shell-rto select,
+body.module-shell-rto button{
+  border-radius:12px !important;
+}
+body.module-shell-wat input,
+body.module-shell-wat select,
+body.module-shell-rto input,
+body.module-shell-rto select{
+  min-height:46px !important;
+  height:auto !important;
+}
+body.module-shell-wat .action-row,
+body.module-shell-rto .action-row{
+  margin-top:12px !important;
+}
+body.module-shell-wat .chart-panel,
+body.module-shell-rto .chart-panel{
+  margin-top:0 !important;
+  flex:1;
+  min-height:0;
+  display:flex !important;
+  flex-direction:column;
+  gap:10px;
+}
+body.module-shell-wat .chart-stage,
+body.module-shell-rto .chart-stage{
+  flex:1;
+  min-height:320px;
+  border-radius:18px !important;
+  overflow:hidden;
+  background:#0f1722 !important;
+}
+body.module-shell-wat #chartBaseImage{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:none;
+  object-fit:contain;
+  object-position:top center;
+}
+body.module-shell-wat #chartCanvas{
+  position:absolute !important;
+  inset:0;
+  width:100% !important;
+  height:100% !important;
+  background:transparent !important;
+}
+body.module-shell-rto #chartCanvas{
+  width:100% !important;
+  height:100% !important;
+  background:#0b1017 !important;
+}
+body.module-shell-wat .viewer-meta,
+body.module-shell-rto .viewer-meta{
+  margin-top:0 !important;
+}
+body.module-shell-rto #chartHint,
+body.module-shell-rto #chartReference,
+body.module-shell-wat #chartHint{
+  margin:0;
+}
+body.module-shell-wat .chart-reference-block{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+}
+body.module-shell-rto .viz-facts,
+body.module-shell-cata .viz-facts{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+
+body.module-shell-cata .cockpit-shell{
+  min-height:100svh;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:12px;
+  padding:max(10px, var(--aw-safe-top)) max(10px, var(--aw-safe-right)) max(14px, var(--aw-safe-bottom)) max(10px, var(--aw-safe-left)) !important;
+}
+body.module-shell-cata .workspace{
+  display:grid !important;
+  grid-template-columns:1fr;
+  grid-template-areas:
+    "sidebar"
+    "viewer";
+  gap:12px !important;
+}
+body.module-shell-cata .sidebar{grid-area:sidebar; gap:12px !important;}
+body.module-shell-cata .viewer-pane{
+  grid-area:viewer;
+  min-height:0;
+  align-self:start;
+  display:flex;
+  flex-direction:column;
+}
+body.module-shell-cata .viewer-stage{
+  min-height:320px;
+  flex:none;
+}
+body.module-shell-cata .viewer-header{
+  padding:14px !important;
+}
+body.module-shell-cata .viewer-meta{
+  display:grid;
+}
+body.module-shell-cata .panel,
+body.module-shell-cata .viewer-pane{
+  border-radius:var(--aw-radius) !important;
+}
+
+body.module-shell-adc .topbar{
+  margin:max(10px, var(--aw-safe-top)) max(10px, var(--aw-safe-right)) 0 max(10px, var(--aw-safe-left)) !important;
+}
+body.module-shell-adc .shell{
+  min-height:calc(100svh - 76px);
+  padding:12px max(10px, var(--aw-safe-right)) max(14px, var(--aw-safe-bottom)) max(10px, var(--aw-safe-left)) !important;
+  gap:12px !important;
+  display:grid !important;
+  grid-template-columns:1fr;
+}
+body.module-shell-adc .pane.left,
+body.module-shell-adc .pane.right{
+  border-radius:var(--aw-radius) !important;
+  overflow:hidden;
+}
+body.module-shell-adc .pane.left{order:1;}
+body.module-shell-adc .pane.right{order:2;}
+body.module-shell-adc .config-panel{
+  display:grid;
+  grid-template-columns:1fr;
+}
+body.module-shell-adc .config-card:last-child{
+  grid-column:auto !important;
+}
+body.module-shell-adc .workspace{
+  padding:12px !important;
+  gap:12px !important;
+}
+body.module-shell-adc .chart-frame{
+  border-radius:18px;
+  min-height:0;
+  overflow:hidden;
+}
+body.module-shell-adc .viz-wrap{
+  min-height:340px !important;
+  height:auto !important;
+}
+body.module-shell-adc .result-panel{
+  border-radius:18px;
+  overflow:hidden;
+}
+body.module-shell-adc input,
+body.module-shell-adc select,
+body.module-shell-adc textarea,
+body.module-shell-adc button{
+  border-radius:12px !important;
+}
+body.module-shell-adc input,
+body.module-shell-adc select,
+body.module-shell-adc button{
+  min-height:46px !important;
+}
+body.module-shell-adc .decision-table-wrap{
+  overflow:auto;
+}
+
+@media (max-width:767px){
+  body.module-shell-wat .app-shell,
+  body.module-shell-rto .app-shell{
+    padding:max(8px, var(--aw-safe-top)) max(8px, var(--aw-safe-right)) max(12px, var(--aw-safe-bottom)) max(8px, var(--aw-safe-left)) !important;
+  }
+  body.module-shell-wat .compact-grid,
+  body.module-shell-rto .compact-grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+  body.module-shell-wat .chart-stage,
+  body.module-shell-rto .chart-stage,
+  body.module-shell-cata .viewer-stage,
+  body.module-shell-adc .viz-wrap{
+    min-height:260px !important;
+  }
+  body.module-shell-wat .chart-reference-block,
+  body.module-shell-rto .viz-facts,
+  body.module-shell-cata .viz-facts{
+    grid-template-columns:1fr !important;
+  }
+  body.module-shell-cata .form-grid-2,
+  body.module-shell-cata .result-grid,
+  body.module-shell-cata .module-open-row{
+    grid-template-columns:1fr 1fr !important;
+  }
+  body.module-shell-cata .action-row{
+    grid-template-columns:1fr 1fr !important;
+  }
+  body.module-shell-cata .action-row .run-btn{
+    grid-column:1 / -1 !important;
+  }
+}
+
+@media (min-width:768px) and (orientation:portrait){
+  body.module-shell-wat .app-shell,
+  body.module-shell-rto .app-shell{
+    grid-template-columns:1fr;
+  }
+  body.module-shell-wat .chart-stage,
+  body.module-shell-rto .chart-stage{
+    min-height:420px;
+  }
+  body.module-shell-cata .viewer-stage{
+    min-height:440px;
+  }
+  body.module-shell-adc .viz-wrap{
+    min-height:460px !important;
+  }
+}
+
+@media (min-width:768px) and (orientation:landscape){
+  body.module-shell-wat .app-shell,
+  body.module-shell-rto .app-shell{
+    grid-template-columns:minmax(340px, 410px) minmax(0, 1fr);
+    grid-template-areas:
+      "top top"
+      "form visual"
+      "status visual";
+  }
+  body.module-shell-wat .chart-stage,
+  body.module-shell-rto .chart-stage{
+    min-height:520px;
+  }
+  body.module-shell-cata .workspace{
+    grid-template-columns:minmax(340px, 400px) minmax(0, 1fr) !important;
+    grid-template-areas:"sidebar viewer";
+    align-items:start;
+  }
+  body.module-shell-cata .viewer-stage{
+    min-height:560px;
+  }
+  body.module-shell-adc .shell{
+    grid-template-columns:minmax(340px, 390px) minmax(0, 1fr) !important;
+    align-items:start;
+  }
+  body.module-shell-adc .pane.left{order:1;}
+  body.module-shell-adc .pane.right{order:2;}
+  body.module-shell-adc .viz-wrap{
+    min-height:560px !important;
+  }
+}
+
+@media (min-width:1367px){
+  body.module-shell-wat .app-shell,
+  body.module-shell-rto .app-shell,
+  body.module-shell-cata .cockpit-shell{
+    max-width:1480px;
+  }
+  body.module-shell-adc .shell{
+    max-width:1480px;
+    margin:0 auto;
+  }
+}
+
+body.module-shell-wat .module-topbar,
+body.module-shell-rto .module-topbar,
+body.module-shell-adc .module-topbar{
+  padding:10px 12px !important;
+}
+
+body.module-shell-cata .viewer-placeholder{
+  border-radius:0 0 var(--aw-radius) var(--aw-radius);
+}
+
+body.module-shell-wat .status-main,
+body.module-shell-rto .status-grid{
+  align-items:stretch;
+}
