@@ -252,10 +252,9 @@ body.tablet-dashboard #visualCard {
   margin:0;
   padding:14px;
   border-radius:18px;
-  min-height:auto;
+  min-height:0;
   display:flex;
   flex-direction:column;
-  justify-content:flex-start;
   background:rgba(18,25,34,.92);
   border:1px solid var(--line);
 }
@@ -283,14 +282,14 @@ body.tablet-dashboard .wat-entry-actions .ghost {
 }
 body.tablet-dashboard .chart-panel {
   margin-top:0;
-  flex:0 0 auto;
-  min-height:auto;
+  flex:1;
+  min-height:0;
   display:flex;
   flex-direction:column;
 }
 body.tablet-dashboard .chart-stage {
-  flex:0 0 auto;
-  min-height:0;
+  flex:1;
+  min-height:430px;
   display:flex;
   align-items:flex-start;
   justify-content:center;
@@ -335,45 +334,48 @@ body.tablet-dashboard .status-main {
       "viewer";
   }
   body.tablet-dashboard #visualCard {
-    min-height:auto;
-  }
-  body.tablet-dashboard .chart-stage {
-    min-height:0;
+    min-height:52vh;
   }
 }
 
 
 @media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
-  body.tablet-dashboard { overflow:hidden; }
+  body.tablet-dashboard { overflow:auto; }
   body.tablet-dashboard .app-shell {
-    min-height:100dvh;
+    min-height:auto;
     grid-template-columns:minmax(340px, .92fr) minmax(0, 1.35fr);
-    grid-template-rows:auto auto minmax(0, 1fr);
+    grid-template-rows:auto auto auto;
     grid-template-areas:
       "top top"
       "sidebar viewer"
       "result viewer";
-    align-content:stretch;
+    align-content:start;
   }
   body.tablet-dashboard #formSection,
   body.tablet-dashboard #statusCard,
   body.tablet-dashboard #visualCard {
     min-height:0;
-    align-self:stretch;
+    align-self:start;
   }
   body.tablet-dashboard #visualCard {
-    min-height:calc(100dvh - 120px);
+    min-height:auto;
   }
-  body.tablet-dashboard .chart-panel,
+  body.tablet-dashboard .chart-panel {
+    min-height:0;
+    height:auto;
+    flex:0 0 auto;
+  }
   body.tablet-dashboard .chart-stage {
     min-height:0;
-    height:100%;
-  }
-  body.tablet-dashboard .chart-stage {
-    align-items:center;
+    height:auto;
+    flex:0 0 auto;
+    align-items:flex-start;
   }
   body.tablet-dashboard #chartBaseImage {
-    max-height:100%;
+    width:100%;
+    max-width:100%;
+    height:auto;
+    max-height:none;
   }
 }
 
