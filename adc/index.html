@@ -2,17 +2,14 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#08121f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="AW139" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="format-detection" content="telephone=no" />
   <link rel="manifest" href="../manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="../assets/icon-180.png" />
-  <link rel="apple-touch-icon" sizes="192x192" href="../assets/icon-192.png" />
   <title>AW139 Companion - ADC Module v36</title>
   <style>
 
@@ -924,7 +921,6 @@
     .right.chart-only-fullscreen .viz-title,
     .right.chart-only-fullscreen .sub { display: none; }
     .right.chart-only-fullscreen .viz-wrap { min-height: 100vh; height: 100vh; flex: 1 1 auto; }
-    /* ── Fallbacks genéricos (PRIMEIRO na cascata) ── */
     @media (max-width: 1100px) {
       .shell { grid-template-columns: 1fr; }
       .left { order: 2; }
@@ -939,249 +935,125 @@
       .result-value { font-size: 24px; }
     }
 
-    /* ── iPhone landscape ── */
-    @media (max-height: 440px) and (orientation: landscape) {
-      .shell {
-        grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) !important;
-        gap: 6px !important;
-        padding: 6px !important;
-        min-height: 100dvh;
-        align-items: stretch;
-      }
-      .topbar { margin: 4px 6px 0 !important; padding: 6px 10px !important; border-radius: 10px !important; }
-      .product-sub { font-size: 14px !important; }
-      .pane.left { order: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; border-radius: 10px; }
-      .pane.right { order: 2; border-radius: 10px; overflow: hidden; }
-      .config-panel { grid-template-columns: 1fr !important; }
-      .config-card { padding: 8px 10px !important; }
-      .config-header h2 { font-size: 14px !important; }
-      .step-badge { font-size: 10px !important; padding: 3px 6px !important; }
-      input, select, textarea, button { min-height: 30px !important; font-size: 12px !important; border-radius: 8px !important; }
-      label, .field-label { font-size: 10px !important; }
-      .action-row { margin-top: 6px !important; gap: 6px !important; }
-      .workspace { padding: 8px !important; gap: 6px !important; }
-      .chart-frame { min-height: 0 !important; }
-      .viz-wrap { min-height: calc(100dvh - 60px); }
-      .viz-title { font-size: 13px !important; }
-      .result-top { padding: 8px !important; }
-      .result-value { font-size: 20px !important; }
-      .decision-table th, .decision-table td { padding: 6px 8px !important; font-size: 12px !important; }
-    }
 
-    /* ══════════════════════════════════════════════════════════
-       iPad – POR ÚLTIMO para ter prioridade na cascata
-       ══════════════════════════════════════════════════════════ */
-
-    /* ── iPad portrait ── */
-    @media (min-width: 768px) and (orientation: portrait) {
-      .topbar {
-        margin: 14px 14px 0;
-        padding: 10px 14px;
-        border-radius: 16px;
-      }
+    @media (min-width: 768px) and (max-width: 1366px) {
       .shell {
+        min-height: auto;
         grid-template-columns: 1fr;
-        gap: 14px;
-        padding: 14px;
-        min-height: calc(100vh - 72px);
-        align-items: stretch;
+        gap: 12px;
+        padding: 12px;
       }
-      .pane {
-        border-radius: 16px;
-        border: 1px solid rgba(32,184,255,.14);
+      .left,
+      .right {
+        order: initial;
+        border-radius: 18px;
         overflow: hidden;
       }
-      .pane.right {
-        order: 1;
-        border-radius: 16px;
-      }
-      .pane.left {
-        order: 2;
-        border-radius: 16px;
+      .left {
         background: linear-gradient(180deg, var(--panel-flat), var(--panel-flat-2));
-      }
-      .workspace {
-        gap: 14px;
-      }
-      .chart-frame {
-        border-radius: 16px;
-        overflow: hidden;
-        min-height: 0;
-      }
-      .viz-wrap {
-        min-height: 50vh;
-      }
-      .result-panel {
-        border-radius: 16px;
-        overflow: hidden;
-      }
-      .result-top {
-        padding: 16px 18px;
-      }
-      .result-value {
-        font-size: 30px;
-      }
-      .decision-table th, .decision-table td {
-        padding: 12px 14px;
-        font-size: 13px;
-      }
-      .config-header {
-        padding: 14px 18px;
-        font-size: 14px;
-      }
-      .config-card {
-        padding: 16px 18px 18px;
       }
       .config-panel {
         display: grid;
-        grid-template-columns: 1fr;
-      }
-      input, select, textarea {
-        min-height: 48px;
-        font-size: 15px;
-        border-radius: 10px;
-      }
-      button {
-        min-height: 46px;
-        font-size: 14px;
-        border-radius: 10px;
-        padding: 12px 16px;
-      }
-      label, .card-title, .config-label {
-        font-size: 12px;
-      }
-      .action-row {
-        gap: 10px;
-        margin-top: 14px;
-      }
-      .menu-toggle-card {
-        border-radius: 16px;
-      }
-      .advanced-card {
-        border-radius: 16px;
-        padding: 16px;
-      }
-      .grid2 { grid-template-columns: 1fr 1fr; }
-      .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .split-note { grid-template-columns: 1fr 1fr; }
-      .chip {
-        padding: 8px 12px;
-        font-size: 13px;
-      }
-    }
-
-    /* ── iPad landscape ── */
-    @media (min-width: 768px) and (orientation: landscape) {
-      body {
-        overflow: hidden;
-        height: 100dvh;
-      }
-      .topbar {
-        margin: 10px 10px 0;
-        padding: 8px 12px;
-        border-radius: 14px;
-      }
-      .module-topbar .product-sub {
-        font-size: 15px;
-      }
-      .shell {
-        grid-template-columns: minmax(0, 1fr) 340px;
-        gap: 10px;
-        padding: 10px;
-        height: calc(100dvh - 56px);
-        min-height: 0;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: stretch;
       }
-      .pane {
-        border-radius: 14px;
-        border: 1px solid rgba(32,184,255,.14);
-        overflow: hidden;
+      .config-header {
+        grid-column: 1 / -1;
       }
-      .pane.right {
-        order: 1;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        border-radius: 14px;
+      .config-card {
+        padding: 14px;
       }
-      .pane.left {
-        order: 2;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 14px;
-        background: linear-gradient(180deg, var(--panel-flat), var(--panel-flat-2));
+      .config-card.compact {
+        min-height: 100%;
+      }
+      .config-card:last-child {
+        grid-column: 1 / -1;
+      }
+      .action-row {
+        margin-top: 0;
+      }
+      .action-row .primary {
+        width: 100%;
       }
       .workspace {
-        height: 100%;
-        gap: 0;
+        padding: 14px;
+        gap: 12px;
+      }
+      .result-panel {
+        order: 1;
+        border-radius: 18px;
         overflow: hidden;
       }
       .chart-frame {
-        flex: 1 1 auto;
+        order: 2;
+        border-radius: 18px;
+        overflow: hidden;
+        min-height: 56vh;
+      }
+      .viz-wrap {
+        min-height: 56vh;
+      }
+      .decision-table th,
+      .decision-table td {
+        padding: 12px 14px;
+      }
+    }
+    @media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+      .config-panel {
+        grid-template-columns: 1fr;
+      }
+      .chart-frame,
+      .viz-wrap {
+        min-height: 52vh;
+      }
+    }
+
+    @media (min-width: 1024px) and (max-width: 1366px) and (orientation: landscape) {
+      .shell {
+        min-height: calc(100dvh - 76px);
+        grid-template-columns: 380px minmax(0, 1fr);
+        gap: 12px;
+        padding: 12px;
+        align-items: start;
+      }
+      .pane.left,
+      .pane.right {
         min-height: 0;
-        border-radius: 0;
+        border-radius: 18px;
+      }
+      .pane.left {
+        order: 1;
+        overflow: hidden;
+      }
+      .pane.right {
+        order: 2;
+        overflow: auto;
+      }
+      .config-panel {
+        grid-template-columns: 1fr;
+      }
+      .config-card:last-child {
+        grid-column: auto;
+      }
+      .workspace {
+        height: auto;
+        min-height: 0;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        gap: 12px;
+        padding: 14px;
+        align-content: start;
+      }
+      .chart-frame {
+        min-height: auto;
+        overflow: auto;
       }
       .viz-wrap {
         min-height: 0;
-        flex: 1 1 auto;
+        height: auto;
       }
       .result-panel {
-        border-radius: 0;
-        flex-shrink: 0;
-      }
-      .result-top {
-        padding: 10px 14px;
-      }
-      .result-value {
-        font-size: 24px;
-      }
-      .decision-table th, .decision-table td {
-        padding: 8px 10px;
-        font-size: 12px;
-      }
-      .config-header {
-        padding: 10px 14px;
-        font-size: 13px;
-      }
-      .config-card {
-        padding: 12px 14px 14px;
-      }
-      input, select, textarea {
-        min-height: 40px;
-        font-size: 14px;
-        border-radius: 8px;
-        padding: 8px 10px;
-      }
-      button {
-        min-height: 38px;
-        font-size: 13px;
-        border-radius: 8px;
-        padding: 8px 12px;
-      }
-      label, .card-title, .config-label {
-        font-size: 11px;
-        margin-bottom: 6px;
-      }
-      .action-row {
-        gap: 8px;
-        margin-top: 10px;
-      }
-      .grid2 { grid-template-columns: 1fr 1fr; }
-      .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .split-note { grid-template-columns: 1fr 1fr; }
-      .menu-toggle-card {
-        border-radius: 0;
-      }
-      .advanced-card {
-        padding: 12px;
-      }
-      .chip {
-        padding: 6px 10px;
-        font-size: 12px;
-      }
-      .field-note, .mini, .muted-small {
-        font-size: 11px;
+        align-self: start;
       }
     }
 
