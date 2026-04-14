@@ -143,7 +143,6 @@ a{color:inherit}
 .utility-link.disabled{opacity:.45;pointer-events:none}
 .empty-state{color:var(--muted);font-size:14px}
 
-/* ── Fallbacks genéricos (PRIMEIRO na cascata) ── */
 @media (max-width:1120px){
   .hero-panel{grid-template-columns:1fr}
   .flow-grid,.module-grid,.utility-grid{grid-template-columns:1fr 1fr}
@@ -157,76 +156,6 @@ a{color:inherit}
   .flow-grid,.module-grid,.utility-grid{grid-template-columns:1fr}
   .flow-card,.module-card,.utility-card{min-height:auto}
   .hero-panel{padding:18px}
-}
-
-/* ── iPhone landscape ── */
-@media (max-height:440px) and (orientation:landscape){
-  .home-shell{padding:8px 16px;gap:10px}
-  .home-topbar{padding:8px 14px;flex-direction:row;align-items:center}
-  .hero-panel{grid-template-columns:minmax(0,1.4fr) minmax(220px,.7fr);gap:10px;padding:14px}
-  .hero-copy h1{font-size:26px}
-  .hero-copy p{font-size:13px;margin:0}
-  .hero-actions{margin-top:10px}
-  .hero-btn{min-height:38px;padding:0 12px;font-size:13px}
-  .flow-grid,.module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .utility-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .flow-card,.module-card,.utility-card{min-height:110px;padding:12px}
-  .flow-card h3,.module-card h3,.utility-card h3{font-size:20px}
-  .flow-card p,.module-card p,.utility-card p{font-size:12px;line-height:1.35}
-  .section-head h2{font-size:20px}
-  .brand-title{font-size:20px}
-  .brand-subtitle{font-size:12px}
-  .resume-card{padding:12px}
-  .resume-card h2{font-size:20px}
-}
-
-/* ══════════════════════════════════════════════════════════
-   iPad – POR ÚLTIMO para ter prioridade na cascata
-   ══════════════════════════════════════════════════════════ */
-
-/* ── iPad portrait ── */
-@media (min-width:768px) and (orientation:portrait){
-  .home-shell{padding:16px;gap:16px;max-width:none}
-  .home-topbar{padding:14px 18px;flex-direction:row;align-items:center;border-radius:20px}
-  .hero-panel{grid-template-columns:1fr;gap:16px;padding:22px;border-radius:20px}
-  .hero-copy h1{font-size:38px}
-  .hero-copy p{font-size:16px}
-  .hero-actions{margin-top:16px}
-  .hero-btn{min-height:48px;padding:0 20px;font-size:15px;border-radius:14px}
-  .resume-card{border-radius:20px;padding:18px}
-  .resume-card h2{font-size:26px}
-  .flow-grid,.module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .utility-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .flow-card,.module-card,.utility-card{min-height:150px;padding:18px;border-radius:20px}
-  .flow-card h3,.module-card h3,.utility-card h3{font-size:24px}
-  .flow-card p,.module-card p,.utility-card p{font-size:14px}
-  .section-head h2{font-size:28px}
-  .section-kicker,.card-tag{font-size:12px}
-  .brand-title{font-size:26px}
-  .ghost-btn{min-height:42px;border-radius:12px}
-  .chip,.pref-chip{min-height:36px;padding:8px 12px;font-size:13px}
-}
-
-/* ── iPad landscape ── */
-@media (min-width:768px) and (orientation:landscape){
-  .home-shell{padding:14px;gap:14px;max-width:none}
-  .home-topbar{padding:12px 16px;flex-direction:row;align-items:center;border-radius:18px}
-  .hero-panel{grid-template-columns:minmax(0,1.5fr) minmax(280px,.85fr);gap:14px;padding:20px;border-radius:18px}
-  .hero-copy h1{font-size:36px}
-  .hero-copy p{font-size:15px}
-  .hero-actions{margin-top:14px}
-  .hero-btn{min-height:46px;padding:0 18px;font-size:14px;border-radius:14px}
-  .resume-card{border-radius:18px;padding:16px}
-  .resume-card h2{font-size:24px}
-  .flow-grid,.module-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .utility-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .flow-card,.module-card,.utility-card{min-height:145px;padding:16px;border-radius:18px}
-  .flow-card h3,.module-card h3,.utility-card h3{font-size:24px}
-  .flow-card p,.module-card p,.utility-card p{font-size:13px}
-  .section-head h2{font-size:26px}
-  .brand-title{font-size:24px}
-  .ghost-btn{min-height:40px;border-radius:12px}
-  .chip,.pref-chip{min-height:34px;padding:6px 10px;font-size:12px}
 }
 
 
