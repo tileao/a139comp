@@ -1014,20 +1014,19 @@
         grid-template-columns: 380px minmax(0, 1fr);
         gap: 12px;
         padding: 12px;
-        align-items: start;
+        align-items: stretch;
       }
       .pane.left,
       .pane.right {
         min-height: 0;
         border-radius: 18px;
+        overflow: hidden;
       }
       .pane.left {
         order: 1;
-        overflow: hidden;
       }
       .pane.right {
         order: 2;
-        overflow: auto;
       }
       .config-panel {
         grid-template-columns: 1fr;
@@ -1036,29 +1035,28 @@
         grid-column: auto;
       }
       .workspace {
-        height: auto;
+        height: 100%;
         min-height: 0;
         grid-template-columns: 1fr;
-        grid-template-rows: auto auto;
+        grid-template-rows: minmax(0, 1fr) auto;
         gap: 12px;
         padding: 14px;
-        align-content: start;
       }
       .chart-frame {
-        min-height: auto;
-        overflow: auto;
+        min-height: calc(100dvh - 210px);
       }
       .viz-wrap {
         min-height: 0;
-        height: auto;
+        height: 100%;
       }
       .result-panel {
-        align-self: start;
+        align-self: end;
       }
     }
 
   </style>
   <link rel="stylesheet" href="../shared/pwa.css">
+  <link rel="stylesheet" href="../shared/module-layout.css">
 </head>
 
 <body>
