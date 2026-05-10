@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-rto-offline-v2-responsive';
+const CACHE_NAME = 'aw139-rto-offline-v3-landscape-fix';
 const ASSETS = [
   "./",
   "../assets/icon-180.png",

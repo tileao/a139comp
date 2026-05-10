@@ -1,11 +1,13 @@
 const KEY='aw139_companion_shared_context_v1';
 const clearBtn=document.getElementById('clearContextBtn');
+const resumeCard=document.getElementById('resumeCard');
 const resumeTitle=document.getElementById('resumeTitle');
 const resumeSummary=document.getElementById('resumeSummary');
 const resumeChips=document.getElementById('resumeChips');
 const continueText=document.getElementById('continueText');
 const continueLink=document.getElementById('continueLink');
-const preferenceList=document.getElementById('preferenceList');
+const installGuideBtn=document.getElementById('installGuideBtn');
+const installStatusText=document.getElementById('installStatusText');
 
 function loadCtx(){
   try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}}
@@ -25,44 +27,42 @@ function routeForModule(lastModule){
   return 'cata/';
 }
 
-function renderPreferences(ctx){
-  preferenceList.innerHTML='';
-  const prefs=[];
-  if(ctx.cataAircraftSet) prefs.push(`Aeronave ${ctx.cataAircraftSet}`);
-  if(ctx.cataConfiguration) prefs.push(`Config ${labelConfig(ctx.cataConfiguration)}`);
-  if(ctx.adcBase) prefs.push(`Base ${String(ctx.adcBase).toUpperCase()}`);
-  if(ctx.adcDepartureEnd) prefs.push(`Cabeceira ${ctx.adcDepartureEnd}`);
-  if(!prefs.length){
-    preferenceList.innerHTML='<span class="empty-state">Sem preferências detectadas ainda.</span>';
-    return;
-  }
-  prefs.slice(0,6).forEach(item=>preferenceList.appendChild(chip(item,'pref-chip')));
-}
-
 function labelConfig(v){
   const map={standard:'Clean Air Intake',eaps_off:'EAPS OFF',eaps_on:'EAPS ON',ibf:'IBF'};
   return map[v]||String(v||'').toUpperCase();
 }
 
+function setContinueDisabled(){
+  if(!continueLink) return;
+  continueLink.classList.add('disabled');
+  continueLink.setAttribute('aria-disabled','true');
+  continueLink.href='cata/';
+}
+
+function setContinueEnabled(href){
+  if(!continueLink) return;
+  continueLink.classList.remove('disabled');
+  continueLink.removeAttribute('aria-disabled');
+  continueLink.href=href;
+}
+
 function render(){
   const ctx=loadCtx();
   const hasCtx=Object.keys(ctx).length>0;
-  resumeChips.innerHTML='';
+  if(resumeChips) resumeChips.innerHTML='';
 
   if(!hasCtx){
-    resumeTitle.textContent='Sem contexto salvo';
-    resumeSummary.textContent='Abra um fluxo ou módulo para começar.';
-    continueText.textContent='Ainda não há um último módulo salvo.';
-    continueLink.classList.add('disabled');
-    continueLink.setAttribute('aria-disabled','true');
-    continueLink.href='cata/';
-    renderPreferences(ctx);
+    if(resumeTitle) resumeTitle.textContent='Sem contexto salvo';
+    if(resumeSummary) resumeSummary.textContent='Abra um fluxo ou módulo para começar.';
+    if(continueText) continueText.textContent='Ainda não há uma última sessão salva.';
+    setContinueDisabled();
+    if(resumeCard) resumeCard.hidden=false;
     return;
   }
 
   const lastModule=ctx.lastModule||'cata';
   const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC'})[lastModule]||'Cat A Clear Area';
-  resumeTitle.textContent=lastLabel;
+  if(resumeTitle) resumeTitle.textContent=lastLabel;
 
   const summaryParts=[];
   if(ctx.adcBase && ctx.adcDepartureEnd) summaryParts.push(`${String(ctx.adcBase).toUpperCase()} ${ctx.adcDepartureEnd}`);
@@ -73,21 +73,20 @@ function render(){
     const d=new Date(ctx.updatedAt);
     if(!Number.isNaN(d.getTime())) summaryParts.push(d.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}));
   }
-  resumeSummary.textContent=summaryParts.length?summaryParts.join(' · '):'Contexto salvo pronto para retomada.';
+  if(resumeSummary) resumeSummary.textContent=summaryParts.length?summaryParts.join(' · '):'Contexto salvo pronto para retomada.';
 
-  if(ctx.cataAircraftSet) resumeChips.appendChild(chip(`Aeronave ${ctx.cataAircraftSet}`));
-  if(ctx.cataConfiguration) resumeChips.appendChild(chip(labelConfig(ctx.cataConfiguration)));
-  if(ctx.pressureAltitudeFt!=null) resumeChips.appendChild(chip(`PA ${ctx.pressureAltitudeFt}`));
-  if(ctx.oatC!=null) resumeChips.appendChild(chip(`OAT ${ctx.oatC}`));
-  if(ctx.weightKg!=null) resumeChips.appendChild(chip(`Peso ${ctx.weightKg}`));
-  if(ctx.rtoMeters!=null) resumeChips.appendChild(chip(`RTO ${ctx.rtoMeters} m`));
+  const chips=[];
+  if(ctx.cataAircraftSet) chips.push(`Aeronave ${ctx.cataAircraftSet}`);
+  if(ctx.cataConfiguration) chips.push(labelConfig(ctx.cataConfiguration));
+  if(ctx.pressureAltitudeFt!=null) chips.push(`PA ${ctx.pressureAltitudeFt}`);
+  if(ctx.oatC!=null) chips.push(`OAT ${ctx.oatC}`);
+  if(ctx.weightKg!=null) chips.push(`Peso ${ctx.weightKg}`);
+  if(ctx.rtoMeters!=null) chips.push(`RTO ${ctx.rtoMeters} m`);
+  chips.slice(0,6).forEach(item=>resumeChips?.appendChild(chip(item)));
 
-  continueText.textContent=`Retomar ${lastLabel} com o último contexto salvo.`;
-  continueLink.href=routeForModule(lastModule);
-  continueLink.classList.remove('disabled');
-  continueLink.removeAttribute('aria-disabled');
-
-  renderPreferences(ctx);
+  if(continueText) continueText.textContent=`Retomar ${lastLabel} com o último contexto salvo.`;
+  setContinueEnabled(routeForModule(lastModule));
+  if(resumeCard) resumeCard.hidden=false;
 }
 
 clearBtn?.addEventListener('click',()=>{
@@ -97,8 +96,6 @@ clearBtn?.addEventListener('click',()=>{
 
 render();
 
-const installGuideBtn=document.getElementById('installGuideBtn');
-const installStatusText=document.getElementById('installStatusText');
 installGuideBtn?.addEventListener('click',()=>{
   if (typeof window.showAw139InstallGuide === 'function') window.showAw139InstallGuide();
 });
@@ -112,4 +109,5 @@ window.addEventListener('aw139-pwa-state',(event)=>{
   }
   if (detail.platform==='ios') installStatusText.textContent='Instale pela Safari em Compartilhar → Adicionar à Tela de Início para usar como app no iPhone e no iPad.';
   else if (detail.platform==='android') installStatusText.textContent='Use a opção Instalar app do navegador para abrir em tela cheia e fixar na tela inicial.';
+  else installStatusText.textContent='Instale o app pelo navegador para abrir em tela cheia e acessar as ferramentas mais rápido.';
 });

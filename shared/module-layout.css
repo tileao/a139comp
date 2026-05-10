@@ -356,3 +356,296 @@ body.module-shell-wat .status-main,
 body.module-shell-rto .status-grid{
   align-items:stretch;
 }
+
+
+/* WAT visual refinement v18 */
+body.module-shell-wat .app-shell{
+  align-items:start !important;
+}
+body.module-shell-wat #statusCard{
+  padding:12px 14px !important;
+}
+body.module-shell-wat .status-badge{
+  display:inline-flex;
+  width:max-content;
+  margin-bottom:10px;
+}
+body.module-shell-wat .status-main{
+  display:grid !important;
+  gap:10px !important;
+}
+body.module-shell-wat .status-main > :first-child{
+  display:grid;
+  gap:4px;
+}
+body.module-shell-wat .status-main > :first-child .label,
+body.module-shell-wat #statusText{
+  display:none !important;
+}
+body.module-shell-wat #statusTitle{
+  margin:0;
+  font-size:18px !important;
+  line-height:1.05;
+}
+body.module-shell-wat .metrics{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:10px !important;
+  overflow:visible;
+}
+body.module-shell-wat .metric{
+  padding:12px 14px !important;
+  min-width:0;
+  overflow:visible;
+}
+body.module-shell-wat .metric .label{
+  display:block !important;
+  margin-bottom:6px !important;
+  font-size:11px !important;
+}
+body.module-shell-wat .metric strong,
+body.module-shell-wat #maxWeight,
+body.module-shell-wat #margin{
+  font-size:30px !important;
+  line-height:1.05 !important;
+  white-space:normal;
+  overflow-wrap:anywhere;
+}
+body.module-shell-wat #visualCard{
+  align-self:start !important;
+  overflow:visible !important;
+}
+body.module-shell-wat .chart-panel{
+  flex:0 0 auto !important;
+  min-height:0 !important;
+  gap:12px !important;
+}
+body.module-shell-wat .chart-stage{
+  flex:0 0 auto !important;
+  display:block !important;
+  height:auto !important;
+  min-height:0 !important;
+  aspect-ratio:auto !important;
+  overflow:visible !important;
+}
+body.module-shell-wat #chartBaseImage{
+  display:block;
+  width:100% !important;
+  height:auto !important;
+  max-width:100% !important;
+  max-height:none !important;
+  object-fit:contain !important;
+  object-position:top center !important;
+}
+body.module-shell-wat #visualCard #chartReference,
+body.module-shell-wat .viewer-card #chartReference{
+  display:block !important;
+  margin:0 !important;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.08);
+  background:#16212d;
+  color:#dce8f5;
+  font-size:12px;
+  line-height:1.45;
+}
+body.module-shell-wat #visualCard #chartReference strong,
+body.module-shell-wat .viewer-card #chartReference strong{
+  color:#f2f7fc;
+}
+@media (max-width: 767px){
+  body.module-shell-wat .metric strong,
+  body.module-shell-wat #maxWeight,
+  body.module-shell-wat #margin{
+    font-size:26px !important;
+  }
+}
+@media (min-width:768px) and (orientation:landscape){
+  body.module-shell-wat .chart-stage{
+    min-height:0 !important;
+  }
+}
+
+
+/* RTO + ADC landscape/fullsreen corrections v19 */
+body.module-shell-rto,
+body.module-shell-adc{
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
+body.module-shell-rto .app-shell,
+body.module-shell-adc .shell{
+  min-height:auto !important;
+  height:auto !important;
+}
+body.module-shell-rto #formSection,
+body.module-shell-rto #statusCard,
+body.module-shell-rto #visualCard,
+body.module-shell-adc .pane.left,
+body.module-shell-adc .pane.right,
+body.module-shell-adc .chart-frame,
+body.module-shell-adc .viz-wrap{
+  min-height:0;
+}
+
+@media (orientation:landscape){
+  body.module-shell-rto{
+    overflow-y:auto !important;
+  }
+  body.module-shell-rto .app-shell{
+    height:auto !important;
+    min-height:auto !important;
+    align-content:start !important;
+    align-items:start !important;
+  }
+  body.module-shell-rto #formSection,
+  body.module-shell-rto #statusCard,
+  body.module-shell-rto #visualCard{
+    align-self:start !important;
+  }
+  body.module-shell-rto #formSection,
+  body.module-shell-rto #statusCard{
+    overflow:visible !important;
+  }
+
+  body.module-shell-adc .shell{
+    min-height:auto !important;
+    height:auto !important;
+    align-items:start !important;
+  }
+  body.module-shell-adc .pane.right{
+    overflow:auto !important;
+  }
+  body.module-shell-adc .workspace{
+    height:auto !important;
+    min-height:0 !important;
+    align-content:start !important;
+    grid-template-rows:auto auto !important;
+  }
+  body.module-shell-adc .chart-frame{
+    min-height:0 !important;
+    height:auto !important;
+    overflow:visible !important;
+    flex:0 0 auto !important;
+  }
+  body.module-shell-adc .viz-wrap{
+    min-height:0 !important;
+    height:auto !important;
+    overflow:visible !important;
+  }
+}
+
+body.module-shell-adc .pane.right.chart-only-fullscreen,
+body.module-shell-adc .right.chart-only-fullscreen{
+  overflow:auto !important;
+}
+body.module-shell-adc .right.chart-only-fullscreen .chart-frame{
+  height:auto !important;
+  min-height:100svh !important;
+  overflow:visible !important;
+}
+body.module-shell-adc .right.chart-only-fullscreen .viz-wrap{
+  height:auto !important;
+  min-height:100svh !important;
+  overflow:visible !important;
+}
+
+/* ADC visual unification v20 — use iPhone-style visual logic on every format */
+body.module-shell-adc,
+body.module-shell-adc html{
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  -webkit-overflow-scrolling:touch;
+}
+body.module-shell-adc .shell{
+  min-height:auto !important;
+  height:auto !important;
+  display:grid !important;
+  grid-template-columns:1fr !important;
+  grid-auto-rows:auto !important;
+  align-content:start !important;
+  align-items:start !important;
+}
+body.module-shell-adc .pane.left,
+body.module-shell-adc .pane.right{
+  width:100% !important;
+  min-height:0 !important;
+  overflow:visible !important;
+}
+body.module-shell-adc .pane.left{order:1 !important;}
+body.module-shell-adc .pane.right{order:2 !important;}
+body.module-shell-adc .workspace{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:12px !important;
+  padding:12px !important;
+  min-height:0 !important;
+  height:auto !important;
+  overflow:visible !important;
+}
+body.module-shell-adc .chart-frame{
+  display:flex !important;
+  flex-direction:column !important;
+  width:100% !important;
+  min-height:0 !important;
+  height:auto !important;
+  overflow:visible !important;
+  border-radius:18px !important;
+}
+body.module-shell-adc .viz-wrap{
+  width:100% !important;
+  min-height:0 !important;
+  height:auto !important;
+  overflow:visible !important;
+  cursor:zoom-in;
+}
+body.module-shell-adc #vizCanvas{
+  display:block !important;
+  width:100% !important;
+  height:auto !important;
+  max-width:100% !important;
+}
+body.module-shell-adc .result-panel,
+body.module-shell-adc .menu-toggle-card,
+body.module-shell-adc .advanced-wrap{
+  width:100% !important;
+}
+body.module-shell-adc .right.chart-only-fullscreen,
+body.module-shell-adc .pane.right.chart-only-fullscreen{
+  position:fixed !important;
+  inset:0 !important;
+  overflow:auto !important;
+  background:#000 !important;
+  border-radius:0 !important;
+  padding:0 !important;
+  z-index:9999 !important;
+  -webkit-overflow-scrolling:touch;
+}
+body.module-shell-adc .right.chart-only-fullscreen .workspace,
+body.module-shell-adc .pane.right.chart-only-fullscreen .workspace{
+  display:block !important;
+  padding:0 !important;
+  overflow:visible !important;
+}
+body.module-shell-adc .right.chart-only-fullscreen .chart-frame,
+body.module-shell-adc .pane.right.chart-only-fullscreen .chart-frame{
+  width:100% !important;
+  min-height:100svh !important;
+  height:auto !important;
+  overflow:visible !important;
+  border-radius:0 !important;
+  background:#000 !important;
+}
+body.module-shell-adc .right.chart-only-fullscreen .viz-wrap,
+body.module-shell-adc .pane.right.chart-only-fullscreen .viz-wrap{
+  width:100% !important;
+  min-height:0 !important;
+  height:auto !important;
+  overflow:visible !important;
+  background:#000 !important;
+}
+body.module-shell-adc .right.chart-only-fullscreen #vizCanvas,
+body.module-shell-adc .pane.right.chart-only-fullscreen #vizCanvas{
+  display:block !important;
+  width:100% !important;
+  height:auto !important;
+}

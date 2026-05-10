@@ -15,102 +15,70 @@
   <link rel="stylesheet" href="shared/pwa.css">
 </head>
 <body>
-  <main class="home-shell">
+  <main class="home-shell home-shell-minimal">
     <header class="home-topbar">
       <div class="home-brand">
         <div class="brand-mark" aria-hidden="true"><img src="assets/icon-192.png" alt=""></div>
         <div>
           <div class="brand-title">AW139 Companion</div>
-          <div class="brand-subtitle">Performance & operational tools</div>
+          <div class="brand-subtitle">Escolha a ferramenta</div>
         </div>
       </div>
     </header>
 
-    <section class="hero-panel">
-      <div class="hero-copy">
-        <span class="eyebrow">Fluxo disponível</span>
-        <h1>Pronto para operação.</h1>
-        <p>Abra o fluxo principal, retome o último contexto salvo ou acesse diretamente os módulos operacionais.</p>
-        <div class="hero-actions">
-          <a class="hero-btn primary" href="cata/">Abrir Cat A Clear Area</a>
-          <a class="hero-btn" href="#modules">Abrir módulos</a>
-        </div>
+    <section class="launcher-hero">
+      <span class="eyebrow">Acesso rápido</span>
+      <h1>Abra direto a ferramenta certa.</h1>
+      <p>Entrada simplificada para Cat A, WAT, RTO e ADC.</p>
+    </section>
+
+    <section class="launcher-grid" aria-label="Ferramentas principais">
+      <a class="launcher-card featured" href="cata/">
+        <span class="card-tag">Fluxo principal</span>
+        <h2>Cat A Clear Area</h2>
+        <p>WAT, RTO e decisão por ponto em um único fluxo operacional.</p>
+        <span class="card-cta">Abrir</span>
+      </a>
+
+      <a class="launcher-card" href="wat/?back=1&return=../index.html">
+        <span class="card-tag">Módulo</span>
+        <h2>WAT</h2>
+        <p>Envelope e limite de peso com visualização por gráfico.</p>
+        <span class="card-cta">Abrir</span>
+      </a>
+
+      <a class="launcher-card" href="rto/?back=1&return=../index.html">
+        <span class="card-tag">Módulo</span>
+        <h2>RTO</h2>
+        <p>Distância requerida e apoio à decisão por ponto.</p>
+        <span class="card-cta">Abrir</span>
+      </a>
+
+      <a class="launcher-card" href="adc/?back=1&return=../index.html">
+        <span class="card-tag">Módulo</span>
+        <h2>ADC</h2>
+        <p>Carta operacional e análise de viabilidade por pista.</p>
+        <span class="card-cta">Abrir</span>
+      </a>
+    </section>
+
+    <section class="utility-panel">
+      <div class="utility-actions">
+        <a id="continueLink" class="quick-action disabled" href="cata/" aria-disabled="true">Continuar última sessão</a>
+        <button id="installGuideBtn" class="quick-action" type="button">Instalar app</button>
+        <button id="clearContextBtn" class="quick-action" type="button">Limpar contexto</button>
       </div>
-      <aside class="resume-card" id="resumeCard">
+      <p id="continueText" class="utility-note">Ainda não há uma última sessão salva.</p>
+      <p id="installStatusText" class="utility-note">Instale pela Safari para abrir em tela cheia no iPhone e iPad.</p>
+    </section>
+
+    <section id="resumeCard" class="resume-inline">
+      <div class="resume-inline-head">
         <span class="resume-tag">Último contexto</span>
-        <h2 id="resumeTitle">Sem contexto salvo</h2>
-        <p id="resumeSummary">Abra um fluxo ou módulo para começar.</p>
-        <div class="resume-chips" id="resumeChips"></div>
-      </aside>
-    </section>
-
-    <section class="home-section">
-      <div class="section-head">
-        <div>
-          <span class="section-kicker">Fluxo operacional</span>
-          <h2>Comece pelo Cat A Clear Area</h2>
-        </div>
+        <strong id="resumeTitle">Sem contexto salvo</strong>
       </div>
-      <div class="flow-grid single-flow">
-        <a class="flow-card featured" href="cata/">
-          <span class="card-tag">Fluxo principal</span>
-          <h3>Cat A Clear Area</h3>
-          <p>WAT, RTO e decisão por ponto em um único fluxo operacional integrado.</p>
-          <span class="card-cta">Abrir fluxo</span>
-        </a>
-      </div>
-    </section>
-
-    <section class="home-section" id="modules">
-      <div class="section-head split">
-        <div>
-          <span class="section-kicker">Módulos</span>
-          <h2>Abra uma ferramenta específica</h2>
-        </div>
-        <button id="clearContextBtn" class="ghost-btn" type="button">Limpar contexto</button>
-      </div>
-      <div class="module-grid">
-        <a class="module-card" href="wat/?back=1&return=../index.html">
-          <span class="card-tag">Módulo</span>
-          <h3>WAT</h3>
-          <p>Cálculos de CAT A Clear Area, Offshore, Enhanced, Confined e CAT B com visualização por gráfico.</p>
-        </a>
-        <a class="module-card" href="rto/?back=1&return=../index.html">
-          <span class="card-tag">Módulo</span>
-          <h3>RTO</h3>
-          <p>Distância requerida e apoio à decisão por ponto de decolagem.</p>
-        </a>
-        <a class="module-card" href="adc/?back=1&return=../index.html">
-          <span class="card-tag">Módulo</span>
-          <h3>ADC</h3>
-          <p>Carta operacional e análise de viabilidade por pista e cabeceira.</p>
-        </a>
-      </div>
-    </section>
-
-    <section class="home-section utility-grid">
-      <article class="utility-card install-card">
-        <span class="card-tag">Instalação</span>
-        <h3>Usar como app no iPhone e iPad</h3>
-        <p id="installStatusText">Instale pela Safari para abrir em tela cheia, com aparência de app e acesso mais rápido aos módulos.</p>
-        <div class="install-actions">
-          <button id="installGuideBtn" class="utility-link install-btn" type="button">Como instalar</button>
-        </div>
-      </article>
-
-      <article class="utility-card">
-        <span class="card-tag">Retomada</span>
-        <h3>Continuar de onde parou</h3>
-        <p id="continueText">Ainda não há um último módulo salvo.</p>
-        <a id="continueLink" class="utility-link disabled" href="cata/" aria-disabled="true">Abrir</a>
-      </article>
-      <article class="utility-card">
-        <span class="card-tag">Preferências rápidas</span>
-        <h3>Valores mais usados</h3>
-        <div class="preference-list" id="preferenceList">
-          <span class="empty-state">Sem preferências detectadas ainda.</span>
-        </div>
-      </article>
+      <p id="resumeSummary">Abra um fluxo ou módulo para começar.</p>
+      <div class="resume-chips" id="resumeChips"></div>
     </section>
   </main>
   <script src="shared/pwa.js"></script>

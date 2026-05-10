@@ -764,7 +764,23 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
     const captureBanner = document.getElementById('captureBanner');
     const chartImg = new Image();
     const mainView = document.querySelector('.right');
-    chartImg.onload = () => { state.chartLoadedKey = chartKey(chartImg.currentSrc || chartImg.src || state.chartRequestedKey); state.chartRenderStamp += 1; resizeCanvas(); draw(); };
+    let layoutPassToken = 0;
+    function scheduleLayoutPasses() {
+      const token = ++layoutPassToken;
+      [0, 40, 120, 260, 520].forEach((delay) => {
+        window.setTimeout(() => {
+          if (token !== layoutPassToken) return;
+          try { resizeCanvas(); } catch {}
+        }, delay);
+      });
+    }
+    chartImg.onload = () => {
+      state.chartLoadedKey = chartKey(chartImg.currentSrc || chartImg.src || state.chartRequestedKey);
+      state.chartRenderStamp += 1;
+      resizeCanvas();
+      draw();
+      scheduleLayoutPasses();
+    };
     chartImg.onerror = () => {
       const base = currentBase();
       const runway = currentRunway(base);
@@ -789,15 +805,22 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       const chart = currentDisplayChart(base, runway);
       const width = Math.max(1, vizWrap.clientWidth || vizWrap.getBoundingClientRect().width || chart.size.width);
       const targetHeight = Math.round(width * (chart.size.height / chart.size.width));
-      vizWrap.style.height = targetHeight + 'px';
-      const rect = vizWrap.getBoundingClientRect();
+      vizWrap.style.setProperty('height', targetHeight + 'px', 'important');
+      vizWrap.style.setProperty('min-height', targetHeight + 'px', 'important');
+      vizWrap.style.setProperty('max-height', 'none', 'important');
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.round(rect.width * dpr);
-      canvas.height = Math.round(rect.height * dpr);
-      canvas.style.width = rect.width + 'px';
-      canvas.style.height = rect.height + 'px';
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(targetHeight * dpr);
+      canvas.style.setProperty('width', width + 'px', 'important');
+      canvas.style.setProperty('height', targetHeight + 'px', 'important');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const fit = fixedFitTransform();
+      const fit = {
+        scale: width / chart.size.width,
+        offsetX: 0,
+        offsetY: 0,
+        drawW: width,
+        drawH: targetHeight
+      };
       state.scale = fit.scale;
       state.offsetX = fit.offsetX;
       state.offsetY = fit.offsetY;
@@ -1807,7 +1830,7 @@ const GEOM_KEY = 'aw139_adc_geometry_v49';
       ctx.restore();
     }
     function draw() {
-      const rect = vizWrap.getBoundingClientRect();
+      const rect = canvas.getBoundingClientRect();
       labelBoxes = [];
       ctx.clearRect(0, 0, rect.width, rect.height);
       const base = currentBase();
@@ -2011,8 +2034,19 @@ window.__adcBridge = {
 
 
 
-window.addEventListener('resize', resizeCanvas);
-    chartImg.addEventListener('load', resizeCanvas);
+window.addEventListener('resize', () => {
+      resizeCanvas();
+      scheduleLayoutPasses();
+    });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', scheduleLayoutPasses);
+      window.visualViewport.addEventListener('scroll', scheduleLayoutPasses);
+    }
+    window.addEventListener('pageshow', scheduleLayoutPasses);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) scheduleLayoutPasses();
+    });
+    chartImg.addEventListener('load', scheduleLayoutPasses);
     document.getElementById('analyzeBtn').addEventListener('click', analyze);
     document.getElementById('baseSelect').addEventListener('change', e => setCurrentBase(e.target.value));
     document.getElementById('departureEndSelect').addEventListener('change', e => setCurrentDeparture(e.target.value));
@@ -2129,3 +2163,7 @@ window.addEventListener('resize', resizeCanvas);
     if (persisted.rto) document.getElementById('rtoInput').value = persisted.rto;
     syncAdvancedPanel();
     if (!readExternalInbox()) analyze();
+    scheduleLayoutPasses();
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(scheduleLayoutPasses).catch(() => {});
+    }

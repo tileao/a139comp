@@ -1,4 +1,16 @@
 const SHARED_KEY = 'aw139_companion_shared_context_v1';
+
+const AERODROME_DB = {
+  SBCB: { elevationFt: 23,  magVar: -22, runways: { RWY_10_28: { '10': 100, '28': 280 } } },
+  SBME: { elevationFt: 7,   magVar: -22, runways: { RWY_05_23: { '05': 50, '23': 230 }, RWY_06_24: { '06': 60, '24': 240 } } },
+  SBGL: { elevationFt: 29,  magVar: -22, runways: { RWY_10_28: { '10': 100, '28': 280 }, RWY_15_33: { '15': 150, '33': 330 } } },
+  SBNF: { elevationFt: 21,  magVar: -20, runways: { RWY_08_26: { '08': 80,  '26': 260 } } },
+  SBRJ: { elevationFt: 11,  magVar: -22, runways: { RWY_02L_20R: { '02L': 20, '20R': 200 }, RWY_02R_20L: { '02R': 20, '20L': 200 } } },
+  SBVT: { elevationFt: 11,  magVar: -22, runways: { RWY_06_24: { '06': 60, '24': 240 }, RWY_02_20: { '02': 20, '20': 200 } } },
+  SBJR: { elevationFt: 16,  magVar: -22, runways: { RWY_03_21: { '03': 30, '21': 210 } } },
+  SBMI: { elevationFt: 13,  magVar: -22, runways: { RWY_09_27: { '09': 90, '27': 270 } } },
+  SBFS: { elevationFt: 12,  magVar: -21, runways: { RWY_15_33: { '15': 150, '33': 330 } } },
+};
 const adcFrame = document.getElementById('adcFrame');
 const watFrame = document.getElementById('watFrame');
 const rtoFrame = document.getElementById('rtoFrame');
@@ -12,12 +24,15 @@ const els = {
   departure: document.getElementById('departureEndSelect'),
   aircraftSet: document.getElementById('aircraftSetSelect'),
   config: document.getElementById('configurationSelect'),
-  pa: document.getElementById('pressureAltitude'),
-  paNegativeBtn: document.getElementById('paNegativeBtn'),
+  qnh: document.getElementById('qnh'),
   oat: document.getElementById('oat'),
   oatNegativeBtn: document.getElementById('oatNegativeBtn'),
   weight: document.getElementById('actualWeight'),
-  wind: document.getElementById('headwind'),
+  windDir: document.getElementById('windDir'),
+  windSpeed: document.getElementById('windSpeed'),
+  metarBtn: document.getElementById('metarBtn'),
+  calcPaDisplay: document.getElementById('calcPaDisplay'),
+  calcHwDisplay: document.getElementById('calcHwDisplay'),
   runBtn: document.getElementById('runBtn'),
   sharePdfBtn: document.getElementById('sharePdfBtn'),
   resetBtn: document.getElementById('resetBtn'),
@@ -591,7 +606,7 @@ function mapRtoConfig(config) {
 function mapVizLabel(v) { return ({ adc: 'Carta ADC', wat: 'Carta WAT', rto: 'Carta RTO', '': 'Em branco' })[v] || 'Em branco'; }
 
 function sanitizeDigitsInput(el, maxLen = null) {
-  const allowNegative = el === els.pa || el === els.oat;
+  const allowNegative = el === els.oat;
   let raw = String(el.value ?? '').trim();
   let negative = '';
   if (allowNegative && raw.startsWith('-')) negative = '-';
@@ -749,19 +764,120 @@ async function syncAdcSelection({ renderPreviewIfActive = false } = {}) {
   return selectedToken;
 }
 
+function calcPressureAltitude(qnh, elevationFt) {
+  return Math.round(elevationFt + (1013.25 - qnh) * 30);
+}
+
+function calcHeadwindComponent(windDirMag, windSpeedKt, runwayMagHeading) {
+  const angleDiff = (runwayMagHeading - windDirMag) * Math.PI / 180;
+  return Math.round(windSpeedKt * Math.cos(angleDiff));
+}
+
+function getRunwayMagHeading(baseId, runwayId, departureEnd) {
+  const db = AERODROME_DB[baseId];
+  if (!db) return null;
+  const rwy = db.runways[runwayId];
+  if (!rwy) return null;
+  if (rwy[departureEnd] != null) return rwy[departureEnd];
+  const plain = String(departureEnd).replace(/[LRC]/g, '');
+  return rwy[plain] ?? null;
+}
+
+function updateCalcDisplay() {
+  const baseId = els.base?.value;
+  const departure = parseDepartureSelection(els.departure?.value);
+  const dbEntry = AERODROME_DB[baseId];
+  const qnh = Number(els.qnh?.value || 0);
+  if (els.calcPaDisplay) {
+    if (qnh >= 800 && qnh <= 1100 && dbEntry) {
+      els.calcPaDisplay.textContent = `${calcPressureAltitude(qnh, dbEntry.elevationFt)} ft`;
+    } else {
+      els.calcPaDisplay.textContent = '—';
+    }
+  }
+  const windDirVal = els.windDir?.value;
+  const windSpeedKt = Number(els.windSpeed?.value || 0);
+  if (els.calcHwDisplay) {
+    const rwyHeading = departure.runwayId ? getRunwayMagHeading(baseId, departure.runwayId, departure.dep) : null;
+    if (rwyHeading != null && windDirVal !== '' && windSpeedKt >= 0) {
+      const hw = calcHeadwindComponent(Number(windDirVal || 0), windSpeedKt, rwyHeading);
+      els.calcHwDisplay.textContent = hw >= 0 ? `${hw} kt` : `${Math.abs(hw)} kt (cauda)`;
+    } else {
+      els.calcHwDisplay.textContent = '—';
+    }
+  }
+}
+
+async function fetchMetarData(icao) {
+  const url = `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`;
+  const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json();
+  const metar = Array.isArray(data) ? data[0] : null;
+  if (!metar) throw new Error('Sem METAR disponível');
+  return metar;
+}
+
+async function handleMetarFetch() {
+  const icao = els.base?.value;
+  if (!icao) return;
+  const btn = els.metarBtn;
+  const origText = btn.textContent;
+  btn.textContent = 'Buscando…';
+  btn.disabled = true;
+  try {
+    const metar = await fetchMetarData(icao);
+    const dbEntry = AERODROME_DB[icao];
+    if (metar.altim != null && els.qnh) els.qnh.value = String(Math.round(metar.altim));
+    if (metar.temp != null && els.oat) els.oat.value = String(Math.round(metar.temp));
+    if (metar.wdir && els.windDir) {
+      const magVar = dbEntry?.magVar ?? -22;
+      const magDir = Math.round(((metar.wdir - magVar) + 360) % 360);
+      els.windDir.value = String(magDir || 360);
+    }
+    if (metar.wspd != null && els.windSpeed) els.windSpeed.value = String(Math.round(metar.wspd));
+    updateCalcDisplay();
+    markCalculationDirty('METAR atualizado');
+    btn.textContent = 'METAR OK ✓';
+    setTimeout(() => { if (btn.textContent === 'METAR OK ✓') btn.textContent = origText; }, 3000);
+  } catch (e) {
+    btn.textContent = 'Erro — tentar novamente';
+    setTimeout(() => { if (btn.textContent === 'Erro — tentar novamente') btn.textContent = origText; }, 4000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function collectInputs() {
   const departure = parseDepartureSelection(els.departure.value);
+  const baseId = els.base.value;
+  const dbEntry = AERODROME_DB[baseId];
+  const qnh = Number(els.qnh?.value || 0);
+  const windDirMag = Number(els.windDir?.value || 0);
+  const windSpeedKt = Number(els.windSpeed?.value || 0);
+  let pressureAltitudeFt = 0;
+  if (qnh >= 800 && qnh <= 1100 && dbEntry) {
+    pressureAltitudeFt = calcPressureAltitude(qnh, dbEntry.elevationFt);
+  }
+  let headwindKt = 0;
+  if (departure.runwayId && els.windDir?.value !== '') {
+    const rwyHeading = getRunwayMagHeading(baseId, departure.runwayId, departure.dep);
+    if (rwyHeading != null) headwindKt = calcHeadwindComponent(windDirMag, windSpeedKt, rwyHeading);
+  }
   return {
-    base: els.base.value,
+    base: baseId,
     departureToken: departure.token,
     runwayId: departure.runwayId,
     departureEnd: departure.dep || els.departure.options[els.departure.selectedIndex]?.text || '',
     aircraftSet: els.aircraftSet.value || '7000',
     configuration: els.config.value,
-    pressureAltitudeFt: Number(els.pa.value || 0),
+    qnh,
+    windDirMag,
+    windSpeedKt,
+    pressureAltitudeFt,
     oatC: Number(els.oat.value || 0),
     weightKg: Number(els.weight.value || 0),
-    headwindKt: Number(els.wind.value || 0),
+    headwindKt,
     registration: ''
   };
 }
@@ -772,6 +888,9 @@ function pushSharedContext(input, patch = {}) {
     oatC: input.oatC,
     weightKg: input.weightKg,
     headwindKt: input.headwindKt,
+    qnh: input.qnh,
+    windDirMag: input.windDirMag,
+    windSpeedKt: input.windSpeedKt,
     adcBase: input.base,
     adcDepartureEnd: input.departureEnd,
     adcDepartureToken: input.departureToken || '',
@@ -792,11 +911,13 @@ function restoreInputsFromContext() {
   if (ctx.cataAircraftSet) els.aircraftSet.value = ctx.cataAircraftSet;
   if (ctx.cataConfiguration) els.config.value = ctx.cataConfiguration;
   if (ctx.aircraftRegistration && els.registration) els.registration.value = ctx.aircraftRegistration;
-  if (ctx.pressureAltitudeFt != null) els.pa.value = String(ctx.pressureAltitudeFt);
+  if (ctx.qnh != null && els.qnh) els.qnh.value = String(ctx.qnh);
   if (ctx.oatC != null) els.oat.value = String(ctx.oatC);
   if (ctx.weightKg != null) els.weight.value = String(ctx.weightKg);
-  if (ctx.headwindKt != null) els.wind.value = String(ctx.headwindKt);
+  if (ctx.windDirMag != null && els.windDir) els.windDir.value = String(ctx.windDirMag);
+  if (ctx.windSpeedKt != null && els.windSpeed) els.windSpeed.value = String(ctx.windSpeedKt);
   if (ctx.cataVizMode) els.visualSelect.value = ctx.cataVizMode;
+  updateCalcDisplay();
 }
 
 async function runWAT(input) {
@@ -1071,16 +1192,28 @@ function invalidateAdcDecisionPanel(reason = 'seleção alterada') {
 
 async function refreshAdcDecisionForSelection(reason = 'seleção alterada') {
   const seq = ++vizRuntime.adcDecisionSeq;
-  const input = collectInputs();
-  const snap = getSavedResultsSnapshot();
-  const canReuse = !!(snap?.wat && snap?.rto && sameCalcInputsExceptAdc(input, snap.input || {}));
+  const isBaseChange = /base/i.test(String(reason || ''));
 
   markAdcDirty(reason);
   invalidateAdcDecisionPanel(reason);
+  pushSharedContext(collectInputs());
+
+  if (isBaseChange) {
+    try {
+      await syncAdcSelection({ renderPreviewIfActive: true });
+    } catch (error) {
+      console.warn('Falha ao sincronizar a ADC após trocar a base.', error);
+    }
+    if (seq !== vizRuntime.adcDecisionSeq) return;
+  }
+
+  const input = collectInputs();
+  const snap = getSavedResultsSnapshot();
+  const canReuse = !!(snap?.wat && snap?.rto && sameCalcInputsExceptAdc(input, snap.input || {}));
   pushSharedContext(input);
 
   if (!canReuse) {
-    syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn);
+    if (!isBaseChange) syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn);
     return;
   }
 
@@ -1444,7 +1577,7 @@ async function renderPreview(mode) {
     let sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
 
     if ((!sourceReady || !sourceMatchesExpected) && expectedSrc) {
-      const expectedInfo = await waitForAdcChartMatch(expectedSrc, 1600);
+      const expectedInfo = await waitForAdcChartMatch(expectedSrc, 3200);
       source = getSourceCanvas('adc');
       sourceReady = !!source && source.width > 48 && source.height > 48;
       renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
@@ -1452,7 +1585,7 @@ async function renderPreview(mode) {
       sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
     }
 
-    if (sourceReady && sourceMatchesExpected) {
+    if (sourceReady) {
       const crop = getCanvasCrop(source, 'adc');
       const scale = stageWidth / crop.w;
       const displayHeight = Math.round(crop.h * scale);
@@ -1471,19 +1604,10 @@ async function renderPreview(mode) {
       return true;
     }
 
-    const ok = await renderAdcPreviewToCanvas(out);
-    if (ok) {
-      const scale = stageWidth / out.width;
-      const displayHeight = Math.round(out.height * scale);
-      out.style.width = stageWidth + 'px';
-      out.style.height = displayHeight + 'px';
-      out.hidden = false;
-      out.dataset.mode = mode;
-      if (els.vizPlaceholder) els.vizPlaceholder.hidden = true;
-      restoreViewerPlaceholder();
-      syncViewerStageHeight(displayHeight);
-      return true;
-    }
+    out.hidden = true;
+    if (els.vizPlaceholder) els.vizPlaceholder.hidden = false;
+    syncViewerStageHeight(null);
+    return false;
   }
 
   const source = getSourceCanvas(mode);
@@ -1779,6 +1903,16 @@ function getModeSnapshotCanvas(mode) {
 
 function getModePdfCanvas(mode) {
   try {
+    if (mode === 'wat') {
+      const bridgeCanvas = watFrame.contentWindow?.__cataWatBridge?.getPdfCanvas?.();
+      if (bridgeCanvas && bridgeCanvas.width > 16 && bridgeCanvas.height > 16) {
+        const tmp = document.createElement('canvas');
+        tmp.width = bridgeCanvas.width;
+        tmp.height = bridgeCanvas.height;
+        tmp.getContext('2d').drawImage(bridgeCanvas, 0, 0);
+        return tmp;
+      }
+    }
     const src = getSourceCanvas(mode);
     if (src && src.width > 16 && src.height > 16) {
       const crop = getCanvasCrop(src, mode);
@@ -2222,10 +2356,13 @@ function resetFlowForm() {
   if (els.aircraftSet) els.aircraftSet.value = '7000';
   if (els.config) els.config.value = 'standard';
   if (els.registration) els.registration.value = '';
-  if (els.pa) els.pa.value = '';
+  if (els.qnh) els.qnh.value = '';
   if (els.oat) els.oat.value = '';
   if (els.weight) els.weight.value = '';
-  if (els.wind) els.wind.value = '';
+  if (els.windDir) els.windDir.value = '';
+  if (els.windSpeed) els.windSpeed.value = '';
+  if (els.calcPaDisplay) els.calcPaDisplay.textContent = '—';
+  if (els.calcHwDisplay) els.calcHwDisplay.textContent = '—';
   if (els.base?.options?.length) els.base.selectedIndex = 0;
   if (els.departure?.options?.length) els.departure.selectedIndex = 0;
   resetResultsPanel();
@@ -2240,11 +2377,12 @@ function setupAutoAdvance() {
     { el: els.aircraftSet, next: els.config },
     { el: els.config, next: els.base },
     { el: els.base, next: els.departure },
-    { el: els.departure, next: els.pa },
-    { el: els.pa, next: els.oat, minDigits: 3, maxDigits: 5 },
+    { el: els.departure, next: els.qnh },
+    { el: els.qnh, next: els.oat, minDigits: 4, maxDigits: 4 },
     { el: els.oat, next: els.weight, minDigits: 2, maxDigits: 2 },
-    { el: els.weight, next: els.wind, minDigits: 4, maxDigits: 4 },
-    { el: els.wind, next: els.runBtn, minDigits: 2, maxDigits: 2 },
+    { el: els.weight, next: els.windDir, minDigits: 4, maxDigits: 4 },
+    { el: els.windDir, next: els.windSpeed, minDigits: 3, maxDigits: 3 },
+    { el: els.windSpeed, next: els.runBtn, minDigits: 2, maxDigits: 2 },
   ];
 
   rules.forEach((rule) => {
@@ -2275,7 +2413,6 @@ function setupAutoAdvance() {
     });
   });
 
-  els.paNegativeBtn?.addEventListener('click', () => toggleSignedInput(els.pa, 5));
   els.oatNegativeBtn?.addEventListener('click', () => toggleSignedInput(els.oat, 2));
 }
 
@@ -2317,18 +2454,20 @@ function bindEvents() {
   els.resetBtn?.addEventListener('click', resetFlowForm);
   els.visualSelect.addEventListener('change', e => setVisualization(e.target.value, !!e.target.value));
   document.querySelectorAll('.viewer-tab').forEach(btn => btn.addEventListener('click', () => setVisualization(btn.dataset.viz, true)));
-  els.base.addEventListener('change', () => { refreshAdcDecisionForSelection('a base').catch(console.warn); });
-  els.departure.addEventListener('change', () => { refreshAdcDecisionForSelection('a cabeceira').catch(console.warn); });
-  [els.aircraftSet, els.config, els.pa, els.oat, els.weight, els.wind].forEach(el => el?.addEventListener('change', () => { markCalculationDirty('parâmetros alterados'); }));
-  els.openWATBtn.addEventListener('click', () => {
+  els.base.addEventListener('change', () => { updateCalcDisplay(); refreshAdcDecisionForSelection('a base').catch(console.warn); });
+  els.departure.addEventListener('change', () => { updateCalcDisplay(); refreshAdcDecisionForSelection('a cabeceira').catch(console.warn); });
+  [els.aircraftSet, els.config, els.qnh, els.oat, els.weight, els.windDir, els.windSpeed].forEach(el => el?.addEventListener('change', () => { markCalculationDirty('parâmetros alterados'); }));
+  [els.qnh, els.windDir, els.windSpeed].forEach(el => el?.addEventListener('input', updateCalcDisplay));
+  els.metarBtn?.addEventListener('click', handleMetarFetch);
+  els.openWATBtn?.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../wat/?back=1&return=' + encodeURIComponent('../cata/');
   });
-  els.openRTOBtn.addEventListener('click', () => {
+  els.openRTOBtn?.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../rto/?back=1&return=' + encodeURIComponent('../cata/');
   });
-  els.openADCBtn.addEventListener('click', () => {
+  els.openADCBtn?.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../adc/?back=1&return=' + encodeURIComponent('../cata/');
   });
