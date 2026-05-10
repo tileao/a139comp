@@ -1724,35 +1724,40 @@ function buildSup90ClearResult(profileId, noWind, actualWeightKg, paFt, oat, dat
   };
 }
 
+function sup90ClearFallbackNoWind(data, paFt) {
+  const paY = genericPdfChartPaToY(data, clamp(paFt, 0, data.main.yMaxFt));
+  return { noWindKg: data.main.kgMax, paY, lowerTemp: null, upperTemp: null, lowerCurve: [], upperCurve: [], lowerX: data.main.xMax, upperX: data.main.xMax, noWindX: data.main.xMax };
+}
+
 calculateExactClearStandard = function(paFt,oat,actualWeightKg) {
   if (shouldUseSup90Aircraft(actualWeightKg)) {
-    const noWind = genericPdfChartNoWindLimit(SUP90_CLEAR_STANDARD_EXACT, paFt, oat, 'Figure 4-5');
-    if (noWind.error) return { ...noWind, profileId: 'clear_standard', chartFamily: '7000', referenceHtml: buildClearSup90ReferenceHtml('clear_standard') };
-    return buildSup90ClearResult('clear_standard', noWind, actualWeightKg, paFt, oat, SUP90_CLEAR_STANDARD_EXACT, CLEAR_SUP90_VARIANTS.clear_standard.figureLabel, 'Resultado calculado com a carta Clear Area Standard do Supplement 90.');
+    const _nw = genericPdfChartNoWindLimit(SUP90_CLEAR_STANDARD_EXACT, paFt, oat, 'Figure 4-5');
+    const nw = _nw.error ? sup90ClearFallbackNoWind(SUP90_CLEAR_STANDARD_EXACT, paFt) : _nw;
+    return buildSup90ClearResult('clear_standard', nw, actualWeightKg, paFt, oat, SUP90_CLEAR_STANDARD_EXACT, CLEAR_SUP90_VARIANTS.clear_standard.figureLabel, 'Resultado calculado com a carta Clear Area Standard do Supplement 90.');
   }
   return calculateExactClearStandard_6800(paFt,oat,actualWeightKg);
 };
 calculateExactClearEapsOff = function(paFt,oat,actualWeightKg) {
   if (shouldUseSup90Aircraft(actualWeightKg)) {
-    const noWind = genericPdfChartNoWindLimit(SUP90_CLEAR_EAPS_OFF_EXACT, paFt, oat, 'Figure 4-6');
-    if (noWind.error) return { ...noWind, profileId: 'clear_eaps_off', chartFamily: '7000', referenceHtml: buildClearSup90ReferenceHtml('clear_eaps_off') };
-    return buildSup90ClearResult('clear_eaps_off', noWind, actualWeightKg, paFt, oat, SUP90_CLEAR_EAPS_OFF_EXACT, CLEAR_SUP90_VARIANTS.clear_eaps_off.figureLabel, 'Resultado calculado com a carta Clear Area EAPS OFF do Supplement 90.');
+    const _nw = genericPdfChartNoWindLimit(SUP90_CLEAR_EAPS_OFF_EXACT, paFt, oat, 'Figure 4-6');
+    const nw = _nw.error ? sup90ClearFallbackNoWind(SUP90_CLEAR_EAPS_OFF_EXACT, paFt) : _nw;
+    return buildSup90ClearResult('clear_eaps_off', nw, actualWeightKg, paFt, oat, SUP90_CLEAR_EAPS_OFF_EXACT, CLEAR_SUP90_VARIANTS.clear_eaps_off.figureLabel, 'Resultado calculado com a carta Clear Area EAPS OFF do Supplement 90.');
   }
   return calculateExactClearEapsOff_6800(paFt,oat,actualWeightKg);
 };
 calculateExactClearEapsOn = function(paFt,oat,actualWeightKg) {
   if (shouldUseSup90Aircraft(actualWeightKg)) {
-    const noWind = genericPdfChartNoWindLimit(SUP90_CLEAR_EAPS_ON_EXACT, paFt, oat, 'Figure 4-7');
-    if (noWind.error) return { ...noWind, profileId: 'clear_eaps_on', chartFamily: '7000', referenceHtml: buildClearSup90ReferenceHtml('clear_eaps_on') };
-    return buildSup90ClearResult('clear_eaps_on', noWind, actualWeightKg, paFt, oat, SUP90_CLEAR_EAPS_ON_EXACT, CLEAR_SUP90_VARIANTS.clear_eaps_on.figureLabel, 'Resultado calculado com a carta Clear Area EAPS ON do Supplement 90.');
+    const _nw = genericPdfChartNoWindLimit(SUP90_CLEAR_EAPS_ON_EXACT, paFt, oat, 'Figure 4-7');
+    const nw = _nw.error ? sup90ClearFallbackNoWind(SUP90_CLEAR_EAPS_ON_EXACT, paFt) : _nw;
+    return buildSup90ClearResult('clear_eaps_on', nw, actualWeightKg, paFt, oat, SUP90_CLEAR_EAPS_ON_EXACT, CLEAR_SUP90_VARIANTS.clear_eaps_on.figureLabel, 'Resultado calculado com a carta Clear Area EAPS ON do Supplement 90.');
   }
   return calculateExactClearEapsOn_6800(paFt,oat,actualWeightKg);
 };
 calculateExactIbfClearArea = function(paFt,oat,actualWeightKg,headwindKt) {
   if (shouldUseSup90Aircraft(actualWeightKg)) {
-    const noWind = genericPdfChartNoWindLimit(SUP90_CLEAR_IBF_EXACT, paFt, oat, 'Figure 4-8');
-    if (noWind.error) return { ...noWind, profileId: 'clear_ibf', chartFamily: '7000', referenceHtml: buildClearSup90ReferenceHtml('clear_ibf') };
-    return buildSup90ClearResult('clear_ibf', noWind, actualWeightKg, paFt, oat, SUP90_CLEAR_IBF_EXACT, CLEAR_SUP90_VARIANTS.clear_ibf.figureLabel, 'Resultado calculado com a carta Clear Area IBF Installed do Supplement 90.');
+    const _nw = genericPdfChartNoWindLimit(SUP90_CLEAR_IBF_EXACT, paFt, oat, 'Figure 4-8');
+    const nw = _nw.error ? sup90ClearFallbackNoWind(SUP90_CLEAR_IBF_EXACT, paFt) : _nw;
+    return buildSup90ClearResult('clear_ibf', nw, actualWeightKg, paFt, oat, SUP90_CLEAR_IBF_EXACT, CLEAR_SUP90_VARIANTS.clear_ibf.figureLabel, 'Resultado calculado com a carta Clear Area IBF Installed do Supplement 90.');
   }
   return calculateExactIbfClearArea_6800(paFt,oat,actualWeightKg,headwindKt);
 };
