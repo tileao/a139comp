@@ -2398,10 +2398,10 @@ function setupAutoAdvance() {
     { el: els.base, next: els.departure },
     { el: els.departure, next: els.qnh },
     { el: els.qnh, next: els.oat, minDigits: 4, maxDigits: 4 },
-    { el: els.oat, next: els.weight, minDigits: 2, maxDigits: 2 },
-    { el: els.weight, next: els.windDir, minDigits: 4, maxDigits: 4 },
+    { el: els.oat, next: els.windDir, minDigits: 2, maxDigits: 2 },
     { el: els.windDir, next: els.windSpeed, minDigits: 3, maxDigits: 3 },
-    { el: els.windSpeed, next: els.runBtn, minDigits: 2, maxDigits: 2 },
+    { el: els.windSpeed, next: els.weight, minDigits: 2, maxDigits: 2 },
+    { el: els.weight, next: els.runBtn, minDigits: 4, maxDigits: 4 },
   ];
 
   rules.forEach((rule) => {
