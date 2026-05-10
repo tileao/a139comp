@@ -1071,16 +1071,28 @@ function invalidateAdcDecisionPanel(reason = 'seleção alterada') {
 
 async function refreshAdcDecisionForSelection(reason = 'seleção alterada') {
   const seq = ++vizRuntime.adcDecisionSeq;
-  const input = collectInputs();
-  const snap = getSavedResultsSnapshot();
-  const canReuse = !!(snap?.wat && snap?.rto && sameCalcInputsExceptAdc(input, snap.input || {}));
+  const isBaseChange = /base/i.test(String(reason || ''));
 
   markAdcDirty(reason);
   invalidateAdcDecisionPanel(reason);
+  pushSharedContext(collectInputs());
+
+  if (isBaseChange) {
+    try {
+      await syncAdcSelection({ renderPreviewIfActive: true });
+    } catch (error) {
+      console.warn('Falha ao sincronizar a ADC após trocar a base.', error);
+    }
+    if (seq !== vizRuntime.adcDecisionSeq) return;
+  }
+
+  const input = collectInputs();
+  const snap = getSavedResultsSnapshot();
+  const canReuse = !!(snap?.wat && snap?.rto && sameCalcInputsExceptAdc(input, snap.input || {}));
   pushSharedContext(input);
 
   if (!canReuse) {
-    syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn);
+    if (!isBaseChange) syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn);
     return;
   }
 
@@ -1444,7 +1456,7 @@ async function renderPreview(mode) {
     let sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
 
     if ((!sourceReady || !sourceMatchesExpected) && expectedSrc) {
-      const expectedInfo = await waitForAdcChartMatch(expectedSrc, 1600);
+      const expectedInfo = await waitForAdcChartMatch(expectedSrc, 3200);
       source = getSourceCanvas('adc');
       sourceReady = !!source && source.width > 48 && source.height > 48;
       renderInfo = adcFrame.contentWindow?.__adcBridge?.getRenderInfo ? adcFrame.contentWindow.__adcBridge.getRenderInfo() : null;
@@ -1452,7 +1464,7 @@ async function renderPreview(mode) {
       sourceMatchesExpected = !expectedKey || loadedKey === expectedKey;
     }
 
-    if (sourceReady && sourceMatchesExpected) {
+    if (sourceReady) {
       const crop = getCanvasCrop(source, 'adc');
       const scale = stageWidth / crop.w;
       const displayHeight = Math.round(crop.h * scale);
@@ -1471,19 +1483,10 @@ async function renderPreview(mode) {
       return true;
     }
 
-    const ok = await renderAdcPreviewToCanvas(out);
-    if (ok) {
-      const scale = stageWidth / out.width;
-      const displayHeight = Math.round(out.height * scale);
-      out.style.width = stageWidth + 'px';
-      out.style.height = displayHeight + 'px';
-      out.hidden = false;
-      out.dataset.mode = mode;
-      if (els.vizPlaceholder) els.vizPlaceholder.hidden = true;
-      restoreViewerPlaceholder();
-      syncViewerStageHeight(displayHeight);
-      return true;
-    }
+    out.hidden = true;
+    if (els.vizPlaceholder) els.vizPlaceholder.hidden = false;
+    syncViewerStageHeight(null);
+    return false;
   }
 
   const source = getSourceCanvas(mode);
@@ -1779,6 +1782,16 @@ function getModeSnapshotCanvas(mode) {
 
 function getModePdfCanvas(mode) {
   try {
+    if (mode === 'wat') {
+      const bridgeCanvas = watFrame.contentWindow?.__cataWatBridge?.getPdfCanvas?.();
+      if (bridgeCanvas && bridgeCanvas.width > 16 && bridgeCanvas.height > 16) {
+        const tmp = document.createElement('canvas');
+        tmp.width = bridgeCanvas.width;
+        tmp.height = bridgeCanvas.height;
+        tmp.getContext('2d').drawImage(bridgeCanvas, 0, 0);
+        return tmp;
+      }
+    }
     const src = getSourceCanvas(mode);
     if (src && src.width > 16 && src.height > 16) {
       const crop = getCanvasCrop(src, mode);
@@ -2320,15 +2333,15 @@ function bindEvents() {
   els.base.addEventListener('change', () => { refreshAdcDecisionForSelection('a base').catch(console.warn); });
   els.departure.addEventListener('change', () => { refreshAdcDecisionForSelection('a cabeceira').catch(console.warn); });
   [els.aircraftSet, els.config, els.pa, els.oat, els.weight, els.wind].forEach(el => el?.addEventListener('change', () => { markCalculationDirty('parâmetros alterados'); }));
-  els.openWATBtn.addEventListener('click', () => {
+  els.openWATBtn?.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../wat/?back=1&return=' + encodeURIComponent('../cata/');
   });
-  els.openRTOBtn.addEventListener('click', () => {
+  els.openRTOBtn?.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../rto/?back=1&return=' + encodeURIComponent('../cata/');
   });
-  els.openADCBtn.addEventListener('click', () => {
+  els.openADCBtn?.addEventListener('click', () => {
     saveCurrentInputsForModuleOpen();
     location.href = '../adc/?back=1&return=' + encodeURIComponent('../cata/');
   });
