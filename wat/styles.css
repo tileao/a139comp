@@ -107,6 +107,11 @@ select {
 #chartCanvas{position:absolute; inset:0; width:100%; height:100%; background:transparent; border:none; border-radius:0; pointer-events:none;}
 @media (max-width: 680px){.toolbar-row{width:100%;justify-content:flex-start;margin-top:8px;}}
 
+
+.weight-input-row{display:flex;gap:8px;align-items:stretch;}
+.weight-input-row input{flex:1 1 auto;min-width:0;}
+.weight-input-row select{flex:0 0 74px;max-width:74px;padding:0 8px;}
+@media (max-width:640px){.weight-input-row select{flex-basis:64px;max-width:64px;}}
 .input-with-toggle{display:flex;align-items:stretch;gap:8px;}
 .input-with-toggle input{flex:1 1 auto;min-width:0;}
 .sign-toggle{width:42px;min-width:42px;max-width:42px;min-height:52px;padding:0;border-radius:12px;flex:0 0 42px;font-size:16px;font-weight:700;line-height:1;background:#111a26;}

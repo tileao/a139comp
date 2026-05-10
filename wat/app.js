@@ -7,6 +7,8 @@ const paEl = document.getElementById('pressureAltitude');
 const oatEl = document.getElementById('oat');
 const weightEl = document.getElementById('actualWeight');
 const headwindEl = document.getElementById('headwind');
+const weightUnitEl = document.getElementById('weightUnit');
+const actualWeightLabelEl = document.getElementById('actualWeightLabel');
 const headwindWrap = document.getElementById('headwindWrap');
 const paNegativeBtn = document.getElementById('paNegativeBtn');
 const oatNegativeBtn = document.getElementById('oatNegativeBtn');
@@ -465,7 +467,8 @@ function syncProfileUi() {
     : 'Família 6800 ativa: Offshore, CAT A Clear Area, CAT B e Confined Area usam as cartas base do Supplement 50.';
   chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
   chartBaseImage.alt = activeProfile ? activeProfile.previewTitle : 'Página completa do gráfico WAT';
-  updatePdfButtonLabel();
+  updateWeightUnitUi();
+updatePdfButtonLabel();
   toggleHeadwind();
 }
 function loadDemo() {
@@ -645,7 +648,29 @@ function calculateExactClearEapsOn(paFt,oat,actualWeightKg) { const noWind=gener
 function calculateExactConfinedEapsOn(paFt,oat,actualWeightKg) { const noWind=genericPdfChartNoWindLimit(CONFINED_EAPS_ON_EXACT, paFt, oat, 'Figure 4-6'); if(noWind.error) return noWind; const maxWeight=roundToFive(Math.min(CONFINED_EAPS_ON_EXACT.main.kgMax, noWind.noWindKg)); const margin=maxWeight-actualWeightKg; return { profileId:'confined_eaps_on', exact:true, noWind, maxWeight, margin, within: margin>=0, actualWeightKg, paFt, oat, headwindKt:0 }; }
 function clamp(value, min, max) { return Math.min(max, Math.max(min, value)); }
 function interp1(x, xp, fp) { if (xp.length !== fp.length || xp.length === 0) return NaN; if (x <= xp[0]) return fp[0]; if (x >= xp[xp.length - 1]) return fp[xp.length - 1]; for (let i = 0; i < xp.length - 1; i++) { if (x >= xp[i] && x <= xp[i + 1]) { const t = (x - xp[i]) / (xp[i + 1] - xp[i]); return fp[i] + t * (fp[i + 1] - fp[i]); } } return fp[fp.length - 1]; }
-function formatKg(v) { return `${Math.round(v).toLocaleString('pt-BR')} kg`; }
+const KG_TO_LB = 2.2046226218;
+function isLbUnit() { return weightUnitEl?.value === 'lb'; }
+function toLb(kg) { return kg * KG_TO_LB; }
+function parseActualWeightKg() {
+  const raw = Number(weightEl.value);
+  if (Number.isNaN(raw)) return Number.NaN;
+  return isLbUnit() ? (raw / KG_TO_LB) : raw;
+}
+function formatWeightByUnit(kgValue) {
+  if (isLbUnit()) return `${Math.round(toLb(kgValue)).toLocaleString('pt-BR')} lb`;
+  return `${Math.round(kgValue).toLocaleString('pt-BR')} kg`;
+}
+function formatMarginByUnit(kgValue) {
+  const val = isLbUnit() ? toLb(kgValue) : kgValue;
+  const unit = isLbUnit() ? 'lb' : 'kg';
+  return `${val >= 0 ? '+' : ''}${Math.round(val).toLocaleString('pt-BR')} ${unit}`;
+}
+function updateWeightUnitUi() {
+  const lb = isLbUnit();
+  if (actualWeightLabelEl) actualWeightLabelEl.textContent = `Actual Weight (${lb ? 'lb' : 'kg'})`;
+  weightEl.placeholder = lb ? 'ex. 14500' : 'ex. 6550';
+}
+function formatKg(v) { return formatWeightByUnit(v); }
 function toPoints(rawPoints) { return rawPoints.map(([x, y]) => ({ x, y })); }
 function roundToFive(value) { return Math.round(value / 5) * 5; }
 function xAtY(points, y) {
@@ -853,6 +878,8 @@ function resetWatForm() {
   paEl.value = '';
   oatEl.value = '';
   weightEl.value = '';
+  if (weightUnitEl) weightUnitEl.value = 'kg';
+  updateWeightUnitUi();
   headwindEl.value = '';
   procedureEl.dispatchEvent(new Event('change', { bubbles:true }));
   configurationEl.dispatchEvent(new Event('change', { bubbles:true }));
@@ -862,7 +889,7 @@ function resetWatForm() {
 
 function showUncalibratedProfileState() { statusCard.className='card status neutral'; statusBadge.textContent='PERFIL NÃO CALIBRADO'; statusTitle.textContent='Modo ainda não calibrado'; statusText.textContent='O perfil selecionado ainda não possui motor de cálculo calibrado nesta build.'; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=null; drawOverlay(); }
 function showRangeError(result) { statusCard.className='card status neutral'; statusBadge.textContent='PONTO FORA DA FAIXA'; statusTitle.textContent='Validação manual necessária'; statusText.textContent=result.error; maxWeightEl.textContent='—'; marginEl.textContent='—'; currentResult=result; drawOverlay(result); }
-function showSuccess(result, profile) { statusCard.className=`card status ${result.within ? 'within':'out'}`; statusBadge.textContent = profile.statusBadge || 'PERFIL CALIBRADO'; statusTitle.textContent = result.within ? 'WITHIN ENVELOPE' : 'OUT OF ENVELOPE'; statusText.textContent = result.resultDescription || profile.resultDescription || 'Resultado calculado com base nas curvas vetoriais do PDF.'; maxWeightEl.textContent=formatKg(result.maxWeight); marginEl.textContent=`${result.margin>=0?'+':''}${Math.round(result.margin).toLocaleString('pt-BR')} kg`; currentResult=result; drawOverlay(result); }
+function showSuccess(result, profile) { statusCard.className=`card status ${result.within ? 'within':'out'}`; statusBadge.textContent = profile.statusBadge || 'PERFIL CALIBRADO'; statusTitle.textContent = result.within ? 'WITHIN ENVELOPE' : 'OUT OF ENVELOPE'; statusText.textContent = result.resultDescription || profile.resultDescription || 'Resultado calculado com base nas curvas vetoriais do PDF.'; maxWeightEl.textContent=formatKg(result.maxWeight); marginEl.textContent=formatMarginByUnit(result.margin); currentResult=result; drawOverlay(result); }
 function drawOverlay(result) { const renderableProfile=getRenderableProfile(activeProfile); if(!renderableProfile) return; const rect=chartCanvas.getBoundingClientRect(); const pageImage=renderableProfile.pageImage; if(!(pageImage.complete&&pageImage.naturalWidth)) return; const aspect=pageImage.naturalWidth/pageImage.naturalHeight; const displayWidth=Math.max(1,Math.round(rect.width||pageImage.naturalWidth)); const displayHeight=Math.max(1,Math.round(displayWidth/aspect)); const dpr=Math.max(1,window.devicePixelRatio||1); chartCanvas.width=Math.round(displayWidth*dpr); chartCanvas.height=Math.round(displayHeight*dpr); chartCanvas.style.height=`${displayHeight}px`; ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,displayWidth,displayHeight); const preview = renderableProfile.render(result,{includeFooter:false,includeSummaryBox:true,compactSummaryBox:true}); if(preview) ctx.drawImage(preview,0,0,displayWidth,displayHeight); }
 function renderCompositeCanvas(result=currentResult) { const renderableProfile=getRenderableProfile(activeProfile); if(!renderableProfile) return null; return renderableProfile.render(result,{includeFooter:true,includeSummaryBox:true}); }
 function buildPdfBlobFromCanvas(canvas) { const jpegData=canvas.toDataURL('image/jpeg',0.92), base64=jpegData.split(',')[1], imageBytes=atob(base64), imgLen=imageBytes.length, pageWidth=595.28, pageHeight=pageWidth*canvas.height/canvas.width; const pdfParts=[], offsets=[]; const push=(s)=>pdfParts.push(typeof s==='string'?s:s); const offset=()=>pdfParts.reduce((n,part)=>n+(typeof part==='string'?new TextEncoder().encode(part).length:part.length),0); const bin=Uint8Array.from(imageBytes,c=>c.charCodeAt(0)); push(`%PDF-1.4
@@ -904,7 +931,7 @@ async function exportInterpolatedPdf() { if(!activeProfile || !currentResult || 
 function updatePdfButtonLabel() { if(navigator.canShare && navigator.share){ try { const probe=new File([new Blob(['x'],{type:'application/pdf'})],'x.pdf',{type:'application/pdf'}); if(navigator.canShare({files:[probe]})){ exportPdfBtn.textContent='Compartilhar PDF'; return; } } catch(err) {} } exportPdfBtn.textContent='Baixar PDF'; }
 function runCalculation() {
   syncProfileUi();
-  const pa=Number(paEl.value), oat=Number(oatEl.value), actualWeight=Number(weightEl.value), headwind=Number(headwindEl.value||0);
+  const pa=Number(paEl.value), oat=Number(oatEl.value), actualWeight=parseActualWeightKg(), headwind=Number(headwindEl.value||0);
   if([pa,oat,actualWeight].some(Number.isNaN)){ resetPendingState(); return; }
   if(!isProcedureAvailableForAircraft(procedureEl.value)){ showRangeError({ error:'Procedimento indisponível nesta build.' }); return; }
   const aircraftMax = getAircraftMaxWeight();
@@ -942,6 +969,7 @@ exportPdfBtn.addEventListener('click', ()=>{ exportInterpolatedPdf(); });
 demoBtn?.addEventListener('click', loadDemo);
 resetBtn?.addEventListener('click', resetWatForm);
 runBtn.addEventListener('click', runCalculation);
+weightUnitEl?.addEventListener('change', ()=>{ updateWeightUnitUi(); if (currentResult && !currentResult.error) showSuccess(currentResult, activeProfile); else runCalculation(); });
 procedureEl.addEventListener('change', ()=>{ toggleHeadwind(); syncProfileUi(); currentResult=null; drawOverlay(); runCalculation(); });
 configurationEl.addEventListener('change', ()=>{ syncProfileUi(); currentResult=null; drawOverlay(); runCalculation(); });
 aircraftSetEls.forEach((el) => el.addEventListener('change', ()=>{ syncProfileUi(); currentResult=null; drawOverlay(); runCalculation(); }));
@@ -963,6 +991,7 @@ applyAdaptiveLayout();
 setupAutoAdvance();
 toggleHeadwind();
 syncProfileUi();
+updateWeightUnitUi();
 updatePdfButtonLabel();
 drawOverlay();
 
@@ -1153,7 +1182,8 @@ function syncProfileUi() {
   formHintEl.textContent = 'Nesta build, os perfis Confined usam somente as cartas do Supplement 50. As cartas do Supplement 12 permanecem fora do fluxo ativo.';
   chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
   chartBaseImage.alt = activeProfile ? activeProfile.previewTitle : 'Página completa do gráfico WAT';
-  updatePdfButtonLabel();
+  updateWeightUnitUi();
+updatePdfButtonLabel();
 }
 function showRangeError(result) {
   statusCard.className='card status neutral';
@@ -1184,7 +1214,7 @@ function showSuccess(result, profile) {
   statusTitle.textContent = result.within ? 'WITHIN ENVELOPE' : 'OUT OF ENVELOPE';
   statusText.textContent = result.resultDescription || profile.resultDescription || 'Resultado calculado com base nas curvas vetoriais do PDF.';
   maxWeightEl.textContent=formatKg(result.maxWeight);
-  marginEl.textContent=`${result.margin>=0?'+':''}${Math.round(result.margin).toLocaleString('pt-BR')} kg`;
+  marginEl.textContent=formatMarginByUnit(result.margin);
   currentResult=result;
   if(result?.referenceHtml) chartReferenceEl.innerHTML = result.referenceHtml;
   drawOverlay(result);
@@ -1431,7 +1461,8 @@ function syncProfileUi() {
   }
   chartBaseImage.src = activeProfile ? activeProfile.pageSrc : 'docs/page-07.png';
   chartBaseImage.alt = activeProfile ? activeProfile.previewTitle : 'Página completa do gráfico WAT';
-  updatePdfButtonLabel();
+  updateWeightUnitUi();
+updatePdfButtonLabel();
   toggleHeadwind();
 }
 
