@@ -1102,7 +1102,8 @@ function renderResults(wat, rto, adc) {
       return best;
     }, null);
   const runwayAsdaOk = fullRunwayRow ? fullRunwayRow.go : false;
-  const overallOk = watOk && runwayAsdaOk;
+  const tailwindNoGo = Number.isFinite(Number(adc?.input?.headwindKt)) && Number(adc?.input?.headwindKt) < 0;
+  const overallOk = watOk && runwayAsdaOk && !tailwindNoGo;
 
   els.watMax.textContent = wat?.maxText || '—';
   els.rtoMetric.textContent = rto?.metricText || '—';
@@ -1118,7 +1119,9 @@ function renderResults(wat, rto, adc) {
     els.watMarginSummary.textContent = `${Math.abs(Math.round(wat.marginKg))} kg acima do limite`;
   }
 
-  if (!decisionRows.length) {
+  if (tailwindNoGo) {
+    els.rtoSummary.textContent = 'NO GO — vento de cauda na cabeceira selecionada. Selecione a cabeceira oposta.';
+  } else if (!decisionRows.length) {
     els.rtoSummary.textContent = rto?.summary || 'Sem cálculo ainda.';
   } else if (runwayAsdaOk) {
     els.rtoSummary.textContent = badPoints.length
