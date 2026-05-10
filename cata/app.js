@@ -2428,8 +2428,22 @@ async function runFlow() {
   els.statusChip.className = 'status-chip warn';
   els.resultCard.classList.remove('result-ok', 'result-bad');
   try {
-    const [wat, rto] = await Promise.all([runWAT(input), runRTO(input)]);
-    const adc = await runADC(input, rto);
+    const tailwindNoGo = Number.isFinite(Number(input.headwindKt)) && Number(input.headwindKt) < 0;
+    const wat = await runWAT(input);
+    let rto;
+    let adc;
+
+    if (tailwindNoGo) {
+      rto = {
+        metricText: '—',
+        summary: 'NO GO — vento de cauda na cabeceira selecionada. Selecione a cabeceira oposta.'
+      };
+      adc = { input, rows: [], basisMetric: 'ASDA' };
+    } else {
+      rto = await runRTO(input);
+      adc = await runADC(input, rto);
+    }
+
     clearAllModeDirty();
     clearAdcDirty();
     renderResults(wat, rto, adc);
