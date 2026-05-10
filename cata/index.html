@@ -112,12 +112,9 @@
           <div class="form-grid form-grid-2">
             <label class="field">
               <span>Weight</span>
-              <div class="weight-row">
-                <select id="weightUnit" class="mini-select" aria-label="Unidade de peso">
-                  <option value="kg" selected>kg</option>
-                  <option value="lb">lb</option>
-                </select>
-                <input id="actualWeight" type="text" inputmode="numeric" enterkeyhint="go" autocomplete="off" placeholder="6500" maxlength="4">
+              <div class="input-with-toggle">
+                <input id="actualWeight" type="text" inputmode="numeric" enterkeyhint="go" autocomplete="off" placeholder="6500">
+                <button id="weightUnitBtn" type="button" class="unit-toggle" aria-label="Alternar unidade de peso">kg</button>
               </div>
             </label>
             <button id="metarBtn" class="ghost-btn metar-btn" type="button">Buscar METAR</button>

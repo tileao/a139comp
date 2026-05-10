@@ -1,4 +1,14 @@
 const SHARED_KEY = 'aw139_companion_shared_context_v1';
+const KG_TO_LBS = 2.20462;
+const LBS_TO_KG = 1 / KG_TO_LBS;
+let weightUnit = 'kg';
+
+function weightToKg(value, unit) {
+  return unit === 'lbs' ? Math.round(value * LBS_TO_KG) : value;
+}
+function weightFromKg(kg, unit) {
+  return unit === 'lbs' ? Math.round(kg * KG_TO_LBS) : kg;
+}
 
 const AERODROME_DB = {
   SBCB: { elevationFt: 23,  magVar: -22, runways: { RWY_10_28: { '10': 100, '28': 280 } } },
@@ -28,7 +38,7 @@ const els = {
   oat: document.getElementById('oat'),
   oatNegativeBtn: document.getElementById('oatNegativeBtn'),
   weight: document.getElementById('actualWeight'),
-  weightUnit: document.getElementById('weightUnit'),
+  weightUnitBtn: document.getElementById('weightUnitBtn'),
   windDir: document.getElementById('windDir'),
   windSpeed: document.getElementById('windSpeed'),
   metarBtn: document.getElementById('metarBtn'),
@@ -79,22 +89,25 @@ function nextFrame(count = 1) {
 }
 
 
-function toKg(weightValue, unit = 'kg') {
-  const value = Number(weightValue || 0);
-  if (!Number.isFinite(value)) return 0;
-  return unit === 'lb' ? value * 0.45359237 : value;
-}
-
-function formatWeightPlaceholder() {
-  if (!els.weight || !els.weightUnit) return;
-  const isLb = els.weightUnit.value === 'lb';
-  els.weight.placeholder = isLb ? '14330' : '6500';
-  els.weight.maxLength = isLb ? 5 : 4;
+function setWeightUnit(unit, convert = true) {
+  const prev = weightUnit;
+  weightUnit = (unit === 'lbs') ? 'lbs' : 'kg';
+  if (els.weightUnitBtn) els.weightUnitBtn.textContent = weightUnit;
+  if (els.weight) {
+    els.weight.placeholder = weightUnit === 'lbs' ? '14330' : '6500';
+    if (convert && prev !== weightUnit && els.weight.value !== '') {
+      const raw = Number(els.weight.value) || 0;
+      const kg = weightToKg(raw, prev);
+      els.weight.value = String(weightFromKg(kg, weightUnit));
+    }
+  }
+  try { localStorage.setItem('aw139_weight_unit', weightUnit); } catch { /* quota */ }
 }
 
 function setMetarInfoLine(text) {
   if (els.metarInfoLine) els.metarInfoLine.textContent = text;
 }
+
 function modeLoadingCopy(mode, reason = '') {
   const titleMap = {
     adc: 'Atualizando carta ADC',
@@ -916,7 +929,7 @@ function collectInputs() {
     windSpeedKt,
     pressureAltitudeFt,
     oatC: Number(els.oat.value || 0),
-    weightKg: toKg(els.weight.value, els.weightUnit?.value || "kg"),
+    weightKg: weightToKg(Number(els.weight.value || 0), weightUnit),
     headwindKt,
     registration: ''
   };
@@ -939,6 +952,8 @@ function pushSharedContext(input, patch = {}) {
     cataConfiguration: input.configuration,
     aircraftRegistration: input.registration || '',
     cataProcedure: 'clear',
+    cataWeightUnit: weightUnit,
+    cataWeightRaw: Number(els.weight.value || 0),
     ...patch
   };
   saveCtx(merged);
@@ -953,10 +968,11 @@ function restoreInputsFromContext() {
   if (ctx.aircraftRegistration && els.registration) els.registration.value = ctx.aircraftRegistration;
   if (ctx.qnh != null && els.qnh) els.qnh.value = String(ctx.qnh);
   if (ctx.oatC != null) els.oat.value = String(ctx.oatC);
-  if (ctx.weightKg != null) {
-    const unit = els.weightUnit?.value || "kg";
-    const display = unit === "lb" ? (Number(ctx.weightKg) / 0.45359237) : Number(ctx.weightKg);
-    els.weight.value = Number.isFinite(display) ? String(Math.round(display)) : "";
+  if (ctx.cataWeightUnit) setWeightUnit(ctx.cataWeightUnit, false);
+  if (ctx.cataWeightRaw != null) {
+    els.weight.value = String(ctx.cataWeightRaw);
+  } else if (ctx.weightKg != null) {
+    els.weight.value = String(weightFromKg(ctx.weightKg, weightUnit));
   }
   if (ctx.windDirMag != null && els.windDir) els.windDir.value = String(ctx.windDirMag);
   if (ctx.windSpeedKt != null && els.windSpeed) els.windSpeed.value = String(ctx.windSpeedKt);
@@ -1136,9 +1152,6 @@ function renderResults(wat, rto, adc) {
   els.resultCard.classList.remove('pending');
   const decisionRows = adc?.rows || [];
   const basisMetric = adc?.basisMetric || 'ASDA';
-  const displayUnit = (els.weightUnit?.value || 'kg') === 'lb' ? 'lb' : 'kg';
-  const convertKgToDisplay = (kg) => displayUnit === 'lb' ? kg / 0.45359237 : kg;
-  const formatMargin = (kgValue) => Math.round(convertKgToDisplay(kgValue));
   const watOk = wat?.marginKg != null ? wat.marginKg >= 0 : false;
   const badPoints = decisionRows.filter(row => !row.go && row.id !== 'FULL').map(row => row.point);
   const fullRunwayRow = decisionRows.find(row => row.id === 'FULL')
@@ -1152,18 +1165,24 @@ function renderResults(wat, rto, adc) {
   const tailwindNoGo = Number.isFinite(Number(adc?.input?.headwindKt)) && Number(adc?.input?.headwindKt) < 0;
   const overallOk = watOk && runwayAsdaOk && !tailwindNoGo;
 
-  els.watMax.textContent = wat?.maxText || '—';
+  if (wat?.maxWeightKg != null) {
+    els.watMax.textContent = `${weightFromKg(wat.maxWeightKg, weightUnit)} ${weightUnit}`;
+  } else {
+    els.watMax.textContent = wat?.maxText || '—';
+  }
   els.rtoMetric.textContent = rto?.metricText || '—';
 
   if (wat?.marginKg == null) {
     els.watSummary.textContent = wat?.summary || 'Sem cálculo ainda.';
     els.watMarginSummary.textContent = '—';
   } else if (watOk) {
+    const marginDisp = weightFromKg(Math.round(wat.marginKg), weightUnit);
     els.watSummary.textContent = 'GO — peso dentro do limite WAT.';
-    els.watMarginSummary.textContent = `+${formatMargin(wat.marginKg)} ${displayUnit} de margem`;
+    els.watMarginSummary.textContent = `+${marginDisp} ${weightUnit} de margem`;
   } else {
+    const marginDisp = weightFromKg(Math.abs(Math.round(wat.marginKg)), weightUnit);
     els.watSummary.textContent = 'NO GO — item negativo: WAT abaixo do peso requerido.';
-    els.watMarginSummary.textContent = `${Math.abs(formatMargin(wat.marginKg))} ${displayUnit} acima do limite`;
+    els.watMarginSummary.textContent = `${marginDisp} ${weightUnit} acima do limite`;
   }
 
   if (tailwindNoGo) {
@@ -2125,7 +2144,7 @@ function createCataPdfModulePageCanvas(mode, title, srcCanvas) {
   drawMeta('Cabeceira', inputs.departureEnd || '—', margin + 330, metaY + 48);
   drawMeta('PA', `${inputs.pressureAltitudeFt || 0} ft`, margin + 560, metaY + 48);
   drawMeta('OAT', `${inputs.oatC || 0} °C`, margin + 760, metaY + 48);
-  drawMeta('Peso', `${inputs.weightKg || 0} kg`, margin + 980, metaY + 48);
+  drawMeta('Peso', weightUnit === 'lbs' ? `${weightFromKg(inputs.weightKg || 0, 'lbs')} lbs` : `${inputs.weightKg || 0} kg`, margin + 980, metaY + 48);
   drawMeta('Headwind', `${inputs.headwindKt || 0} kt`, margin + 1230, metaY + 48);
   drawMeta('Configuração', els.config.options[els.config.selectedIndex]?.text || inputs.configuration || '—', margin + 28, metaY + 136);
   drawMeta('Status', els.statusChip.textContent || '—', margin + 560, metaY + 136);
@@ -2264,7 +2283,7 @@ function createCataPdfCanvas() {
   rowText('PA', `${inputs.pressureAltitudeFt || 0} ft`, margin + 700, y + 42);
   rowText('OAT', `${inputs.oatC || 0} °C`, margin + 980, y + 42);
   rowText('Configuração', els.config.options[els.config.selectedIndex]?.text || inputs.configuration || '—', margin + 28, y + 118);
-  rowText('Peso', `${inputs.weightKg || 0} kg`, margin + 520, y + 118);
+  rowText('Peso', weightUnit === 'lbs' ? `${weightFromKg(inputs.weightKg || 0, 'lbs')} lbs` : `${inputs.weightKg || 0} kg`, margin + 520, y + 118);
   rowText('Headwind', `${inputs.headwindKt || 0} kt`, margin + 760, y + 118);
   rowText('Status', els.statusChip.textContent || '—', margin + 28, y + 188);
   rowText('WAT', els.watMax.textContent || '—', margin + 520, y + 188);
@@ -2437,7 +2456,7 @@ function setupAutoAdvance() {
     { el: els.oat, next: els.windDir, minDigits: 2, maxDigits: 2 },
     { el: els.windDir, next: els.windSpeed, minDigits: 3, maxDigits: 3 },
     { el: els.windSpeed, next: els.weight, minDigits: 2, maxDigits: 2 },
-    { el: els.weight, next: els.runBtn, minDigits: 4, maxDigits: 4 },
+    { el: els.weight, next: els.runBtn, minDigits: null, maxDigits: null },
   ];
 
   rules.forEach((rule) => {
@@ -2453,9 +2472,11 @@ function setupAutoAdvance() {
 
 
     rule.el.addEventListener('input', () => {
-      sanitizeDigitsInput(rule.el, rule.maxDigits);
+      const effectiveMax = rule.el === els.weight ? (weightUnit === 'lbs' ? 5 : 4) : rule.maxDigits;
+      const effectiveMin = rule.el === els.weight ? (weightUnit === 'lbs' ? 5 : 4) : rule.minDigits;
+      sanitizeDigitsInput(rule.el, effectiveMax);
       const digits = digitsOnlyLength(rule.el);
-      if (rule.el === els.oat ? digits === rule.minDigits : digits >= rule.minDigits) {
+      if (rule.el === els.oat ? digits === effectiveMin : digits >= effectiveMin) {
         focusNext(rule.next);
       }
     });
@@ -2526,8 +2547,8 @@ function bindEvents() {
   els.base.addEventListener('change', () => { updateCalcDisplay(); refreshAdcDecisionForSelection('a base').catch(console.warn); });
   els.departure.addEventListener('change', () => { updateCalcDisplay(); refreshAdcDecisionForSelection('a cabeceira').catch(console.warn); });
   [els.aircraftSet, els.config, els.qnh, els.oat, els.weight, els.windDir, els.windSpeed].forEach(el => el?.addEventListener('change', () => { markCalculationDirty('parâmetros alterados'); }));
-  els.weightUnit?.addEventListener('change', () => {
-    formatWeightPlaceholder();
+  els.weightUnitBtn?.addEventListener('click', () => {
+    setWeightUnit(weightUnit === 'kg' ? 'lbs' : 'kg');
     markCalculationDirty('unidade de peso alterada');
   });
   [els.qnh, els.windDir, els.windSpeed].forEach(el => el?.addEventListener('input', updateCalcDisplay));
@@ -2618,6 +2639,7 @@ function bindEvents() {
 }
 
 window.addEventListener('load', async () => {
+  try { const saved = localStorage.getItem('aw139_weight_unit'); if (saved === 'lbs') setWeightUnit('lbs', false); } catch { /* quota */ }
   bindEvents();
   setupAutoAdvance();
   updateSharePdfButtonLabel();
@@ -2630,7 +2652,6 @@ window.addEventListener('load', async () => {
     ]);
     await populateBaseOptions();
     restoreInputsFromContext();
-    formatWeightPlaceholder();
     await syncAdcSelection({ renderPreviewIfActive: false });
     clearAdcDirty();
     const hadSavedResults = restoreSavedResults();
