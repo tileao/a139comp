@@ -1202,6 +1202,40 @@ function renderCompositeCanvas(result=currentResult) {
 }
 
 
+function cloneCanvas(source) {
+  if (!source || !source.width || !source.height) return null;
+  const out = document.createElement('canvas');
+  out.width = source.width;
+  out.height = source.height;
+  const ex = out.getContext('2d');
+  if (!ex) return null;
+  ex.drawImage(source, 0, 0);
+  return out;
+}
+
+function getHighResPdfCanvasForBridge() {
+  const composite = renderCompositeCanvas(currentResult);
+  if (composite?.width && composite?.height) return composite;
+  const fullscreen = buildFullscreenSourceCanvas();
+  if (fullscreen?.width && fullscreen?.height) return fullscreen;
+  return null;
+}
+
+window.__cataWatBridge = {
+  getPdfCanvas() {
+    return getHighResPdfCanvasForBridge();
+  },
+  getState() {
+    return {
+      hasResult: !!currentResult,
+      profileKey: activeProfile?.key || '',
+      width: chartCanvas?.width || 0,
+      height: chartCanvas?.height || 0
+    };
+  }
+};
+
+
 
 function buildFullscreenSourceCanvas() {
   const renderableProfile = getRenderableProfile(activeProfile, currentResult);
