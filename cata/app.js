@@ -28,9 +28,11 @@ const els = {
   oat: document.getElementById('oat'),
   oatNegativeBtn: document.getElementById('oatNegativeBtn'),
   weight: document.getElementById('actualWeight'),
+  weightUnit: document.getElementById('weightUnit'),
   windDir: document.getElementById('windDir'),
   windSpeed: document.getElementById('windSpeed'),
   metarBtn: document.getElementById('metarBtn'),
+  metarInfoLine: document.getElementById('metarInfoLine'),
   calcPaDisplay: document.getElementById('calcPaDisplay'),
   calcHwDisplay: document.getElementById('calcHwDisplay'),
   runBtn: document.getElementById('runBtn'),
@@ -76,6 +78,21 @@ function nextFrame(count = 1) {
   });
 }
 
+
+function toKg(weightValue, unit = 'kg') {
+  const value = Number(weightValue || 0);
+  if (!Number.isFinite(value)) return 0;
+  return unit === 'lb' ? value * 0.45359237 : value;
+}
+
+function formatWeightPlaceholder() {
+  if (!els.weight || !els.weightUnit) return;
+  els.weight.placeholder = els.weightUnit.value === 'lb' ? '14330' : '6500';
+}
+
+function setMetarInfoLine(text) {
+  if (els.metarInfoLine) els.metarInfoLine.textContent = text;
+}
 function modeLoadingCopy(mode, reason = '') {
   const titleMap = {
     adc: 'Atualizando carta ADC',
@@ -854,9 +871,11 @@ async function handleMetarFetch() {
     if (metar.wspd != null && els.windSpeed) els.windSpeed.value = String(Math.round(metar.wspd));
     updateCalcDisplay();
     markCalculationDirty('METAR atualizado');
+    setMetarInfoLine(`METAR ${icao}: QNH ${Math.round(Number(metar.altim || 0)) || "—"} • OAT ${Math.round(Number(metar.temp || 0)) || "—"}°C • Vento ${Math.round(Number(metar.wdir || 0)) || "---"}/${Math.round(Number(metar.wspd || 0)) || "--"}kt`);
     btn.textContent = 'METAR OK ✓';
     setTimeout(() => { if (btn.textContent === 'METAR OK ✓') btn.textContent = origText; }, 3000);
   } catch (e) {
+    setMetarInfoLine(`METAR ${icao}: falha na consulta (${e?.message || 'erro desconhecido'}).`);
     btn.textContent = 'Erro — tentar novamente';
     setTimeout(() => { if (btn.textContent === 'Erro — tentar novamente') btn.textContent = origText; }, 4000);
   } finally {
@@ -892,7 +911,7 @@ function collectInputs() {
     windSpeedKt,
     pressureAltitudeFt,
     oatC: Number(els.oat.value || 0),
-    weightKg: Number(els.weight.value || 0),
+    weightKg: toKg(els.weight.value, els.weightUnit?.value || "kg"),
     headwindKt,
     registration: ''
   };
@@ -929,7 +948,11 @@ function restoreInputsFromContext() {
   if (ctx.aircraftRegistration && els.registration) els.registration.value = ctx.aircraftRegistration;
   if (ctx.qnh != null && els.qnh) els.qnh.value = String(ctx.qnh);
   if (ctx.oatC != null) els.oat.value = String(ctx.oatC);
-  if (ctx.weightKg != null) els.weight.value = String(ctx.weightKg);
+  if (ctx.weightKg != null) {
+    const unit = els.weightUnit?.value || "kg";
+    const display = unit === "lb" ? (Number(ctx.weightKg) / 0.45359237) : Number(ctx.weightKg);
+    els.weight.value = Number.isFinite(display) ? String(Math.round(display)) : "";
+  }
   if (ctx.windDirMag != null && els.windDir) els.windDir.value = String(ctx.windDirMag);
   if (ctx.windSpeedKt != null && els.windSpeed) els.windSpeed.value = String(ctx.windSpeedKt);
   if (ctx.cataVizMode) els.visualSelect.value = ctx.cataVizMode;
@@ -2378,6 +2401,7 @@ function resetFlowForm() {
   if (els.qnh) els.qnh.value = '';
   if (els.oat) els.oat.value = '';
   if (els.weight) els.weight.value = '';
+  setMetarInfoLine('METAR: aguardando consulta.');
   if (els.windDir) els.windDir.value = '';
   if (els.windSpeed) els.windSpeed.value = '';
   if (els.calcPaDisplay) els.calcPaDisplay.textContent = '—';
@@ -2490,6 +2514,10 @@ function bindEvents() {
   els.base.addEventListener('change', () => { updateCalcDisplay(); refreshAdcDecisionForSelection('a base').catch(console.warn); });
   els.departure.addEventListener('change', () => { updateCalcDisplay(); refreshAdcDecisionForSelection('a cabeceira').catch(console.warn); });
   [els.aircraftSet, els.config, els.qnh, els.oat, els.weight, els.windDir, els.windSpeed].forEach(el => el?.addEventListener('change', () => { markCalculationDirty('parâmetros alterados'); }));
+  els.weightUnit?.addEventListener('change', () => {
+    formatWeightPlaceholder();
+    markCalculationDirty('unidade de peso alterada');
+  });
   [els.qnh, els.windDir, els.windSpeed].forEach(el => el?.addEventListener('input', updateCalcDisplay));
   els.metarBtn?.addEventListener('click', handleMetarFetch);
   els.openWATBtn?.addEventListener('click', () => {
@@ -2590,6 +2618,7 @@ window.addEventListener('load', async () => {
     ]);
     await populateBaseOptions();
     restoreInputsFromContext();
+    formatWeightPlaceholder();
     await syncAdcSelection({ renderPreviewIfActive: false });
     clearAdcDirty();
     const hadSavedResults = restoreSavedResults();
