@@ -809,13 +809,29 @@ function updateCalcDisplay() {
 }
 
 async function fetchMetarData(icao) {
-  const url = `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`;
-  const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const data = await resp.json();
-  const metar = Array.isArray(data) ? data[0] : null;
-  if (!metar) throw new Error('Sem METAR disponível');
-  return metar;
+  const baseUrl = `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`;
+  const endpoints = [
+    baseUrl,
+    `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`
+  ];
+
+  let lastErr = null;
+  for (const url of endpoints) {
+    try {
+      const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json();
+      const metar = Array.isArray(data)
+        ? data[0]
+        : (Array.isArray(data?.data) ? data.data[0] : data);
+      if (!metar || typeof metar !== 'object') throw new Error('Sem METAR disponível');
+      return metar;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+
+  throw lastErr || new Error('Falha ao consultar METAR');
 }
 
 async function handleMetarFetch() {
