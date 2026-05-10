@@ -87,7 +87,9 @@ function toKg(weightValue, unit = 'kg') {
 
 function formatWeightPlaceholder() {
   if (!els.weight || !els.weightUnit) return;
-  els.weight.placeholder = els.weightUnit.value === 'lb' ? '14330' : '6500';
+  const isLb = els.weightUnit.value === 'lb';
+  els.weight.placeholder = isLb ? '14330' : '6500';
+  els.weight.maxLength = isLb ? 5 : 4;
 }
 
 function setMetarInfoLine(text) {
@@ -860,18 +862,21 @@ async function handleMetarFetch() {
   btn.disabled = true;
   try {
     const metar = await fetchMetarData(icao);
-    const dbEntry = AERODROME_DB[icao];
     if (metar.altim != null && els.qnh) els.qnh.value = String(Math.round(metar.altim));
     if (metar.temp != null && els.oat) els.oat.value = String(Math.round(metar.temp));
     if (metar.wdir && els.windDir) {
-      const magVar = dbEntry?.magVar ?? -22;
-      const magDir = Math.round(((metar.wdir - magVar) + 360) % 360);
-      els.windDir.value = String(magDir || 360);
+      els.windDir.value = String(Math.round(metar.wdir) || 360);
     }
     if (metar.wspd != null && els.windSpeed) els.windSpeed.value = String(Math.round(metar.wspd));
     updateCalcDisplay();
     markCalculationDirty('METAR atualizado');
-    setMetarInfoLine(`METAR ${icao}: QNH ${Math.round(Number(metar.altim || 0)) || "—"} • OAT ${Math.round(Number(metar.temp || 0)) || "—"}°C • Vento ${Math.round(Number(metar.wdir || 0)) || "---"}/${Math.round(Number(metar.wspd || 0)) || "--"}kt`);
+    const rawMetar = String(metar.rawOb || metar.raw_text || metar.raw || '').trim();
+    if (rawMetar) {
+      setMetarInfoLine(`METAR ${icao}: ${rawMetar}`);
+    } else {
+      const metarTime = String(metar.obsTime || metar.observationTime || metar.reportTime || metar.receiptTime || '—');
+      setMetarInfoLine(`METAR ${icao}: Hora ${metarTime} • QNH ${Math.round(Number(metar.altim || 0)) || "—"} • OAT ${Math.round(Number(metar.temp || 0)) || "—"}°C • Vento ${Math.round(Number(metar.wdir || 0)) || "---"}/${Math.round(Number(metar.wspd || 0)) || "--"}kt`);
+    }
     btn.textContent = 'METAR OK ✓';
     setTimeout(() => { if (btn.textContent === 'METAR OK ✓') btn.textContent = origText; }, 3000);
   } catch (e) {
@@ -1131,6 +1136,9 @@ function renderResults(wat, rto, adc) {
   els.resultCard.classList.remove('pending');
   const decisionRows = adc?.rows || [];
   const basisMetric = adc?.basisMetric || 'ASDA';
+  const displayUnit = (els.weightUnit?.value || 'kg') === 'lb' ? 'lb' : 'kg';
+  const convertKgToDisplay = (kg) => displayUnit === 'lb' ? kg / 0.45359237 : kg;
+  const formatMargin = (kgValue) => Math.round(convertKgToDisplay(kgValue));
   const watOk = wat?.marginKg != null ? wat.marginKg >= 0 : false;
   const badPoints = decisionRows.filter(row => !row.go && row.id !== 'FULL').map(row => row.point);
   const fullRunwayRow = decisionRows.find(row => row.id === 'FULL')
@@ -1152,10 +1160,10 @@ function renderResults(wat, rto, adc) {
     els.watMarginSummary.textContent = '—';
   } else if (watOk) {
     els.watSummary.textContent = 'GO — peso dentro do limite WAT.';
-    els.watMarginSummary.textContent = `+${Math.round(wat.marginKg)} kg de margem`;
+    els.watMarginSummary.textContent = `+${formatMargin(wat.marginKg)} ${displayUnit} de margem`;
   } else {
     els.watSummary.textContent = 'NO GO — item negativo: WAT abaixo do peso requerido.';
-    els.watMarginSummary.textContent = `${Math.abs(Math.round(wat.marginKg))} kg acima do limite`;
+    els.watMarginSummary.textContent = `${Math.abs(formatMargin(wat.marginKg))} ${displayUnit} acima do limite`;
   }
 
   if (tailwindNoGo) {
@@ -1224,7 +1232,7 @@ function sameCalcInputsExceptAdc(current, saved = {}) {
 function invalidateAdcDecisionPanel(reason = 'seleção alterada') {
   const detail = /base/i.test(reason) ? 'base selecionada' : /cabeceira/i.test(reason) ? 'cabeceira selecionada' : 'seleção atual';
   els.statusChip.textContent = 'Atualizando decisão';
-  els.statusChip.className = 'status-chip warn';
+  els.statusChip.className = 'status-chip pending';
   els.resultCard.classList.remove('result-ok', 'result-bad');
   els.resultCard.classList.add('pending');
   els.rtoBox.classList.remove('ok', 'bad');
@@ -1256,6 +1264,10 @@ async function refreshAdcDecisionForSelection(reason = 'seleção alterada') {
 
   if (!canReuse) {
     if (!isBaseChange) syncAdcSelection({ renderPreviewIfActive: true }).catch(console.warn);
+    els.statusChip.textContent = 'Recalcular para atualizar decisão';
+    els.statusChip.className = 'status-chip pending';
+    els.rtoSummary.textContent = 'A decisão depende de novo cálculo com os parâmetros atuais.';
+    els.decisionBody.innerHTML = '<tr><td colspan="2" class="muted-cell">Recalcule para atualizar a tabela de decisão.</td></tr>';
     return;
   }
 
