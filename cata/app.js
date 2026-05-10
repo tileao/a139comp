@@ -9,7 +9,7 @@ const AERODROME_DB = {
   SBVT: { elevationFt: 11,  magVar: -22, runways: { RWY_06_24: { '06': 60, '24': 240 }, RWY_02_20: { '02': 20, '20': 200 } } },
   SBJR: { elevationFt: 16,  magVar: -22, runways: { RWY_03_21: { '03': 30, '21': 210 } } },
   SBMI: { elevationFt: 13,  magVar: -22, runways: { RWY_09_27: { '09': 90, '27': 270 } } },
-  SBFS: { elevationFt: 12,  magVar: -21, runways: { RWY_15_33: { '15': 150, '33': 330 } } },
+  SBFS: { elevationFt: 7,   magVar: -21, runways: { RWY_15_33: { '15': 150, '33': 330 } } },
 };
 const adcFrame = document.getElementById('adcFrame');
 const watFrame = document.getElementById('watFrame');
