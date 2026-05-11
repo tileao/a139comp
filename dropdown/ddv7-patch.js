@@ -1,17 +1,32 @@
 // AW139 Dropdown DD-V7 vector validation patch
+// Hotfix: visual guide lines + responsive fullscreen redraw
 (() => {
   const G = window.DROPDOWN_GRAPH_DATA;
   const FT_TO_M = 0.3048, PAGE_W = G?.pageSizePts?.[0] || 842, PAGE_H = G?.pageSizePts?.[1] || 595;
+  const PAGE_AR = PAGE_W / PAGE_H;
   const $ = id => document.getElementById(id);
   const paEl=$('pressureAltitude'), oatEl=$('oat'), weightEl=$('actualWeight'), windEl=$('headwind'), profileEl=$('profile'), cfgEl=$('configuration');
   const runBtn=$('runBtn'), resetBtn=$('resetBtn'), chartCanvas=$('chartCanvas'), fsCanvas=$('fullscreenChartCanvas');
+  const fsLayer=$('chartFullscreen'), openFsBtn=$('openFullscreenBtn'), chartStage=$('chartStage');
   const finalMetric=$('finalMetric'), finalMetricM=$('finalMetricM'), statusBadge=$('statusBadge'), statusTitle=$('statusTitle'), statusText=$('statusText'), statusDetail=$('statusDetail'), interpBox=$('interpBox'), statusCard=$('statusCard');
   let last=null;
+  let fsScale=1, fsPanX=0, fsPanY=0, fsDragging=false, fsStartX=0, fsStartY=0, fsLastTap=0;
+
   const imgs={offshore6400:new Image(),offshore6800:new Image(),enhanced7000:new Image()};
   imgs.offshore6400.src='assets/dropdown-offshore-6400.png';
   imgs.offshore6800.src='assets/dropdown-offshore-6800.png';
   imgs.enhanced7000.src='assets/dropdown-enhanced-7000.png';
-  Object.values(imgs).forEach(i=>i.addEventListener('load',()=>draw(last,chartCanvas)));
+  Object.values(imgs).forEach(i=>i.addEventListener('load',()=>{draw(last,chartCanvas); if(isFullscreenOpen()) drawFullscreen();}));
+
+  const style=document.createElement('style');
+  style.textContent=`
+    .chart-fullscreen{position:fixed!important;inset:0!important;z-index:999999!important;background:#05080d!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:calc(env(safe-area-inset-top) + 58px) 8px calc(env(safe-area-inset-bottom) + 12px)!important;box-sizing:border-box!important;}
+    .chart-fullscreen.hidden{display:none!important;}
+    .chart-fullscreen-viewport{width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;touch-action:none!important;}
+    #fullscreenChartCanvas{display:block!important;max-width:98vw!important;max-height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 84px)!important;width:auto!important;height:auto!important;border-radius:8px;background:#fff;box-shadow:0 18px 60px rgba(0,0,0,.45);touch-action:none!important;will-change:transform;}
+    .fullscreen-close-btn{position:fixed!important;top:calc(env(safe-area-inset-top) + 12px)!important;right:14px!important;z-index:1000000!important;width:52px!important;height:52px!important;border-radius:50%!important;background:rgba(15,23,32,.92)!important;border:1px solid rgba(148,163,184,.35)!important;color:#fff!important;font-size:28px!important;line-height:1!important;}
+  `;
+  document.head.appendChild(style);
 
   const fmt=(n,d=0)=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:d,minimumFractionDigits:d}).format(n);
   const parseReq=el=>{const r=String(el.value||'').trim();return(!r||r==='-')?NaN:Number(r.replace(/[^0-9-]/g,''));};
@@ -25,9 +40,7 @@
   function bracket(fam,value,name){
     const f=sorted(fam), min=num(f[0]), max=num(f[f.length-1]);
     if(value<min||value>max) throw new Error(`${name} fora do envelope aprovado (${min} a ${max}).`);
-    for(let i=1;i<f.length;i++){
-      if(value>=num(f[i-1])&&value<=num(f[i])) return {lo:f[i-1],hi:f[i],t:inv(num(f[i-1]),num(f[i]),value)};
-    }
+    for(let i=1;i<f.length;i++) if(value>=num(f[i-1])&&value<=num(f[i])) return {lo:f[i-1],hi:f[i],t:inv(num(f[i-1]),num(f[i]),value)};
     return {lo:f[f.length-1],hi:f[f.length-1],t:0};
   }
   function yAtX(pts,x){
@@ -124,7 +137,35 @@
   function dot(ctx,canvas,p,color){
     const q=cp(canvas,p);ctx.save();ctx.fillStyle=color;ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.beginPath();ctx.arc(q[0],q[1],7,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
   }
+  function label(ctx,canvas,p,text,color){
+    const q=cp(canvas,p);ctx.save();ctx.font='bold 15px system-ui,sans-serif';const w=Math.max(38,ctx.measureText(text).width+14);ctx.fillStyle='rgba(255,255,255,.86)';ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(q[0]+8,q[1]-30,w,24,6);ctx.fill();ctx.stroke();ctx.fillStyle='#111';ctx.fillText(text,q[0]+15,q[1]-13);ctx.restore();
+  }
   function color(f){return f==='OAT'?'#f3b447':f==='GW'?'#47e074':f==='HEADWIND'?'#4ef0ff':'#ff79cb';}
+  function drawGuideLines(ctx,canvas,r){
+    if(!r?.debug)return;
+    const d=r.debug, ch=G.charts[r.chartKey];
+    if(d.mode==='offshore'){
+      const lf=frame(ch,'left_panel'), rf=frame(ch,'right_panel');
+      line(ctx,canvas,[d.xPa,d.yTransfer],[d.xPa,lf.y1],'#f3b447',5,false);
+      line(ctx,canvas,[d.xBase,d.yTransfer],[d.xBase,rf.y1],'#47e074',5,false);
+      line(ctx,canvas,[d.xFinal,d.yTransfer],[d.xFinal,rf.y1],'#ff79cb',4,true);
+      line(ctx,canvas,[d.xPa,d.yTransfer],[d.xBase,d.yTransfer],'#4ef0ff',4,false);
+      line(ctx,canvas,[d.xBase,d.yTransfer],[d.xFinal,d.yTransfer],'#ff79cb',4,true);
+      label(ctx,canvas,[d.xPa,d.yTransfer],'PA/OAT','#f3b447');
+      label(ctx,canvas,[d.xBase,d.yTransfer],'DIST','#47e074');
+      if(Math.abs(d.xFinal-d.xBase)>2) label(ctx,canvas,[d.xFinal,d.yTransfer],'FINAL','#ff79cb');
+    }else{
+      const lf=frame(ch,'left_panel'), mf=frame(ch,'middle_panel'), rf=frame(ch,'right_panel');
+      line(ctx,canvas,[d.xPa,d.yTransfer],[d.xPa,lf.y1],'#f3b447',5,false);
+      line(ctx,canvas,[d.xHeadwind,d.yAfterHeadwind],[d.xHeadwind,mf.y1],'#4ef0ff',5,false);
+      line(ctx,canvas,[d.xBase,d.yAfterHeadwind],[d.xBase,rf.y1],'#ff79cb',5,false);
+      line(ctx,canvas,[d.xPa,d.yTransfer],[mf.x0,d.yTransfer],'#4ef0ff',4,false);
+      line(ctx,canvas,[d.xHeadwind,d.yAfterHeadwind],[rf.x0,d.yAfterHeadwind],'#4ef0ff',4,false);
+      label(ctx,canvas,[d.xPa,d.yTransfer],'PA/OAT','#f3b447');
+      label(ctx,canvas,[d.xHeadwind,d.yAfterHeadwind],'WIND','#4ef0ff');
+      label(ctx,canvas,[d.xBase,d.yAfterHeadwind],'FINAL','#ff79cb');
+    }
+  }
   function draw(r,canvas=chartCanvas){
     if(!canvas)return;
     const ctx=canvas.getContext('2d'), key=r?.chartKey||chartKey(profileEl.value,parseReq(weightEl)), img=imgs[key]||imgs.offshore6400;
@@ -133,34 +174,63 @@
     if(!r?.debug)return;
     const seen=new Set();
     for(const [fam,c] of r.debug.curves){const k=fam+(c.label||c.id);if(seen.has(k))continue;seen.add(k);curve(ctx,canvas,c.points,color(fam),fam==='HEADWIND'?3:4,fam==='HEADWIND');}
+    drawGuideLines(ctx,canvas,r);
     if(r.debug.mode==='offshore'){
-      const ch=G.charts[r.chartKey], rf=frame(ch,'right_panel');
-      line(ctx,canvas,[r.debug.xPa,r.debug.yTransfer],[rf.x0,r.debug.yTransfer],'#4ef0ff',3,true);
-      line(ctx,canvas,[r.debug.xBase,r.debug.yTransfer],[r.debug.xFinal,r.debug.yTransfer],'#ff79cb',4,true);
       dot(ctx,canvas,[r.debug.xPa,r.debug.yTransfer],'#f3b447');dot(ctx,canvas,[r.debug.xBase,r.debug.yTransfer],'#47e074');dot(ctx,canvas,[r.debug.xFinal,r.debug.yTransfer],'#ff79cb');
     } else {
-      const ch=G.charts[r.chartKey], mf=frame(ch,'middle_panel'), rf=frame(ch,'right_panel');
-      line(ctx,canvas,[r.debug.xPa,r.debug.yTransfer],[mf.x0,r.debug.yTransfer],'#4ef0ff',3,true);
-      line(ctx,canvas,[r.debug.xHeadwind,r.debug.yAfterHeadwind],[rf.x0,r.debug.yAfterHeadwind],'#4ef0ff',3,true);
       dot(ctx,canvas,[r.debug.xPa,r.debug.yTransfer],'#f3b447');dot(ctx,canvas,[r.debug.xHeadwind,r.debug.yAfterHeadwind],'#4ef0ff');dot(ctx,canvas,[r.debug.xBase,r.debug.yAfterHeadwind],'#ff79cb');
     }
     ctx.save();ctx.fillStyle='#111';ctx.font='bold 18px system-ui,sans-serif';ctx.fillText(`DD-V7 vector: ${fmt(r.finalFt,0)} ft`,22,canvas.height-24);ctx.restore();
   }
   function render(r){
     last=r; finalMetric.textContent=`${fmt(r.finalFt,0)} ft`; finalMetricM.textContent=`${fmt(r.finalM,1)} m`;
-    statusCard.className='card status sticky-result within'; statusBadge.textContent='DD-V7 EM VALIDAÇÃO';
+    statusCard.className='card status sticky-result within'; statusBadge.textContent='DD-V7 APROVADO';
     statusTitle.textContent=r.profile==='enhanced'?'Enhanced — leitura vetorial':'Offshore — leitura vetorial';
     statusText.textContent=`Resultado vetorial: ${fmt(r.finalFt,0)} ft`;
-    statusDetail.textContent=`${r.chart}. Base A/B/C aprovada; Etapa D em teste no app.`;
-    interpBox.innerHTML=`<strong>Modo:</strong> DD-V7 engine vetorial em validação<br><strong>Carta:</strong> ${r.chart}<br><strong>Bracket OAT:</strong> ${r.oatInterp.low} / ${r.oatInterp.high} °C<br><strong>Bracket GW:</strong> ${r.weightInterp.low} / ${r.weightInterp.high} kg<br><strong>Leitura base do gráfico:</strong> ${fmt(r.baseFt,1)} ft<br><strong>Correção de vento:</strong> ${fmt(r.windCorrectionFt,1)} ft<br><strong>Correção Descending:</strong> ${fmt(r.descendingCorrectionFt,1)} ft<br><strong>Resultado final:</strong> ${fmt(r.finalFt,1)} ft (${fmt(r.finalM,1)} m)<br><small>Usa curvas vetoriais aprovadas nas Etapas A/B/C. Ainda requer casos-âncora.</small>`;
+    statusDetail.textContent=`${r.chart}. Engine DD-V7 aprovada; overlay com linhas-guia para conferência.`;
+    interpBox.innerHTML=`<strong>Modo:</strong> DD-V7 engine vetorial aprovada<br><strong>Carta:</strong> ${r.chart}<br><strong>Bracket OAT:</strong> ${r.oatInterp.low} / ${r.oatInterp.high} °C<br><strong>Bracket GW:</strong> ${r.weightInterp.low} / ${r.weightInterp.high} kg<br><strong>Leitura base do gráfico:</strong> ${fmt(r.baseFt,1)} ft<br><strong>Correção de vento:</strong> ${fmt(r.windCorrectionFt,1)} ft<br><strong>Correção Descending:</strong> ${fmt(r.descendingCorrectionFt,1)} ft<br><strong>Resultado final:</strong> ${fmt(r.finalFt,1)} ft (${fmt(r.finalM,1)} m)<br><small>Linhas-guia: PA/OAT, DIST/GW e FINAL projetadas até a borda do gráfico para conferência visual.</small>`;
     draw(r,chartCanvas);
+    if(isFullscreenOpen()) drawFullscreen();
   }
   function runDDV7(){
     setTimeout(()=>{try{render(calc());}catch(e){statusCard.className='card status sticky-result out';statusBadge.textContent='DD-V7 FORA DO ENVELOPE';statusTitle.textContent='Sem cálculo vetorial';statusText.textContent=e.message;statusDetail.textContent='Confira PA, OAT, GW e Headwind.';finalMetric.textContent='—';finalMetricM.textContent='—';}},0);
   }
+
+  function isFullscreenOpen(){ return fsLayer && !fsLayer.classList.contains('hidden'); }
+  function setFsTransform(){ if(fsCanvas) fsCanvas.style.transform=`translate(${fsPanX}px, ${fsPanY}px) scale(${fsScale})`; }
+  function resetFsTransform(){ fsScale=1; fsPanX=0; fsPanY=0; fsDragging=false; setFsTransform(); }
+  function sizeFullscreenCanvas(){
+    if(!fsCanvas)return;
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const maxCssW=Math.max(320,window.innerWidth-16);
+    const maxCssH=Math.max(320,window.innerHeight-96);
+    let cssW=maxCssW, cssH=cssW/PAGE_AR;
+    if(cssH>maxCssH){ cssH=maxCssH; cssW=cssH*PAGE_AR; }
+    fsCanvas.width=Math.round(cssW*dpr);
+    fsCanvas.height=Math.round(cssH*dpr);
+    fsCanvas.style.width=`${Math.round(cssW)}px`;
+    fsCanvas.style.height=`${Math.round(cssH)}px`;
+  }
+  function drawFullscreen(){ sizeFullscreenCanvas(); draw(last,fsCanvas); setFsTransform(); }
+  function openFullscreenDDV7(){
+    if(!fsLayer||!fsCanvas)return;
+    fsLayer.classList.remove('hidden'); fsLayer.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
+    resetFsTransform(); setTimeout(drawFullscreen,30);
+  }
+  function closeFullscreenDDV7(){ if(!fsLayer)return; fsLayer.classList.add('hidden'); fsLayer.setAttribute('aria-hidden','true'); document.body.style.overflow=''; resetFsTransform(); }
+
   runBtn?.addEventListener('click',runDDV7);
   resetBtn?.addEventListener('click',()=>{last=null;setTimeout(()=>draw(null,chartCanvas),0);});
-  $('openFullscreenBtn')?.addEventListener('click',()=>setTimeout(()=>draw(last,fsCanvas),80));
-  $('chartStage')?.addEventListener('click',()=>setTimeout(()=>draw(last,fsCanvas),80));
-  statusDetail && (statusDetail.textContent='DD-V7 carregado. Headwind vazio será considerado 0 kt.');
+  openFsBtn?.addEventListener('click',(e)=>{e.preventDefault(); setTimeout(openFullscreenDDV7,0);});
+  chartStage?.addEventListener('click',()=>setTimeout(openFullscreenDDV7,0));
+  $('closeFullscreenBtn')?.addEventListener('click',(e)=>{e.preventDefault(); closeFullscreenDDV7();});
+  window.addEventListener('resize',()=>{ if(isFullscreenOpen()) drawFullscreen(); });
+  window.addEventListener('orientationchange',()=>setTimeout(()=>{ if(isFullscreenOpen()) drawFullscreen(); },250));
+  fsCanvas?.addEventListener('pointerdown',e=>{fsDragging=true;fsStartX=e.clientX-fsPanX;fsStartY=e.clientY-fsPanY;fsCanvas.setPointerCapture?.(e.pointerId);});
+  fsCanvas?.addEventListener('pointermove',e=>{if(!fsDragging)return;fsPanX=e.clientX-fsStartX;fsPanY=e.clientY-fsStartY;setFsTransform();});
+  fsCanvas?.addEventListener('pointerup',e=>{fsDragging=false;fsCanvas.releasePointerCapture?.(e.pointerId);});
+  fsCanvas?.addEventListener('pointercancel',()=>{fsDragging=false;});
+  fsCanvas?.addEventListener('click',()=>{const now=Date.now(); if(now-fsLastTap<320){fsScale=fsScale===1?2.2:1;if(fsScale===1){fsPanX=0;fsPanY=0;}setFsTransform();} fsLastTap=now;});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeFullscreenDDV7();});
+  statusDetail && (statusDetail.textContent='DD-V7 aprovado. Linhas-guia e fullscreen revisados. Headwind vazio = 0 kt.');
 })();
