@@ -330,17 +330,32 @@
     if (action === 'pdf') sharePdf();
   });
 
-  openBtn?.addEventListener('click', () => scheduleRender(280));
-  chartStage?.addEventListener('click', () => scheduleRender(280));
-  closeBtn?.addEventListener('click', () => {
+  function openFullscreen() {
+    if (!layer || !canvas) return;
+    layer.classList.remove('hidden');
+    layer.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    scheduleRender(220);
+  }
+
+  function closeFullscreen() {
+    if (!layer) return;
+    layer.classList.add('hidden');
+    layer.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
     state.pointers.clear();
     state.dragging = false;
-  });
+  }
 
-  const observer = new MutationObserver(() => { if (isOpen()) scheduleRender(240); });
-  observer.observe(layer, { attributes: true, attributeFilter: ['class', 'aria-hidden'] });
+  openBtn?.addEventListener('click', openFullscreen);
+  chartStage?.addEventListener('click', openFullscreen);
+  closeBtn?.addEventListener('click', closeFullscreen);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFullscreen(); });
+
   window.addEventListener('resize', () => { if (isOpen()) scheduleRender(180); }, true);
   window.addEventListener('orientationchange', () => { if (isOpen()) scheduleRender(420); }, true);
+
+  window.ddv7RequestFullscreenUpdate = () => { if (isOpen()) scheduleRender(60); };
 
   function shouldAdvance(el) {
     const raw = String(el.value || '').trim();

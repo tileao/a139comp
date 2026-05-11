@@ -21,23 +21,9 @@ const statusCard = document.getElementById('statusCard');
 
 const chartCanvas = document.getElementById('chartCanvas');
 const chartStage = document.getElementById('chartStage');
-const openFullscreenBtn = document.getElementById('openFullscreenBtn');
-const chartFullscreen = document.getElementById('chartFullscreen');
-const closeFullscreenBtn = document.getElementById('closeFullscreenBtn');
-const fullscreenChartCanvas = document.getElementById('fullscreenChartCanvas');
 
 const FT_TO_M = 0.3048;
 let currentResult = null;
-
-const fullscreenState = {
-  zoom: 1,
-  panX: 0,
-  panY: 0,
-  dragging: false,
-  startX: 0,
-  startY: 0,
-  lastTap: 0,
-};
 
 const OFFSHORE_WEIGHT_CURVES = [
   { weight: 5800, dropFtAtRef: 18 },
@@ -307,10 +293,6 @@ function drawChart(result = null, canvas = chartCanvas) {
 
 function refreshCharts() {
   drawChart(currentResult, chartCanvas);
-  if (chartFullscreen && !chartFullscreen.classList.contains('hidden')) {
-    drawChart(currentResult, fullscreenChartCanvas);
-    applyFullscreenTransform();
-  }
 }
 
 function render(result) {
@@ -355,52 +337,6 @@ function toggleSignedInput(el) {
   el.focus();
 }
 
-function resetFullscreenTransform() {
-  fullscreenState.zoom = 1;
-  fullscreenState.panX = 0;
-  fullscreenState.panY = 0;
-  fullscreenState.dragging = false;
-  if (fullscreenChartCanvas) {
-    fullscreenChartCanvas.style.transform = 'translate(0px, 0px) scale(1)';
-    fullscreenChartCanvas.style.transformOrigin = 'center center';
-    fullscreenChartCanvas.style.touchAction = 'none';
-  }
-}
-
-function applyFullscreenTransform() {
-  if (!fullscreenChartCanvas) return;
-  fullscreenChartCanvas.style.transform = `translate(${fullscreenState.panX}px, ${fullscreenState.panY}px) scale(${fullscreenState.zoom})`;
-}
-
-function openFullscreenChart() {
-  if (!chartFullscreen || !fullscreenChartCanvas) return;
-  chartFullscreen.classList.remove('hidden');
-  chartFullscreen.setAttribute('aria-hidden', 'false');
-  document.body.style.overflow = 'hidden';
-  drawChart(currentResult, fullscreenChartCanvas);
-  resetFullscreenTransform();
-}
-
-function closeFullscreenChart() {
-  if (!chartFullscreen) return;
-  chartFullscreen.classList.add('hidden');
-  chartFullscreen.setAttribute('aria-hidden', 'true');
-  document.body.style.overflow = '';
-  resetFullscreenTransform();
-}
-
-function handleFullscreenTap() {
-  const now = Date.now();
-  if (now - fullscreenState.lastTap < 320) {
-    fullscreenState.zoom = fullscreenState.zoom === 1 ? 2.3 : 1;
-    if (fullscreenState.zoom === 1) {
-      fullscreenState.panX = 0;
-      fullscreenState.panY = 0;
-    }
-    applyFullscreenTransform();
-  }
-  fullscreenState.lastTap = now;
-}
 
 document.getElementById('paNegativeBtn')?.addEventListener('click', () => toggleSignedInput(paEl));
 document.getElementById('oatNegativeBtn')?.addEventListener('click', () => toggleSignedInput(oatEl));
@@ -419,26 +355,4 @@ runBtn?.addEventListener('click', () => {
 resetBtn?.addEventListener('click', reset);
 profileEl?.addEventListener('change', () => { if (!currentResult) refreshCharts(); });
 weightEl?.addEventListener('input', () => { if (!currentResult) refreshCharts(); });
-openFullscreenBtn?.addEventListener('click', openFullscreenChart);
-chartStage?.addEventListener('click', openFullscreenChart);
-closeFullscreenBtn?.addEventListener('click', closeFullscreenChart);
-fullscreenChartCanvas?.addEventListener('pointerdown', event => {
-  fullscreenState.dragging = true;
-  fullscreenState.startX = event.clientX - fullscreenState.panX;
-  fullscreenState.startY = event.clientY - fullscreenState.panY;
-  fullscreenChartCanvas.setPointerCapture?.(event.pointerId);
-});
-fullscreenChartCanvas?.addEventListener('pointermove', event => {
-  if (!fullscreenState.dragging) return;
-  fullscreenState.panX = event.clientX - fullscreenState.startX;
-  fullscreenState.panY = event.clientY - fullscreenState.startY;
-  applyFullscreenTransform();
-});
-fullscreenChartCanvas?.addEventListener('pointerup', event => {
-  fullscreenState.dragging = false;
-  fullscreenChartCanvas.releasePointerCapture?.(event.pointerId);
-});
-fullscreenChartCanvas?.addEventListener('pointercancel', () => { fullscreenState.dragging = false; });
-fullscreenChartCanvas?.addEventListener('click', handleFullscreenTap);
-document.addEventListener('keydown', event => { if (event.key === 'Escape') closeFullscreenChart(); });
 refreshCharts();
