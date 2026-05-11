@@ -130,8 +130,13 @@
   function curve(ctx,canvas,pts,color,width=4,dashed=false){
     if(!pts||pts.length<2)return;
     ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.lineCap='round';ctx.lineJoin='round';if(dashed)ctx.setLineDash([8,6]);
-    const a=cp(canvas,pts[0]);ctx.beginPath();ctx.moveTo(a[0],a[1]);
-    for(let k=1;k<pts.length;k++){const p=cp(canvas,pts[k]);ctx.lineTo(p[0],p[1]);}
+    const cps=pts.map(p=>cp(canvas,p));
+    ctx.beginPath();ctx.moveTo(cps[0][0],cps[0][1]);
+    if(cps.length===2){ctx.lineTo(cps[1][0],cps[1][1]);}
+    else{for(let k=1;k<cps.length;k++){
+      const p0=cps[Math.max(0,k-2)],p1=cps[k-1],p2=cps[k],p3=cps[Math.min(cps.length-1,k+1)];
+      ctx.bezierCurveTo(p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6,p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6,p2[0],p2[1]);
+    }}
     ctx.stroke();ctx.restore();
   }
   function line(ctx,canvas,a,b,color,width=3,dashed=true){
