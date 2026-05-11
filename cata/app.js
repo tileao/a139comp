@@ -849,6 +849,7 @@ function parseRawMetar(text) {
   const parseDeg = (s) => s.startsWith('M') ? -parseInt(s.slice(1), 10) : parseInt(s, 10);
   return {
     rawOb: raw,
+    reportType: /^SPECI\b/i.test(raw) ? 'SPECI' : 'METAR',
     wdir:  wind ? (wind[1] === 'VRB' ? 0 : parseInt(wind[1], 10)) : null,
     wspd:  wind ? parseInt(wind[2], 10) : null,
     temp:  temp ? parseDeg(temp[1]) : null,
@@ -872,13 +873,17 @@ async function fetchFromVatsim(icao) {
 }
 
 async function fetchFromAviationWeather(icao, useProxy) {
-  const base = `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`;
+  const base = `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json&hoursBeforeNow=2&mostRecent=true`;
   const url = useProxy ? `https://corsproxy.io/?${encodeURIComponent(base)}` : base;
   const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
   if (!resp.ok) throw new Error(`AWC HTTP ${resp.status}`);
   const data = await resp.json();
   const metar = Array.isArray(data) ? data[0] : (Array.isArray(data?.data) ? data.data[0] : data);
   if (!metar || typeof metar !== 'object') throw new Error('Sem METAR disponível');
+  const rawText = String(metar.rawOb || metar.raw_text || metar.raw || '');
+  if (!metar.reportType) {
+    metar.reportType = /^SPECI\b/i.test(rawText) ? 'SPECI' : (metar.receiptType || 'METAR');
+  }
   return metar;
 }
 
@@ -908,11 +913,12 @@ async function handleMetarFetch() {
     updateCalcDisplay();
     markCalculationDirty('METAR atualizado');
     const rawMetar = String(metar.rawOb || metar.raw_text || metar.raw || '').trim();
+    const reportLabel = metar.reportType || 'METAR';
     if (rawMetar) {
-      setMetarInfoLine(`METAR ${icao}: ${rawMetar}`);
+      setMetarInfoLine(`${reportLabel} ${icao}: ${rawMetar}`);
     } else {
       const metarTime = String(metar.obsTime || metar.observationTime || metar.reportTime || metar.receiptTime || '—');
-      setMetarInfoLine(`METAR ${icao}: Hora ${metarTime} • QNH ${Math.round(Number(metar.altim || 0)) || "—"} • OAT ${Math.round(Number(metar.temp || 0)) || "—"}°C • Vento ${Math.round(Number(metar.wdir || 0)) || "---"}/${Math.round(Number(metar.wspd || 0)) || "--"}kt`);
+      setMetarInfoLine(`${reportLabel} ${icao}: Hora ${metarTime} • QNH ${Math.round(Number(metar.altim || 0)) || "—"} • OAT ${Math.round(Number(metar.temp || 0)) || "—"}°C • Vento ${Math.round(Number(metar.wdir || 0)) || "---"}/${Math.round(Number(metar.wspd || 0)) || "--"}kt`);
     }
     btn.textContent = 'METAR OK ✓';
     setTimeout(() => { if (btn.textContent === 'METAR OK ✓') btn.textContent = origText; }, 3000);

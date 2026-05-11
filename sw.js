@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v22-metar-vatsim';
+const CACHE_NAME = 'aw139-companion-root-v23-metar-speci';
 const PRECACHE = [
   "./",
   "./README.md",
