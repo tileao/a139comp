@@ -1,5 +1,6 @@
 // AW139 Dropdown DD-V7 fullscreen UX hotfix
-// Purpose: replace unstable transform handling with focal zoom + bounded pan.
+// Purpose: stable fullscreen using native scroll/pan + button/double-tap zoom.
+// Also adds automatic advance to the next input field.
 (() => {
   const $ = id => document.getElementById(id);
   const layer = $('chartFullscreen');
@@ -8,6 +9,11 @@
   const openBtn = $('openFullscreenBtn');
   const chartStage = $('chartStage');
   const closeBtn = $('closeFullscreenBtn');
+
+  const paEl = $('pressureAltitude');
+  const oatEl = $('oat');
+  const weightEl = $('actualWeight');
+  const windEl = $('headwind');
 
   if (!layer || !viewport || !canvas) return;
 
@@ -18,7 +24,7 @@
       inset:0!important;
       z-index:999999!important;
       background:#05080d!important;
-      padding:calc(env(safe-area-inset-top) + 58px) 8px calc(env(safe-area-inset-bottom) + 12px)!important;
+      padding:calc(env(safe-area-inset-top) + 58px) 8px calc(env(safe-area-inset-bottom) + 74px)!important;
       box-sizing:border-box!important;
     }
     .chart-fullscreen-viewport{
@@ -26,49 +32,74 @@
       display:block!important;
       width:100%!important;
       height:100%!important;
-      overflow:hidden!important;
-      touch-action:none!important;
+      overflow:auto!important;
+      touch-action:pan-x pan-y!important;
+      -webkit-overflow-scrolling:touch!important;
+      overscroll-behavior:contain!important;
       background:#05080d!important;
       border-radius:10px!important;
+      text-align:left!important;
     }
     #fullscreenChartCanvas{
-      position:absolute!important;
-      left:0!important;
-      top:0!important;
+      position:relative!important;
+      display:block!important;
+      left:auto!important;
+      top:auto!important;
       max-width:none!important;
       max-height:none!important;
-      width:auto;
-      height:auto;
+      transform:none!important;
       transform-origin:0 0!important;
-      touch-action:none!important;
+      touch-action:pan-x pan-y!important;
       user-select:none!important;
       -webkit-user-select:none!important;
       background:#fff!important;
       border-radius:8px!important;
       box-shadow:0 16px 52px rgba(0,0,0,.48)!important;
-      will-change:transform!important;
+      margin:0!important;
     }
     .fullscreen-close-btn{
       position:fixed!important;
       top:calc(env(safe-area-inset-top) + 12px)!important;
       right:14px!important;
-      z-index:1000000!important;
+      z-index:1000002!important;
+    }
+    .ddv7-fs-toolbar{
+      position:fixed!important;
+      left:50%!important;
+      bottom:calc(env(safe-area-inset-bottom) + 14px)!important;
+      transform:translateX(-50%)!important;
+      z-index:1000001!important;
+      display:flex!important;
+      gap:10px!important;
+      align-items:center!important;
+      padding:8px 10px!important;
+      border-radius:999px!important;
+      background:rgba(15,23,32,.92)!important;
+      border:1px solid rgba(148,163,184,.35)!important;
+      box-shadow:0 10px 34px rgba(0,0,0,.38)!important;
+    }
+    .ddv7-fs-toolbar button{
+      min-width:46px!important;
+      height:40px!important;
+      padding:0 12px!important;
+      border-radius:999px!important;
+      border:1px solid rgba(148,163,184,.34)!important;
+      background:rgba(255,255,255,.10)!important;
+      color:#fff!important;
+      font:700 16px system-ui,-apple-system,Segoe UI,sans-serif!important;
     }
   `;
   document.head.appendChild(css);
 
+  const toolbar = document.createElement('div');
+  toolbar.className = 'ddv7-fs-toolbar';
+  toolbar.innerHTML = `<button type="button" data-ddv7-zoom="out">−</button><button type="button" data-ddv7-zoom="fit">Fit</button><button type="button" data-ddv7-zoom="in">+</button>`;
+  layer.appendChild(toolbar);
+
   const state = {
     zoom: 1,
-    x: 0,
-    y: 0,
     baseW: 0,
     baseH: 0,
-    dragging: false,
-    startClientX: 0,
-    startClientY: 0,
-    startX: 0,
-    startY: 0,
-    moved: false,
     lastTap: 0,
   };
 
@@ -89,167 +120,182 @@
     return 842 / 595;
   }
 
-  function applyTransform() {
-    canvas.style.transform = `translate3d(${state.x}px, ${state.y}px, 0) scale(${state.zoom})`;
+  function neutralizeOldTransform() {
+    canvas.style.transform = 'none';
+    canvas.style.left = 'auto';
+    canvas.style.top = 'auto';
+    canvas.style.position = 'relative';
   }
 
-  function clampPan() {
+  function applySize() {
+    neutralizeOldTransform();
+    const w = Math.max(260, Math.round(state.baseW * state.zoom));
+    const h = Math.max(180, Math.round(state.baseH * state.zoom));
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+  }
+
+  function centerIfSmaller() {
     const r = viewportRect();
-    const scaledW = state.baseW * state.zoom;
-    const scaledH = state.baseH * state.zoom;
-
-    if (scaledW <= r.width) {
-      state.x = (r.width - scaledW) / 2;
-    } else {
-      state.x = clamp(state.x, r.width - scaledW, 0);
-    }
-
-    if (scaledH <= r.height) {
-      state.y = (r.height - scaledH) / 2;
-    } else {
-      state.y = clamp(state.y, r.height - scaledH, 0);
-    }
+    const w = state.baseW * state.zoom;
+    const h = state.baseH * state.zoom;
+    canvas.style.marginLeft = w < r.width ? `${Math.round((r.width - w) / 2)}px` : '0px';
+    canvas.style.marginTop = h < r.height ? `${Math.round((r.height - h) / 2)}px` : '0px';
   }
 
   function measureAndFit() {
     if (!isOpen()) return;
 
-    canvas.style.transform = 'none';
-    canvas.style.transformOrigin = '0 0';
-    canvas.style.left = '0px';
-    canvas.style.top = '0px';
-    canvas.style.maxWidth = 'none';
-    canvas.style.maxHeight = 'none';
+    neutralizeOldTransform();
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
 
     const r = viewportRect();
     const ar = canvasAspect();
-    let w = Math.max(260, r.width - 4);
+    let w = Math.max(280, r.width - 8);
     let h = w / ar;
 
-    if (h > r.height - 4) {
-      h = Math.max(220, r.height - 4);
+    if (h > r.height - 8) {
+      h = Math.max(220, r.height - 8);
       w = h * ar;
     }
 
     state.baseW = w;
     state.baseH = h;
     state.zoom = 1;
-    state.x = (r.width - w) / 2;
-    state.y = (r.height - h) / 2;
-
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-    applyTransform();
+    applySize();
+    centerIfSmaller();
   }
 
-  function scheduleFit(delay = 120) {
+  function scheduleFit(delay = 180) {
     setTimeout(measureAndFit, delay);
   }
 
-  function setZoomAt(newZoom, clientX, clientY) {
+  function setZoom(newZoom, focalClientX = null, focalClientY = null) {
     if (!isOpen()) return;
+
+    const oldZoom = state.zoom;
+    const oldW = state.baseW * oldZoom;
+    const oldH = state.baseH * oldZoom;
     const r = viewportRect();
-    const focalX = clientX - r.left;
-    const focalY = clientY - r.top;
-    const localX = (focalX - state.x) / state.zoom;
-    const localY = (focalY - state.y) / state.zoom;
+    const focusX = focalClientX == null ? r.left + r.width / 2 : focalClientX;
+    const focusY = focalClientY == null ? r.top + r.height / 2 : focalClientY;
+    const localX = (viewport.scrollLeft + focusX - r.left) / Math.max(1, oldW);
+    const localY = (viewport.scrollTop + focusY - r.top) / Math.max(1, oldH);
 
-    state.zoom = clamp(newZoom, 1, 5);
-    state.x = focalX - localX * state.zoom;
-    state.y = focalY - localY * state.zoom;
-    clampPan();
-    applyTransform();
+    state.zoom = clamp(newZoom, 1, 4.5);
+    applySize();
+    centerIfSmaller();
+
+    const newW = state.baseW * state.zoom;
+    const newH = state.baseH * state.zoom;
+    viewport.scrollLeft = Math.max(0, localX * newW - (focusX - r.left));
+    viewport.scrollTop = Math.max(0, localY * newH - (focusY - r.top));
   }
 
-  function resetZoom() {
+  function fitZoom() {
     state.zoom = 1;
-    clampPan();
-    applyTransform();
+    applySize();
+    centerIfSmaller();
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
   }
 
-  function beginDrag(e) {
+  // Stop older DD-V7 fullscreen transform handlers from grabbing the canvas,
+  // but do not prevent default scrolling; native overflow pan remains active.
+  ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(type => {
+    canvas.addEventListener(type, e => {
+      if (!isOpen()) return;
+      e.stopImmediatePropagation();
+    }, true);
+  });
+
+  canvas.addEventListener('click', e => {
     if (!isOpen()) return;
-    e.preventDefault();
     e.stopImmediatePropagation();
-    state.dragging = true;
-    state.moved = false;
-    state.startClientX = e.clientX;
-    state.startClientY = e.clientY;
-    state.startX = state.x;
-    state.startY = state.y;
-    canvas.setPointerCapture?.(e.pointerId);
-  }
-
-  function moveDrag(e) {
-    if (!state.dragging || !isOpen()) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    const dx = e.clientX - state.startClientX;
-    const dy = e.clientY - state.startClientY;
-    if (Math.hypot(dx, dy) > 3) state.moved = true;
-    state.x = state.startX + dx;
-    state.y = state.startY + dy;
-    clampPan();
-    applyTransform();
-  }
-
-  function endDrag(e) {
-    if (!isOpen()) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    state.dragging = false;
-    canvas.releasePointerCapture?.(e.pointerId);
-  }
-
-  function handleTap(e) {
-    if (!isOpen()) return;
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    if (state.moved) return;
-
     const now = Date.now();
     if (now - state.lastTap < 330) {
-      if (state.zoom < 1.4) {
-        setZoomAt(2.4, e.clientX, e.clientY);
-      } else {
-        resetZoom();
-      }
+      if (state.zoom < 1.4) setZoom(2.4, e.clientX, e.clientY);
+      else fitZoom();
       state.lastTap = 0;
     } else {
       state.lastTap = now;
     }
-  }
+  }, true);
 
-  function handleWheel(e) {
+  viewport.addEventListener('wheel', e => {
     if (!isOpen()) return;
     e.preventDefault();
-    e.stopImmediatePropagation();
     const factor = e.deltaY < 0 ? 1.18 : 0.84;
-    setZoomAt(state.zoom * factor, e.clientX, e.clientY);
-  }
+    setZoom(state.zoom * factor, e.clientX, e.clientY);
+  }, { passive: false });
 
-  // Let DD-V7 draw first, then override only the interaction/layout layer.
-  openBtn?.addEventListener('click', () => scheduleFit(180));
-  chartStage?.addEventListener('click', () => scheduleFit(180));
-  closeBtn?.addEventListener('click', () => {
-    state.zoom = 1;
-    state.x = 0;
-    state.y = 0;
-    applyTransform();
+  toolbar.addEventListener('click', e => {
+    const action = e.target?.dataset?.ddv7Zoom;
+    if (!action) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const r = viewportRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    if (action === 'fit') fitZoom();
+    if (action === 'in') setZoom(state.zoom * 1.45, cx, cy);
+    if (action === 'out') setZoom(state.zoom / 1.45, cx, cy);
   });
 
+  openBtn?.addEventListener('click', () => scheduleFit(240));
+  chartStage?.addEventListener('click', () => scheduleFit(240));
+  closeBtn?.addEventListener('click', () => fitZoom());
+
   const observer = new MutationObserver(() => {
-    if (isOpen()) scheduleFit(140);
+    if (isOpen()) scheduleFit(220);
   });
   observer.observe(layer, { attributes: true, attributeFilter: ['class', 'aria-hidden'] });
 
-  window.addEventListener('resize', () => { if (isOpen()) scheduleFit(180); }, true);
-  window.addEventListener('orientationchange', () => { if (isOpen()) scheduleFit(320); }, true);
+  window.addEventListener('resize', () => { if (isOpen()) scheduleFit(220); }, true);
+  window.addEventListener('orientationchange', () => { if (isOpen()) scheduleFit(380); }, true);
 
-  canvas.addEventListener('pointerdown', beginDrag, true);
-  canvas.addEventListener('pointermove', moveDrag, true);
-  canvas.addEventListener('pointerup', endDrag, true);
-  canvas.addEventListener('pointercancel', endDrag, true);
-  canvas.addEventListener('click', handleTap, true);
-  canvas.addEventListener('wheel', handleWheel, { passive: false, capture: true });
+  function shouldAdvance(el) {
+    const raw = String(el.value || '').trim();
+    const digits = raw.replace(/\D/g, '');
+    if (!raw || raw === '-') return false;
+    if (el === paEl) return raw === '0' || digits.length >= 4;
+    if (el === oatEl) return raw === '0' || digits.length >= 2 || (raw.startsWith('-') && digits.length >= 1);
+    if (el === weightEl) return digits.length >= 4;
+    if (el === windEl) return digits.length >= 2;
+    return false;
+  }
+
+  function setupAutoAdvance() {
+    const fields = [paEl, oatEl, weightEl, windEl].filter(Boolean);
+    fields.forEach((field, idx) => {
+      let timer = null;
+      field.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          if (!shouldAdvance(field)) return;
+          const next = fields[idx + 1];
+          if (next) {
+            next.focus();
+            next.select?.();
+          } else {
+            field.blur();
+          }
+        }, 360);
+      });
+      field.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const next = fields[idx + 1];
+        if (next) {
+          next.focus();
+          next.select?.();
+        } else {
+          field.blur();
+        }
+      });
+    });
+  }
+
+  setupAutoAdvance();
 })();
