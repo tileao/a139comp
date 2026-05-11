@@ -1,0 +1,29 @@
+@import url('../rto/styles.css');
+
+.reference-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.reference-box {
+  background: rgba(11,15,20,.55);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.reference-box strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.reference-box small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+@media (max-width: 760px) {
+  .reference-grid { grid-template-columns: 1fr; }
+}
