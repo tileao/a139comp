@@ -1,6 +1,6 @@
 // AW139 Dropdown DD-V7 fullscreen UX hotfix
-// Purpose: stable fullscreen using native scroll/pan + button/double-tap zoom.
-// Also adds automatic field advance and PDF sharing/export.
+// Purpose: native pinch-zoom/pan behavior, high-resolution fullscreen chart, PDF sharing,
+// and automatic field advance. No custom transform zoom is used here.
 (() => {
   const $ = id => document.getElementById(id);
   const layer = $('chartFullscreen');
@@ -26,8 +26,11 @@
       inset:0!important;
       z-index:999999!important;
       background:#05080d!important;
-      padding:calc(env(safe-area-inset-top) + 58px) 8px calc(env(safe-area-inset-bottom) + 82px)!important;
+      padding:calc(env(safe-area-inset-top) + 58px) 6px calc(env(safe-area-inset-bottom) + 72px)!important;
       box-sizing:border-box!important;
+      overflow:auto!important;
+      touch-action:auto!important;
+      -webkit-overflow-scrolling:touch!important;
     }
     .chart-fullscreen-viewport{
       position:relative!important;
@@ -35,9 +38,9 @@
       width:100%!important;
       height:100%!important;
       overflow:auto!important;
-      touch-action:pan-x pan-y!important;
+      touch-action:auto!important;
       -webkit-overflow-scrolling:touch!important;
-      overscroll-behavior:contain!important;
+      overscroll-behavior:auto!important;
       background:#05080d!important;
       border-radius:10px!important;
       text-align:left!important;
@@ -50,14 +53,13 @@
       max-width:none!important;
       max-height:none!important;
       transform:none!important;
-      transform-origin:0 0!important;
-      touch-action:pan-x pan-y!important;
+      transform-origin:center center!important;
+      touch-action:auto!important;
       user-select:none!important;
       -webkit-user-select:none!important;
       background:#fff!important;
       border-radius:8px!important;
       box-shadow:0 16px 52px rgba(0,0,0,.48)!important;
-      margin:0!important;
     }
     .fullscreen-close-btn{
       position:fixed!important;
@@ -74,7 +76,7 @@
       display:flex!important;
       gap:8px!important;
       align-items:center!important;
-      padding:8px 9px!important;
+      padding:8px 10px!important;
       border-radius:999px!important;
       background:rgba(15,23,32,.94)!important;
       border:1px solid rgba(148,163,184,.35)!important;
@@ -84,9 +86,9 @@
       -webkit-overflow-scrolling:touch!important;
     }
     .ddv7-fs-toolbar button{
-      min-width:43px!important;
+      min-width:54px!important;
       height:40px!important;
-      padding:0 11px!important;
+      padding:0 13px!important;
       border-radius:999px!important;
       border:1px solid rgba(148,163,184,.34)!important;
       background:rgba(255,255,255,.10)!important;
@@ -95,7 +97,6 @@
       white-space:nowrap!important;
     }
     .ddv7-fs-toolbar button[data-ddv7-action="pdf"]{
-      min-width:58px!important;
       background:rgba(69,196,255,.18)!important;
     }
   `;
@@ -104,123 +105,87 @@
   const toolbar = document.createElement('div');
   toolbar.className = 'ddv7-fs-toolbar';
   toolbar.innerHTML = `
-    <button type="button" data-ddv7-zoom="out">−</button>
-    <button type="button" data-ddv7-zoom="fit">Fit</button>
-    <button type="button" data-ddv7-zoom="in">+</button>
+    <button type="button" data-ddv7-action="fit">Fit</button>
     <button type="button" data-ddv7-action="pdf">PDF</button>
   `;
   layer.appendChild(toolbar);
 
-  const state = {
-    zoom: 1,
-    baseW: 0,
-    baseH: 0,
-    lastTap: 0,
-    pinchStartDistance: 0,
-    pinchStartZoom: 1,
-    pinchCenterX: 0,
-    pinchCenterY: 0,
-    pointers: new Map(),
-  };
-
   function isOpen() {
     return !layer.classList.contains('hidden');
-  }
-
-  function clamp(v, min, max) {
-    return Math.max(min, Math.min(max, v));
   }
 
   function viewportRect() {
     return viewport.getBoundingClientRect();
   }
 
-  function canvasAspect() {
-    if (canvas.width > 0 && canvas.height > 0) return canvas.width / canvas.height;
-    return 842 / 595;
+  function copyCanvas(source) {
+    const tmp = document.createElement('canvas');
+    tmp.width = source.width || 1200;
+    tmp.height = source.height || 760;
+    const tctx = tmp.getContext('2d');
+    tctx.drawImage(source, 0, 0);
+    return tmp;
   }
 
-  function neutralizeOldTransform() {
+  function centerCanvas() {
+    const r = viewportRect();
+    const cssW = parseFloat(canvas.style.width) || canvas.clientWidth;
+    const cssH = parseFloat(canvas.style.height) || canvas.clientHeight;
+    canvas.style.marginLeft = cssW < r.width ? `${Math.round((r.width - cssW) / 2)}px` : '0px';
+    canvas.style.marginTop = cssH < r.height ? `${Math.round((r.height - cssH) / 2)}px` : '0px';
+  }
+
+  function renderHighResolutionFullscreen() {
+    if (!isOpen()) return;
+
+    const source = normalCanvas && normalCanvas.width && normalCanvas.height ? normalCanvas : canvas;
+    const snapshot = copyCanvas(source);
+    const sourceAR = snapshot.width / snapshot.height;
+
+    // High backing resolution for pinch zoom / PDF. Keeps the same visual aspect as the approved overlay canvas.
+    const targetW = Math.max(2400, snapshot.width * 2);
+    const targetH = Math.round(targetW / sourceAR);
+
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.clearRect(0, 0, targetW, targetH);
+    ctx.drawImage(snapshot, 0, 0, targetW, targetH);
+
     canvas.style.transform = 'none';
+    canvas.style.position = 'relative';
     canvas.style.left = 'auto';
     canvas.style.top = 'auto';
-    canvas.style.position = 'relative';
-  }
-
-  function applySize() {
-    neutralizeOldTransform();
-    const w = Math.max(260, Math.round(state.baseW * state.zoom));
-    const h = Math.max(180, Math.round(state.baseH * state.zoom));
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
-  }
-
-  function centerIfSmaller() {
-    const r = viewportRect();
-    const w = state.baseW * state.zoom;
-    const h = state.baseH * state.zoom;
-    canvas.style.marginLeft = w < r.width ? `${Math.round((r.width - w) / 2)}px` : '0px';
-    canvas.style.marginTop = h < r.height ? `${Math.round((r.height - h) / 2)}px` : '0px';
-  }
-
-  function measureAndFit() {
-    if (!isOpen()) return;
-    neutralizeOldTransform();
-    viewport.scrollLeft = 0;
-    viewport.scrollTop = 0;
+    canvas.style.maxWidth = 'none';
+    canvas.style.maxHeight = 'none';
 
     const r = viewportRect();
-    const ar = canvasAspect();
-    let w = Math.max(280, r.width - 8);
-    let h = w / ar;
-
-    if (h > r.height - 8) {
-      h = Math.max(220, r.height - 8);
-      w = h * ar;
+    let cssW = Math.max(280, r.width - 8);
+    let cssH = cssW / sourceAR;
+    if (cssH > r.height - 8) {
+      cssH = Math.max(220, r.height - 8);
+      cssW = cssH * sourceAR;
     }
 
-    state.baseW = w;
-    state.baseH = h;
-    state.zoom = 1;
-    applySize();
-    centerIfSmaller();
-  }
-
-  function scheduleFit(delay = 180) {
-    setTimeout(measureAndFit, delay);
-  }
-
-  function setZoom(newZoom, focalClientX = null, focalClientY = null) {
-    if (!isOpen()) return;
-
-    const oldZoom = state.zoom;
-    const oldW = state.baseW * oldZoom;
-    const oldH = state.baseH * oldZoom;
-    const r = viewportRect();
-    const focusX = focalClientX == null ? r.left + r.width / 2 : focalClientX;
-    const focusY = focalClientY == null ? r.top + r.height / 2 : focalClientY;
-    const localX = (viewport.scrollLeft + focusX - r.left) / Math.max(1, oldW);
-    const localY = (viewport.scrollTop + focusY - r.top) / Math.max(1, oldH);
-
-    state.zoom = clamp(newZoom, 1, 5.5);
-    applySize();
-    centerIfSmaller();
-
-    const newW = state.baseW * state.zoom;
-    const newH = state.baseH * state.zoom;
-    viewport.scrollLeft = Math.max(0, localX * newW - (focusX - r.left));
-    viewport.scrollTop = Math.max(0, localY * newH - (focusY - r.top));
-  }
-
-  function fitZoom() {
-    state.zoom = 1;
-    applySize();
-    centerIfSmaller();
+    canvas.style.width = `${Math.round(cssW)}px`;
+    canvas.style.height = `${Math.round(cssH)}px`;
+    centerCanvas();
     viewport.scrollLeft = 0;
     viewport.scrollTop = 0;
   }
 
-  // Block old transform/pointer handlers from ddv7-patch, while preserving native scroll.
+  function scheduleRender(delay = 260) {
+    setTimeout(renderHighResolutionFullscreen, delay);
+  }
+
+  function fitView() {
+    renderHighResolutionFullscreen();
+  }
+
+  // Block the older custom transform handlers from ddv7-patch, but do not prevent default.
+  // This preserves native browser pinch zoom and scroll/pan behavior.
   ['pointerdown', 'pointermove', 'pointerup', 'pointercancel'].forEach(type => {
     canvas.addEventListener(type, e => {
       if (!isOpen()) return;
@@ -228,85 +193,29 @@
     }, true);
   });
 
-  canvas.addEventListener('click', e => {
-    if (!isOpen()) return;
-    e.stopImmediatePropagation();
-    const now = Date.now();
-    if (now - state.lastTap < 330) {
-      if (state.zoom < 1.4) setZoom(2.4, e.clientX, e.clientY);
-      else fitZoom();
-      state.lastTap = 0;
-    } else {
-      state.lastTap = now;
-    }
-  }, true);
-
-  viewport.addEventListener('wheel', e => {
-    if (!isOpen()) return;
-    e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.18 : 0.84;
-    setZoom(state.zoom * factor, e.clientX, e.clientY);
-  }, { passive: false });
-
-  // Pinch support on the viewport. Single-finger pan remains native scrolling.
-  viewport.addEventListener('pointerdown', e => {
-    if (!isOpen()) return;
-    state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (state.pointers.size === 2) {
-      const pts = [...state.pointers.values()];
-      state.pinchStartDistance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      state.pinchStartZoom = state.zoom;
-      state.pinchCenterX = (pts[0].x + pts[1].x) / 2;
-      state.pinchCenterY = (pts[0].y + pts[1].y) / 2;
-    }
-  }, { passive: true });
-
-  viewport.addEventListener('pointermove', e => {
-    if (!isOpen() || !state.pointers.has(e.pointerId)) return;
-    state.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (state.pointers.size === 2 && state.pinchStartDistance > 0) {
-      e.preventDefault();
-      const pts = [...state.pointers.values()];
-      const distance = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
-      const cx = (pts[0].x + pts[1].x) / 2;
-      const cy = (pts[0].y + pts[1].y) / 2;
-      setZoom(state.pinchStartZoom * (distance / state.pinchStartDistance), cx, cy);
-    }
-  }, { passive: false });
-
-  function clearPointer(e) {
-    state.pointers.delete(e.pointerId);
-    if (state.pointers.size < 2) state.pinchStartDistance = 0;
-  }
-  viewport.addEventListener('pointerup', clearPointer, { passive: true });
-  viewport.addEventListener('pointercancel', clearPointer, { passive: true });
-
   toolbar.addEventListener('click', e => {
-    const zoomAction = e.target?.dataset?.ddv7Zoom;
     const action = e.target?.dataset?.ddv7Action;
-    if (!zoomAction && !action) return;
+    if (!action) return;
     e.preventDefault();
     e.stopPropagation();
-    const r = viewportRect();
-    const cx = r.left + r.width / 2;
-    const cy = r.top + r.height / 2;
-    if (zoomAction === 'fit') fitZoom();
-    if (zoomAction === 'in') setZoom(state.zoom * 1.45, cx, cy);
-    if (zoomAction === 'out') setZoom(state.zoom / 1.45, cx, cy);
+    if (action === 'fit') fitView();
     if (action === 'pdf') sharePdf();
   });
 
-  openBtn?.addEventListener('click', () => scheduleFit(240));
-  chartStage?.addEventListener('click', () => scheduleFit(240));
-  closeBtn?.addEventListener('click', () => fitZoom());
+  openBtn?.addEventListener('click', () => scheduleRender(360));
+  chartStage?.addEventListener('click', () => scheduleRender(360));
+  closeBtn?.addEventListener('click', () => {
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
+  });
 
   const observer = new MutationObserver(() => {
-    if (isOpen()) scheduleFit(220);
+    if (isOpen()) scheduleRender(340);
   });
   observer.observe(layer, { attributes: true, attributeFilter: ['class', 'aria-hidden'] });
 
-  window.addEventListener('resize', () => { if (isOpen()) scheduleFit(220); }, true);
-  window.addEventListener('orientationchange', () => { if (isOpen()) scheduleFit(380); }, true);
+  window.addEventListener('resize', () => { if (isOpen()) scheduleRender(260); }, true);
+  window.addEventListener('orientationchange', () => { if (isOpen()) scheduleRender(520); }, true);
 
   function shouldAdvance(el) {
     const raw = String(el.value || '').trim();
@@ -350,7 +259,7 @@
     });
   }
 
-  function canvasToJpegBlob(sourceCanvas, quality = 0.92) {
+  function canvasToJpegBlob(sourceCanvas, quality = 0.94) {
     return new Promise((resolve, reject) => {
       try {
         sourceCanvas.toBlob(blob => {
@@ -374,7 +283,7 @@
 
     const pageW = 842;
     const pageH = 595;
-    const margin = 24;
+    const margin = 20;
     const maxW = pageW - margin * 2;
     const maxH = pageH - margin * 2;
     const imgAR = sourceCanvas.width / sourceCanvas.height;
@@ -424,6 +333,7 @@
 
   async function sharePdf() {
     try {
+      if (isOpen()) renderHighResolutionFullscreen();
       const source = isOpen() ? canvas : normalCanvas || canvas;
       const pdfBlob = await buildPdfFromCanvas(source);
       const filename = `AW139-Dropdown-DDV7-${new Date().toISOString().slice(0,10)}.pdf`;
