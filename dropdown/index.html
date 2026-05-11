@@ -17,129 +17,13 @@
 </head>
 <body>
   <main class="app-shell">
-    <header class="topbar module-topbar">
-      <div class="topbar-left">
-        <div class="product-tag no-sep">
-          <div class="product-icon"><img src="../assets/icon-192.png" alt=""></div>
-          <div>
-            <div class="product-line">AW139 Companion</div>
-            <div class="product-sub">Dropdown</div>
-          </div>
-        </div>
-      </div>
-      <div class="topbar-right"></div>
-    </header>
-
-    <header class="hero hero-compact">
-      <div>
-        <p class="eyebrow">AW139 Companion App</p>
-        <h1>Dropdown Module</h1>
-        <p class="subtitle">Offshore Helideck / Enhanced — perda de altura abaixo do LDP/BTS.</p>
-        <p class="build-version build-version-prominent">BUILD DD-V1 • Dropdown first integration</p>
-      </div>
-    </header>
-
-    <section class="card form-card">
-      <div class="card-title-row">
-        <h2>Entradas</h2>
-        <span class="pill">Offline PWA</span>
-      </div>
-
-      <div class="grid compact-grid">
-        <label class="control-block select-block">
-          <span>Procedure / Profile</span>
-          <div class="select-wrap">
-            <select id="profile">
-              <option value="offshoreLevel" selected>CAT A Offshore LEVEL profile</option>
-              <option value="offshoreDescending">CAT A Offshore DESCENDING profile</option>
-              <option value="offshoreProcedure">CAT A Offshore procedure</option>
-              <option value="enhanced">CAT A ENHANCED offshore procedure</option>
-            </select>
-          </div>
-        </label>
-
-        <label class="control-block select-block">
-          <span>Configuration</span>
-          <div class="select-wrap">
-            <select id="configuration">
-              <option value="clear" selected>Clean Air Intake</option>
-              <option value="eapsOff">EAPS OFF</option>
-              <option value="eapsOn">EAPS ON</option>
-            </select>
-          </div>
-        </label>
-
-        <label class="field-half compact-field">
-          <span>Pressure Altitude (ft)</span>
-          <div class="input-with-toggle">
-            <button id="paNegativeBtn" type="button" class="sign-toggle">±</button>
-            <input id="pressureAltitude" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 0">
-          </div>
-        </label>
-
-        <label class="field-half compact-field narrow-field">
-          <span>OAT (°C)</span>
-          <div class="input-with-toggle">
-            <button id="oatNegativeBtn" type="button" class="sign-toggle">±</button>
-            <input id="oat" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 25" maxlength="3">
-          </div>
-        </label>
-
-        <label class="field-half compact-field">
-          <span>Gross Weight (kg)</span>
-          <input id="actualWeight" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 6800">
-        </label>
-
-        <label class="field-half compact-field narrow-field">
-          <span>Headwind Component (kt)</span>
-          <input id="headwind" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="ex. 10" maxlength="2">
-        </label>
-      </div>
-
-      <div class="action-row action-row-main">
-        <button id="runBtn" class="primary">Calcular Dropdown</button>
-        <button id="resetBtn" class="ghost">Reset</button>
-      </div>
-      <p class="hint">Primeira integração: engine numérica aproximada por cartas RFM. A extração geométrica completa pode ser adicionada depois, no mesmo padrão WAT/RTO.</p>
-    </section>
-
-    <section id="statusCard" class="card status sticky-result neutral">
-      <div class="status-grid compact-status-grid">
-        <div class="status-summary">
-          <div id="statusBadge" class="status-badge">AGUARDANDO DADOS</div>
-          <p class="label status-kicker">Resultado</p>
-          <h2 id="statusTitle">Dropdown / Height Loss</h2>
-          <p id="statusText" class="status-text">Preencha os campos e execute o cálculo.</p>
-          <p id="statusDetail" class="status-detail">Correção de vento e incremento Descending serão aplicados automaticamente.</p>
-        </div>
-
-        <div class="metric emphasis-metric result-main compact-result-main">
-          <span class="label">Resultado final</span>
-          <strong id="finalMetric">—</strong>
-          <small id="finalMetricM">—</small>
-        </div>
-      </div>
-    </section>
-
-    <section class="card compact">
-      <div class="card-title-row">
-        <h2>Detalhamento</h2>
-      </div>
-      <div id="interpBox" class="interp-box muted">Sem cálculo ainda.</div>
-    </section>
-
-    <section class="card">
-      <div class="card-title-row">
-        <h2>Referência</h2>
-      </div>
-      <p id="chartReference" class="chart-reference">
-        Offshore: Supplement 12 / 50 — Drop Down Below LDP/Balked Landing. Enhanced: Supplement 97 — Height Loss BTS for CTO OEI.
-      </p>
-    </section>
+    <header class="topbar module-topbar"><div class="topbar-left"><div class="product-tag no-sep"><div class="product-icon"><img src="../assets/icon-192.png" alt=""></div><div><div class="product-line">AW139 Companion</div><div class="product-sub">Dropdown</div></div></div></div><div class="topbar-right"></div></header>
+    <header class="hero hero-compact"><div><p class="eyebrow">AW139 Companion App</p><h1>Dropdown Module</h1><p class="subtitle">Offshore Helideck / Enhanced — perda de altura abaixo do LDP/BTS.</p><p class="build-version build-version-prominent">BUILD DD-V3 • visual overlay staged</p></div></header>
+    <section class="card form-card"><div class="card-title-row"><h2>Entradas</h2><span class="pill">Offline PWA</span></div><div class="grid compact-grid"><label class="control-block select-block"><span>Procedure / Profile</span><div class="select-wrap"><select id="profile"><option value="offshoreLevel" selected>CAT A Offshore LEVEL profile</option><option value="offshoreDescending">CAT A Offshore DESCENDING profile</option><option value="offshoreProcedure">CAT A Offshore procedure</option><option value="enhanced">CAT A ENHANCED offshore procedure</option></select></div></label><label class="control-block select-block"><span>Configuration</span><div class="select-wrap"><select id="configuration"><option value="clear" selected>Clean Air Intake</option><option value="eapsOff">EAPS OFF</option><option value="eapsOn">EAPS ON</option></select></div></label><label class="field-half compact-field"><span>Pressure Altitude (ft)</span><div class="input-with-toggle"><button id="paNegativeBtn" type="button" class="sign-toggle">±</button><input id="pressureAltitude" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 0"></div></label><label class="field-half compact-field narrow-field"><span>OAT (°C)</span><div class="input-with-toggle"><button id="oatNegativeBtn" type="button" class="sign-toggle">±</button><input id="oat" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 25" maxlength="3"></div></label><label class="field-half compact-field"><span>Gross Weight (kg)</span><input id="actualWeight" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 6800"></label><label class="field-half compact-field narrow-field"><span>Headwind Component (kt)</span><input id="headwind" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" placeholder="ex. 10" maxlength="2"></label></div><div class="action-row action-row-main"><button id="runBtn" class="primary">Calcular Dropdown</button><button id="resetBtn" class="ghost">Reset</button></div><p class="hint">DD-V3: cálculo interpolado + overlay visual esquemático. Próxima etapa: substituir o desenho por imagem vetorial real da carta.</p></section>
+    <section id="statusCard" class="card status sticky-result neutral"><div class="status-grid compact-status-grid"><div class="status-summary"><div id="statusBadge" class="status-badge">AGUARDANDO DADOS</div><p class="label status-kicker">Resultado</p><h2 id="statusTitle">Dropdown / Height Loss</h2><p id="statusText" class="status-text">Preencha os campos e execute o cálculo.</p><p id="statusDetail" class="status-detail">Correção de vento e incremento Descending serão aplicados automaticamente.</p></div><div class="metric emphasis-metric result-main compact-result-main"><span class="label">Resultado final</span><strong id="finalMetric">—</strong><small id="finalMetricM">—</small></div></div></section>
+    <section class="card"><div class="card-title-row"><h2>Visualização</h2></div><div class="chart-panel"><div class="chart-stage"><canvas id="chartCanvas" width="1200" height="760" aria-label="Dropdown chart overlay"></canvas></div><div class="legend"><span><i class="dot amber"></i>PA/OAT</span><span><i class="dot cyan"></i>Transferência</span><span><i class="dot green"></i>Peso</span><span><i class="dot magenta"></i>Resultado</span></div><p id="chartReference" class="chart-reference"><strong>Referência:</strong> Offshore Supplement 12/50; Enhanced Supplement 97.</p></div></section>
+    <section class="card compact"><div class="card-title-row"><h2>Detalhamento</h2></div><div id="interpBox" class="interp-box muted">Sem cálculo ainda.</div></section>
   </main>
-
-  <script src="app.js?v=dropdown-v1"></script>
-  <script src="../shared/module-bridge.js"></script>
-  <script src="../shared/pwa.js"></script>
+  <script src="app.js?v=dropdown-v3"></script><script src="../shared/module-bridge.js"></script><script src="../shared/pwa.js"></script>
 </body>
 </html>
