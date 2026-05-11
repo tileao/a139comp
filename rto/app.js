@@ -363,7 +363,8 @@ function bracketValue(value, sortedNumbers) {
 
 function computeCurrentFigure({ paFt, oatC, weightKg, headwindKt }) {
   const panelLeft = state.engine.panels.left;
-  if (paFt < panelLeft.pressure_altitude_ft.min || paFt > panelLeft.pressure_altitude_ft.max) {
+  const paFtCalc = Math.max(panelLeft.pressure_altitude_ft.min, paFt);
+  if (paFtCalc > panelLeft.pressure_altitude_ft.max) {
     throw new Error(`Fora da faixa: Pressure Altitude válida nesta carta = ${panelLeft.pressure_altitude_ft.min} a ${panelLeft.pressure_altitude_ft.max} ft.`);
   }
   const weightValues = Object.keys(state.engine.lines.center_weight_curves).map(Number).sort((a, b) => a - b);
@@ -373,7 +374,7 @@ function computeCurrentFigure({ paFt, oatC, weightKg, headwindKt }) {
     throw new Error(`Fora da faixa: Gross Weight válido nesta carta = ${minWeight} a ${maxWeight} kg.`);
   }
 
-  const xPa = xForPressureAltitudeFt(paFt);
+  const xPa = xForPressureAltitudeFt(paFtCalc);
   const oatFamilies = getAvailableOatFamilies(xPa);
   if (oatFamilies.length < 2) {
     throw new Error('Sem cálculo nesta configuração: não foi possível montar famílias OAT suficientes nessa altitude.');
