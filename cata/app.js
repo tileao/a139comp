@@ -840,30 +840,54 @@ function updateCalcDisplay() {
   }
 }
 
+function parseRawMetar(text) {
+  const raw = text.trim();
+  const wind = raw.match(/(?:^|\s)(VRB|\d{3})(\d{2,3})(?:G\d{2,3})?KT(?:\s|$)/);
+  const temp = raw.match(/(?:^|\s)(M?\d{2})\/(M?\d{2})(?:\s|$)/);
+  const qnh  = raw.match(/\bQ(\d{4})\b/);
+  const alt  = raw.match(/\bA(\d{4})\b/);
+  const parseDeg = (s) => s.startsWith('M') ? -parseInt(s.slice(1), 10) : parseInt(s, 10);
+  return {
+    rawOb: raw,
+    wdir:  wind ? (wind[1] === 'VRB' ? 0 : parseInt(wind[1], 10)) : null,
+    wspd:  wind ? parseInt(wind[2], 10) : null,
+    temp:  temp ? parseDeg(temp[1]) : null,
+    altim: qnh  ? parseInt(qnh[1], 10)
+         : alt  ? Math.round(parseInt(alt[1], 10) / 100 * 33.8639)
+         : null,
+  };
+}
+
+async function fetchFromVatsim(icao) {
+  const resp = await fetch(
+    `https://metar.vatsim.net/metar.php?id=${encodeURIComponent(icao)}`,
+    { signal: AbortSignal.timeout(6000) }
+  );
+  if (!resp.ok) throw new Error(`VATSIM HTTP ${resp.status}`);
+  const text = (await resp.text()).trim();
+  if (!text || text.toLowerCase().includes('no metar')) throw new Error('Sem METAR VATSIM');
+  const parsed = parseRawMetar(text);
+  if (parsed.altim == null && parsed.temp == null) throw new Error('VATSIM parse failed');
+  return parsed;
+}
+
+async function fetchFromAviationWeather(icao, useProxy) {
+  const base = `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`;
+  const url = useProxy ? `https://corsproxy.io/?${encodeURIComponent(base)}` : base;
+  const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+  if (!resp.ok) throw new Error(`AWC HTTP ${resp.status}`);
+  const data = await resp.json();
+  const metar = Array.isArray(data) ? data[0] : (Array.isArray(data?.data) ? data.data[0] : data);
+  if (!metar || typeof metar !== 'object') throw new Error('Sem METAR disponível');
+  return metar;
+}
+
 async function fetchMetarData(icao) {
-  const baseUrl = `https://aviationweather.gov/api/data/metar?ids=${encodeURIComponent(icao)}&format=json`;
-  const endpoints = [
-    baseUrl,
-    `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`
-  ];
-
-  let lastErr = null;
-  for (const url of endpoints) {
-    try {
-      const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      const metar = Array.isArray(data)
-        ? data[0]
-        : (Array.isArray(data?.data) ? data.data[0] : data);
-      if (!metar || typeof metar !== 'object') throw new Error('Sem METAR disponível');
-      return metar;
-    } catch (err) {
-      lastErr = err;
-    }
-  }
-
-  throw lastErr || new Error('Falha ao consultar METAR');
+  return Promise.any([
+    fetchFromVatsim(icao),
+    fetchFromAviationWeather(icao, false),
+    fetchFromAviationWeather(icao, true),
+  ]);
 }
 
 async function handleMetarFetch() {
