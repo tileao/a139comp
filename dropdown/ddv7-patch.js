@@ -53,7 +53,8 @@
       }
     }
     if(best) return best.y;
-    return pts.reduce((p,c)=>Math.abs(c[0]-x)<Math.abs(p[0]-x)?c:p,pts[0])[1];
+    if(x<=pts[0][0]){const a=pts[0],b=pts[1];return Math.abs(b[0]-a[0])>1e-6?lerp(a[1],b[1],(x-a[0])/(b[0]-a[0])):a[1];}
+    const a=pts[pts.length-2],b=pts[pts.length-1];return Math.abs(b[0]-a[0])>1e-6?lerp(a[1],b[1],(x-a[0])/(b[0]-a[0])):b[1];
   }
   function xAtY(pts,y){
     let best=null;
@@ -65,7 +66,9 @@
       }
     }
     if(best) return best.x;
-    return pts.reduce((p,c)=>Math.abs(c[1]-y)<Math.abs(p[1]-y)?c:p,pts[0])[0];
+    const yF=pts[0][1],yL=pts[pts.length-1][1];
+    if(Math.abs(y-yF)<=Math.abs(y-yL)){const a=pts[0],b=pts[1];return Math.abs(b[1]-a[1])>1e-6?lerp(a[0],b[0],(y-a[1])/(b[1]-a[1])):a[0];}
+    const a=pts[pts.length-2],b=pts[pts.length-1];return Math.abs(b[1]-a[1])>1e-6?lerp(a[0],b[0],(y-a[1])/(b[1]-a[1])):b[0];
   }
   const frame=(chart,id)=>{const v=chart.frames[id];return{x0:v[0],y0:v[1],x1:v[2],y1:v[3]};};
   const mapX=(v,min,max,f)=>f.x0+((v-min)/(max-min))*(f.x1-f.x0);
@@ -141,6 +144,24 @@
     const q=cp(canvas,p);ctx.save();ctx.font='bold 15px system-ui,sans-serif';const w=Math.max(38,ctx.measureText(text).width+14);ctx.fillStyle='rgba(255,255,255,.86)';ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(q[0]+8,q[1]-30,w,24,6);ctx.fill();ctx.stroke();ctx.fillStyle='#111';ctx.fillText(text,q[0]+15,q[1]-13);ctx.restore();
   }
   function color(f){return f==='OAT'?'#f3b447':f==='GW'?'#47e074':f==='HEADWIND'?'#4ef0ff':'#ff79cb';}
+  function extendToFrame(pts,f){
+    if(!pts||pts.length<2) return pts;
+    const ext=[...pts];
+    function edgeHit(origin,dx,dy){
+      let tMin=Infinity,pt=null;
+      const try_=(t,xc,yc)=>{if(t>1e-3&&t<tMin&&xc>=f.x0-2&&xc<=f.x1+2&&yc>=f.y0-2&&yc<=f.y1+2){tMin=t;pt=[clamp(xc,f.x0,f.x1),clamp(yc,f.y0,f.y1)];}};
+      if(Math.abs(dx)>1e-6){const t=(f.x0-origin[0])/dx;try_(t,f.x0,origin[1]+t*dy);}
+      if(Math.abs(dx)>1e-6){const t=(f.x1-origin[0])/dx;try_(t,f.x1,origin[1]+t*dy);}
+      if(Math.abs(dy)>1e-6){const t=(f.y0-origin[1])/dy;try_(t,origin[0]+t*dx,f.y0);}
+      if(Math.abs(dy)>1e-6){const t=(f.y1-origin[1])/dy;try_(t,origin[0]+t*dx,f.y1);}
+      return pt;
+    }
+    const p0=pts[0],p1=pts[1],dx0=p0[0]-p1[0],dy0=p0[1]-p1[1];
+    const startExt=edgeHit(p0,dx0,dy0); if(startExt) ext.unshift(startExt);
+    const pL=ext[ext.length-1],pP=ext[ext.length-2],dxL=pL[0]-pP[0],dyL=pL[1]-pP[1];
+    const endExt=edgeHit(pL,dxL,dyL); if(endExt) ext.push(endExt);
+    return ext;
+  }
   function drawGuideLines(ctx,canvas,r){
     if(!r?.debug)return;
     const d=r.debug, ch=G.charts[r.chartKey];
@@ -172,8 +193,8 @@
     if(!img.complete){ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#f7f7f2';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#111';ctx.fillText('Carregando carta DD-V7…',30,40);return;}
     ctx.clearRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0,canvas.width,canvas.height);
     if(!r?.debug)return;
-    const seen=new Set();
-    for(const [fam,c] of r.debug.curves){const k=fam+(c.label||c.id);if(seen.has(k))continue;seen.add(k);curve(ctx,canvas,c.points,color(fam),fam==='HEADWIND'?3:4,fam==='HEADWIND');}
+    const seen=new Set(), ch=G.charts[r.chartKey];
+    for(const [fam,c] of r.debug.curves){const k=fam+(c.label||c.id);if(seen.has(k))continue;seen.add(k);const panelId=fam==='GW'?'right_panel':fam==='HEADWIND'?'middle_panel':'left_panel';const extPts=extendToFrame(c.points,frame(ch,panelId));curve(ctx,canvas,extPts,color(fam),fam==='HEADWIND'?3:4,fam==='HEADWIND');}
     drawGuideLines(ctx,canvas,r);
     if(r.debug.mode==='offshore'){
       dot(ctx,canvas,[r.debug.xPa,r.debug.yTransfer],'#f3b447');dot(ctx,canvas,[r.debug.xBase,r.debug.yTransfer],'#47e074');dot(ctx,canvas,[r.debug.xFinal,r.debug.yTransfer],'#ff79cb');
