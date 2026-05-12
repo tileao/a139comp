@@ -309,7 +309,8 @@ function _ddv7_readOffshore(i,key){
   const wb=_ddv7_bracket(c.families.gw,i.weight,'GW');
   const xBase=lerp(_ddv7_xAtY(wb.lo.points,y),_ddv7_xAtY(wb.hi.points,y),wb.t);
   const base=_ddv7_unmapX(xBase,0,150,rf),wind=-clamp(i.wind||0,0,40),desc=i.profile==='offshoreDescending'?15:0,final=Math.max(0,base+wind+desc);
-  return {chartKey:key,chart:key==='offshore6400'?'Supplement 12 / Figure 4I-1':'Supplement 50 / Figure 4-74',baseFt:base,windCorrectionFt:wind,descendingCorrectionFt:desc,finalFt:final,finalM:final*0.3048,oatInterp:{low:_ddv7_num(ob.lo),high:_ddv7_num(ob.hi)},weightInterp:{low:_ddv7_num(wb.lo),high:_ddv7_num(wb.hi)}};
+  const xFinal=_ddv7_mapX(final,0,150,rf);
+  return {chartKey:key,chart:key==='offshore6400'?'Supplement 12 / Figure 4I-1':'Supplement 50 / Figure 4-74',baseFt:base,windCorrectionFt:wind,descendingCorrectionFt:desc,finalFt:final,finalM:final*0.3048,oatInterp:{low:_ddv7_num(ob.lo),high:_ddv7_num(ob.hi)},weightInterp:{low:_ddv7_num(wb.lo),high:_ddv7_num(wb.hi)},debug:{mode:'offshore',xPa,yTransfer:y,xBase,xFinal,curves:[['OAT',ob.lo],['OAT',ob.hi],['GW',wb.lo],['GW',wb.hi]]}};
 }
 function _ddv7_headwindTransfer(c,yEntry,wind){
   const mf=_ddv7_frame(c,'middle_panel'),x=_ddv7_mapX(wind,0,40,mf);
@@ -317,7 +318,7 @@ function _ddv7_headwindTransfer(c,yEntry,wind){
   let lo=refs[0],hi=refs[refs.length-1];
   for(let k=1;k<refs.length;k++){if(yEntry>=Math.min(refs[k-1].yLeft,refs[k].yLeft)&&yEntry<=Math.max(refs[k-1].yLeft,refs[k].yLeft)){lo=refs[k-1];hi=refs[k];break;}}
   const t=clamp(_ddv7_inv(lo.yLeft,hi.yLeft,yEntry),0,1);
-  return {x,y:lerp(_ddv7_yAtX(lo.curve.points,x),_ddv7_yAtX(hi.curve.points,x),t)};
+  return {x,y:lerp(_ddv7_yAtX(lo.curve.points,x),_ddv7_yAtX(hi.curve.points,x),t),lo:lo.curve,hi:hi.curve};
 }
 function _ddv7_readEnhanced(i,key){
   const G=window.DROPDOWN_GRAPH_DATA,c=G.charts[key];
@@ -328,7 +329,7 @@ function _ddv7_readEnhanced(i,key){
   const wb=_ddv7_bracket(c.families.gw,i.weight,'GW');
   const xBase=lerp(_ddv7_xAtY(wb.lo.points,ht.y),_ddv7_xAtY(wb.hi.points,ht.y),wb.t);
   const base=_ddv7_unmapX(xBase,0,150,rf),final=Math.max(0,base);
-  return {chartKey:key,chart:'Supplement 97 / Figure 4-10',baseFt:base,windCorrectionFt:0,descendingCorrectionFt:0,finalFt:final,finalM:final*0.3048,oatInterp:{low:_ddv7_num(ob.lo),high:_ddv7_num(ob.hi)},weightInterp:{low:_ddv7_num(wb.lo),high:_ddv7_num(wb.hi)}};
+  return {chartKey:key,chart:'Supplement 97 / Figure 4-10',baseFt:base,windCorrectionFt:0,descendingCorrectionFt:0,finalFt:final,finalM:final*0.3048,oatInterp:{low:_ddv7_num(ob.lo),high:_ddv7_num(ob.hi)},weightInterp:{low:_ddv7_num(wb.lo),high:_ddv7_num(wb.hi)},debug:{mode:'enhanced',xPa,yTransfer:y1,xHeadwind:ht.x,yAfterHeadwind:ht.y,xBase,xFinal:xBase,curves:[['OAT',ob.lo],['OAT',ob.hi],['HEADWIND',ht.lo],['HEADWIND',ht.hi],['GW',wb.lo],['GW',wb.hi]]}};
 }
 
 function calculateOffshoreDropdown(pa,oat,weight,wind,profile,config){
@@ -341,5 +342,75 @@ function calculateEnhancedDropdown(pa,oat,weight,wind){
   const G=window.DROPDOWN_GRAPH_DATA;
   if(!G?.charts) throw new Error('graphData.js não carregado.');
   return _ddv7_readEnhanced({pa,oat,weight,wind:wind||0,profile:'enhanced',config:'standard'},'enhanced7000');
+}
+
+// ── DD-V7 Visual Guide Drawing ──
+const _ddv7_PW=842,_ddv7_PH=595,_ddv7_imgs={};
+function _ddv7_loadImg(src){if(!_ddv7_imgs[src]){const i=new Image();i.src=src;_ddv7_imgs[src]=i;}return _ddv7_imgs[src];}
+function _ddv7_cp(cv,p){return[(p[0]/_ddv7_PW)*cv.width,(p[1]/_ddv7_PH)*cv.height];}
+function _ddv7_drawCurve(ctx,cv,pts,col,w,dash){
+  if(!pts||pts.length<2)return;
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=w||4;ctx.lineCap='round';ctx.lineJoin='round';if(dash)ctx.setLineDash([8,6]);
+  const cp=pts.map(p=>_ddv7_cp(cv,p));
+  ctx.beginPath();ctx.moveTo(cp[0][0],cp[0][1]);
+  if(cp.length===2){ctx.lineTo(cp[1][0],cp[1][1]);}
+  else{for(let k=1;k<cp.length;k++){const p0=cp[Math.max(0,k-2)],p1=cp[k-1],p2=cp[k],p3=cp[Math.min(cp.length-1,k+1)];ctx.bezierCurveTo(p1[0]+(p2[0]-p0[0])/6,p1[1]+(p2[1]-p0[1])/6,p2[0]-(p3[0]-p1[0])/6,p2[1]-(p3[1]-p1[1])/6,p2[0],p2[1]);}}
+  ctx.stroke();ctx.restore();
+}
+function _ddv7_drawLine(ctx,cv,a,b,col,w,dash){const p=_ddv7_cp(cv,a),q=_ddv7_cp(cv,b);ctx.save();ctx.strokeStyle=col;ctx.lineWidth=w||3;if(dash!==false)ctx.setLineDash([9,7]);ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();ctx.restore();}
+function _ddv7_drawDot(ctx,cv,p,col){const q=_ddv7_cp(cv,p);ctx.save();ctx.fillStyle=col;ctx.strokeStyle='#111';ctx.lineWidth=2;ctx.beginPath();ctx.arc(q[0],q[1],7,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}
+function _ddv7_drawLabel(ctx,cv,p,text,col){const q=_ddv7_cp(cv,p);ctx.save();ctx.font='bold 15px system-ui,sans-serif';const w=Math.max(38,ctx.measureText(text).width+14);ctx.fillStyle='rgba(255,255,255,.86)';ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(q[0]+8,q[1]-30,w,24,6);else ctx.rect(q[0]+8,q[1]-30,w,24);ctx.fill();ctx.stroke();ctx.fillStyle='#111';ctx.fillText(text,q[0]+15,q[1]-13);ctx.restore();}
+function _ddv7_colorOf(fam){return fam==='OAT'?'#f3b447':fam==='GW'?'#47e074':fam==='HEADWIND'?'#4ef0ff':'#ff79cb';}
+function _ddv7_extendToFrame(pts,f){
+  if(!pts||pts.length<2)return pts;
+  const ext=[...pts];
+  function hit(o,dx,dy){let tMin=Infinity,pt=null;const try_=(t,xc,yc)=>{if(t>1e-3&&t<tMin&&xc>=f.x0-2&&xc<=f.x1+2&&yc>=f.y0-2&&yc<=f.y1+2){tMin=t;pt=[clamp(xc,f.x0,f.x1),clamp(yc,f.y0,f.y1)];}};if(Math.abs(dx)>1e-6){try_((f.x0-o[0])/dx,f.x0,o[1]+((f.x0-o[0])/dx)*dy);try_((f.x1-o[0])/dx,f.x1,o[1]+((f.x1-o[0])/dx)*dy);}if(Math.abs(dy)>1e-6){try_((f.y0-o[1])/dy,o[0]+((f.y0-o[1])/dy)*dx,f.y0);try_((f.y1-o[1])/dy,o[0]+((f.y1-o[1])/dy)*dx,f.y1);}return pt;}
+  const p0=pts[0],p1=pts[1],s=hit(p0,p0[0]-p1[0],p0[1]-p1[1]);if(s)ext.unshift(s);
+  const pL=ext[ext.length-1],pP=ext[ext.length-2],e=hit(pL,pL[0]-pP[0],pL[1]-pP[1]);if(e)ext.push(e);
+  return ext;
+}
+function _ddv7_drawGuides(ctx,cv,r){
+  if(!r?.debug)return;
+  const d=r.debug,ch=window.DROPDOWN_GRAPH_DATA?.charts[r.chartKey];if(!ch)return;
+  const seen=new Set();
+  for(const [fam,c] of d.curves){const k=fam+(c.label||c.id);if(seen.has(k))continue;seen.add(k);const pid=fam==='GW'?'right_panel':fam==='HEADWIND'?'middle_panel':'left_panel';_ddv7_drawCurve(ctx,cv,_ddv7_extendToFrame(c.points,_ddv7_frame(ch,pid)),_ddv7_colorOf(fam),fam==='HEADWIND'?3:4,fam==='HEADWIND');}
+  if(d.mode==='offshore'){
+    const lf=_ddv7_frame(ch,'left_panel'),rf=_ddv7_frame(ch,'right_panel');
+    _ddv7_drawLine(ctx,cv,[d.xPa,d.yTransfer],[d.xPa,lf.y1],'#f3b447',5,false);
+    _ddv7_drawLine(ctx,cv,[d.xBase,d.yTransfer],[d.xBase,rf.y1],'#47e074',5,false);
+    _ddv7_drawLine(ctx,cv,[d.xFinal,d.yTransfer],[d.xFinal,rf.y1],'#ff79cb',4,true);
+    _ddv7_drawLine(ctx,cv,[d.xPa,d.yTransfer],[d.xBase,d.yTransfer],'#4ef0ff',4,false);
+    _ddv7_drawLine(ctx,cv,[d.xBase,d.yTransfer],[d.xFinal,d.yTransfer],'#ff79cb',4,true);
+    _ddv7_drawLabel(ctx,cv,[d.xPa,d.yTransfer],'PA/OAT','#f3b447');
+    _ddv7_drawLabel(ctx,cv,[d.xBase,d.yTransfer],'DIST','#47e074');
+    if(Math.abs(d.xFinal-d.xBase)>2)_ddv7_drawLabel(ctx,cv,[d.xFinal,d.yTransfer],'FINAL','#ff79cb');
+    _ddv7_drawDot(ctx,cv,[d.xPa,d.yTransfer],'#f3b447');_ddv7_drawDot(ctx,cv,[d.xBase,d.yTransfer],'#47e074');_ddv7_drawDot(ctx,cv,[d.xFinal,d.yTransfer],'#ff79cb');
+  }else{
+    const lf=_ddv7_frame(ch,'left_panel'),mf=_ddv7_frame(ch,'middle_panel'),rf=_ddv7_frame(ch,'right_panel');
+    _ddv7_drawLine(ctx,cv,[d.xPa,d.yTransfer],[d.xPa,lf.y1],'#f3b447',5,false);
+    _ddv7_drawLine(ctx,cv,[d.xHeadwind,d.yAfterHeadwind],[d.xHeadwind,mf.y1],'#4ef0ff',5,false);
+    _ddv7_drawLine(ctx,cv,[d.xBase,d.yAfterHeadwind],[d.xBase,rf.y1],'#ff79cb',5,false);
+    _ddv7_drawLine(ctx,cv,[d.xPa,d.yTransfer],[mf.x0,d.yTransfer],'#4ef0ff',4,false);
+    _ddv7_drawLine(ctx,cv,[d.xHeadwind,d.yAfterHeadwind],[rf.x0,d.yAfterHeadwind],'#4ef0ff',4,false);
+    _ddv7_drawLabel(ctx,cv,[d.xPa,d.yTransfer],'PA/OAT','#f3b447');
+    _ddv7_drawLabel(ctx,cv,[d.xHeadwind,d.yAfterHeadwind],'WIND','#4ef0ff');
+    _ddv7_drawLabel(ctx,cv,[d.xBase,d.yAfterHeadwind],'FINAL','#ff79cb');
+    _ddv7_drawDot(ctx,cv,[d.xPa,d.yTransfer],'#f3b447');_ddv7_drawDot(ctx,cv,[d.xHeadwind,d.yAfterHeadwind],'#4ef0ff');_ddv7_drawDot(ctx,cv,[d.xBase,d.yAfterHeadwind],'#ff79cb');
+  }
+}
+function drawDDV7Canvas(canvas,result,imgBasePath){
+  if(!canvas||!result?.debug)return;
+  const key=result.chartKey;
+  const base=imgBasePath||'../dropdown/assets/';
+  const src=key==='enhanced7000'?base+'dropdown-enhanced-7000.png':key==='offshore6800'?base+'dropdown-offshore-6800.png':base+'dropdown-offshore-6400.png';
+  const img=_ddv7_loadImg(src);
+  const render=()=>{
+    canvas.width=canvas.offsetWidth||842;
+    canvas.height=Math.round(canvas.width/_ddv7_PW*_ddv7_PH);
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    _ddv7_drawGuides(ctx,canvas,result);
+  };
+  if(img.complete&&img.naturalWidth)render();else{img.onload=render;}
 }
 
