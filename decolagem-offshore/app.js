@@ -64,8 +64,33 @@ function restore(){
     requestAnimationFrame(()=>render());
   }catch{}
 }
+function openFS(){
+  const tab=activeTab();
+  $('fsOverlay').hidden=false;document.body.classList.add('fullscreen-body');
+  $('fsOverlay').scrollTop=0;
+  requestAnimationFrame(()=>{
+    const fc=$('fsCanvas');
+    if(tab==='dropdown')drawDDV7Canvas(fc,state.last?.ddResult,'../dropdown/assets/');
+    else drawWATCanvas(fc,state.last?.watResult,'../wat/',false);
+  });
+}
+function closeFS(){$('fsOverlay').hidden=true;document.body.classList.remove('fullscreen-body');}
+function exportPDF(){
+  if(!state.last?.watResult||state.last.watResult.error){window.print();return;}
+  createWATExportCanvas(state.last.watResult,'../wat/',(ec)=>{
+    ec.toBlob(blob=>{
+      const url=URL.createObjectURL(blob);
+      const win=window.open('','_blank');
+      if(!win){window.print();return;}
+      win.document.write('<!DOCTYPE html><html><head><title>WAT Export</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fff}img{display:block;width:100%;height:auto}@media print{@page{margin:6mm}}</style></head><body><img src="'+url+'" onload="window.print()"></body></html>');
+      win.document.close();
+    },'image/png');
+  });
+}
 document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',()=>{
   document.querySelectorAll('.viewer-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');
   showTab(b.dataset.tab);
 }));
-$('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=()=>window.print();restore();
+$('watCanvas').addEventListener('click',openFS);$('ddCanvas').addEventListener('click',openFS);
+$('fsClose').addEventListener('click',closeFS);document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeFS();});
+$('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;restore();
