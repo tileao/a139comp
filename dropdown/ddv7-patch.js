@@ -198,19 +198,19 @@
   }
   function render(r){
     last=r; finalMetric.textContent=`${fmt(r.finalFt,0)} ft`; finalMetricM.textContent=`${fmt(r.finalM,1)} m`;
-    statusCard.className='card status sticky-result within'; statusBadge.textContent='DD-V7 APROVADO';
-    statusTitle.textContent=r.profile==='enhanced'?'Enhanced — leitura vetorial':'Offshore — leitura vetorial';
-    statusText.textContent=`Resultado vetorial: ${fmt(r.finalFt,0)} ft`;
-    statusDetail.textContent=`${r.chart}. Engine DD-V7 aprovada; overlay com linhas-guia para conferência.`;
-    interpBox.innerHTML=`<strong>Modo:</strong> DD-V7 engine vetorial aprovada<br><strong>Carta:</strong> ${r.chart}<br><strong>Bracket OAT:</strong> ${r.oatInterp.low} / ${r.oatInterp.high} °C<br><strong>Bracket GW:</strong> ${r.weightInterp.low} / ${r.weightInterp.high} kg<br><strong>Leitura base do gráfico:</strong> ${fmt(r.baseFt,1)} ft<br><strong>Correção de vento:</strong> ${fmt(r.windCorrectionFt,1)} ft<br><strong>Correção Descending:</strong> ${fmt(r.descendingCorrectionFt,1)} ft<br><strong>Resultado final:</strong> ${fmt(r.finalFt,1)} ft (${fmt(r.finalM,1)} m)<br><small>Linhas-guia: PA/OAT, DIST/GW e FINAL projetadas até a borda do gráfico para conferência visual.</small>`;
+    statusCard.className='card status sticky-result within'; statusBadge.textContent='CALCULADO';
+    statusTitle.textContent=r.profile==='enhanced'?'Enhanced — Height Loss':'Offshore Dropdown';
+    statusText.textContent=`Resultado: ${fmt(r.finalFt,0)} ft / ${fmt(r.finalM,1)} m`;
+    statusDetail.textContent=r.chart;
+    interpBox.innerHTML=`<strong>Carta:</strong> ${r.chart}<br><strong>Bracket OAT:</strong> ${r.oatInterp.low} / ${r.oatInterp.high} °C<br><strong>Bracket GW:</strong> ${r.weightInterp.low} / ${r.weightInterp.high} kg<br><strong>Leitura base:</strong> ${fmt(r.baseFt,1)} ft<br><strong>Correção de vento:</strong> ${fmt(r.windCorrectionFt,1)} ft<br><strong>Correção Descending:</strong> ${fmt(r.descendingCorrectionFt,1)} ft<br><strong>Resultado final:</strong> ${fmt(r.finalFt,1)} ft (${fmt(r.finalM,1)} m)`;
     draw(r,chartCanvas);
     window.ddv7RequestFullscreenUpdate?.();
   }
   function runDDV7(){
-    setTimeout(()=>{try{render(calc());}catch(e){statusCard.className='card status sticky-result out';statusBadge.textContent='DD-V7 FORA DO ENVELOPE';statusTitle.textContent='Sem cálculo vetorial';statusText.textContent=e.message;statusDetail.textContent='Confira PA, OAT, GW e Headwind.';finalMetric.textContent='—';finalMetricM.textContent='—';}},0);
+    setTimeout(()=>{try{render(calc());}catch(e){statusCard.className='card status sticky-result out';statusBadge.textContent='FORA DO ENVELOPE';statusTitle.textContent='Sem resultado';statusText.textContent=e.message;statusDetail.textContent='';finalMetric.textContent='—';finalMetricM.textContent='—';}},0);
   }
 
   runBtn?.addEventListener('click',runDDV7);
   resetBtn?.addEventListener('click',()=>{last=null;setTimeout(()=>draw(null,chartCanvas),0);});
-  statusDetail && (statusDetail.textContent='DD-V7 aprovado. Linhas-guia e fullscreen revisados. Headwind vazio = 0 kt.');
+  statusDetail && (statusDetail.textContent='');
 })();

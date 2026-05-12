@@ -310,8 +310,7 @@ function render(result) {
     <strong>Leitura base:</strong> ${fmt(result.baseFt, 1)} ft<br>
     <strong>Correção de vento:</strong> ${fmt(result.windCorrectionFt, 1)} ft<br>
     <strong>Correção Descending:</strong> ${fmt(result.descendingCorrectionFt, 1)} ft<br>
-    <strong>Resultado final:</strong> ${fmt(result.finalFt, 1)} ft (${fmt(result.finalM, 1)} m)<br>
-    <small>DD-V6: cartas reais como fundo com overlay preliminar calibrado. Ajustes finos das curvas e coordenadas ainda podem ser refinados.</small>
+    <strong>Resultado final:</strong> ${fmt(result.finalFt, 1)} ft (${fmt(result.finalM, 1)} m)
   `;
   refreshCharts();
 }
