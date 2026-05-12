@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v24-offshore-flows';
+const CACHE_NAME = 'aw139-companion-root-v25-offshore-dropdown';
 const PRECACHE = [
   "./",
   "./README.md",
@@ -118,9 +118,11 @@ const PRECACHE = [
   "./rto/manifest.webmanifest",
   "./rto/styles.css",
   "./rto/sw.js",
+  "./dropdown/graphData.js",
   "./shared/home.js",
   "./shared/module-bridge.js",
   "./shared/module-layout.css",
+  "./shared/offshore-calc.js",
   "./shared/pwa.css",
   "./shared/pwa.js",
   "./styles.css",
