@@ -10,6 +10,23 @@
   const finalMetric=$('finalMetric'), finalMetricM=$('finalMetricM'), statusBadge=$('statusBadge'), statusTitle=$('statusTitle'), statusText=$('statusText'), statusDetail=$('statusDetail'), interpBox=$('interpBox'), statusCard=$('statusCard');
   let last=null;
 
+  const CHART_REFS={
+    offshore6400:{figure:'Figure 4I-1 — Dropdown Height Loss, Offshore Helideck Level/Descending Profile.',supplement:'Supplement 12',source:'Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2.'},
+    offshore6800:{figure:'Figure 4-74 — Dropdown Height Loss, Offshore Helideck Procedure (GW ≤ 6800 kg).',supplement:'Supplement 50',source:'Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2.'},
+    enhanced7000:{figure:'Figure 4-10 — Dropdown Height Loss, Enhanced Offshore Procedure.',supplement:'Supplement 97',source:'Leonardo AW139 Rotorcraft Flight Manual (RFM), Ed. 2.'},
+  };
+
+  function updateChartRef(key){
+    const ref=CHART_REFS[key]||CHART_REFS.offshore6400;
+    const block=$('vizFacts');
+    if(!block)return;
+    block.innerHTML=[
+      {label:'Gráfico em uso',value:ref.figure,full:true},
+      {label:'Suplemento',value:ref.supplement},
+      {label:'Fonte',value:ref.source,full:true},
+    ].map(f=>`<div class="viz-fact${f.full?' span-full':''}"><span class="viz-fact-label">${f.label}</span><span class="viz-fact-value">${f.value}</span></div>`).join('');
+  }
+
   const imgs={offshore6400:new Image(),offshore6800:new Image(),enhanced7000:new Image()};
   imgs.offshore6400.src='assets/dropdown-offshore-6400.png';
   imgs.offshore6800.src='assets/dropdown-offshore-6800.png';
@@ -204,13 +221,19 @@
     statusDetail.textContent=r.chart;
     interpBox.innerHTML=`<strong>Carta:</strong> ${r.chart}<br><strong>Bracket OAT:</strong> ${r.oatInterp.low} / ${r.oatInterp.high} °C<br><strong>Bracket GW:</strong> ${r.weightInterp.low} / ${r.weightInterp.high} kg<br><strong>Leitura base:</strong> ${fmt(r.baseFt,1)} ft<br><strong>Correção de vento:</strong> ${fmt(r.windCorrectionFt,1)} ft<br><strong>Correção Descending:</strong> ${fmt(r.descendingCorrectionFt,1)} ft<br><strong>Resultado final:</strong> ${fmt(r.finalFt,1)} ft (${fmt(r.finalM,1)} m)`;
     draw(r,chartCanvas);
+    updateChartRef(r.chartKey);
     window.ddv7RequestFullscreenUpdate?.();
   }
   function runDDV7(){
     setTimeout(()=>{try{render(calc());}catch(e){statusCard.className='card status sticky-result out';statusBadge.textContent='FORA DO ENVELOPE';statusTitle.textContent='Sem resultado';statusText.textContent=e.message;statusDetail.textContent='';finalMetric.textContent='—';finalMetricM.textContent='—';}},0);
   }
 
+  function currentKey(){return chartKey(profileEl.value,parseReq(weightEl));}
+
   runBtn?.addEventListener('click',runDDV7);
-  resetBtn?.addEventListener('click',()=>{last=null;setTimeout(()=>draw(null,chartCanvas),0);});
+  resetBtn?.addEventListener('click',()=>{last=null;setTimeout(()=>{draw(null,chartCanvas);updateChartRef(currentKey());},0);});
+  profileEl?.addEventListener('change',()=>updateChartRef(currentKey()));
+  weightEl?.addEventListener('input',()=>updateChartRef(currentKey()));
   statusDetail && (statusDetail.textContent='');
+  updateChartRef(currentKey());
 })();
