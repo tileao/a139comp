@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v26-wat-canvas';
+const CACHE_NAME = 'aw139-companion-root-v27-wat-fullpage';
 const PRECACHE = [
   "./",
   "./README.md",

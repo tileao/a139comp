@@ -11,7 +11,7 @@ function showTab(tab){
   else if(tab==='wat')requestAnimationFrame(()=>requestAnimationFrame(drawWAT));
 }
 function drawDD(){drawDDV7Canvas($('ddCanvas'),state.last?.ddResult,'../dropdown/assets/');}
-function drawWAT(){drawWATCanvas($('watCanvas'),state.last?.watResult,'../wat/assets/');}
+function drawWAT(){drawWATCanvas($('watCanvas'),state.last?.watResult,'../wat/');}
 function calc(){
   const qnh=Number($('qnh').value),elev=Number($('elevation').value||0),pa=calcPA(qnh,elev);
   const oat=Number($('oat').value||0),w=Number($('weight').value||0),hw=Number($('wind').value||0);
