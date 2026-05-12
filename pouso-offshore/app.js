@@ -1,7 +1,41 @@
 const $=id=>document.getElementById(id);const charts={wat:'../wat/assets/offshore_standard_chart_clip.png',dropdown:'../dropdown/assets/dropdown-offshore-6800.png'};
 const state={};
 function calcPA(qnh,elev){const q=(qnh>=800&&qnh<=1100)?qnh:1013.25;return Math.round(elev+(1013.25-q)*30);}
-function calc(){const qnh=Number($('qnh').value),elev=Number($('elevation').value||0),pa=calcPA(qnh,elev),oat=Number($('oat').value||0),w=Number($('weight').value||0),hw=Number($('wind').value||0),ac=Number($('aircraft').value||7000),profile=$('profile').value,cfg=$('config').value;let cfgPenalty=0;if(cfg==='eaps_off')cfgPenalty=80; if(cfg==='eaps_on')cfgPenalty=130; if(cfg==='ibf')cfgPenalty=160; const profilePenalty=profile==='level'?120:40;const wat=Math.max(5600,ac-(pa*0.045)-(oat*12)-profilePenalty-cfgPenalty+(hw*8));const dropdown=(profile==='level'?42:34)+(pa/500)+(oat/14)-(hw/18);const margin=Math.round(wat-w);const ok=margin>=0;state.last={qnh,elev,pa,oat,w,hw,ac,profile,cfg,wat:Math.round(wat),dropdown:Math.max(10,Math.round(dropdown)),margin,ok};render();localStorage.setItem('aw139_offshore_landing_v1',JSON.stringify(state.last));localStorage.setItem('aw139_companion_shared_context_v1',JSON.stringify({lastModule:'pouso-offshore',updatedAt:new Date().toISOString(),weightKg:w,oatC:oat,pressureAltitudeFt:pa,headwindKt:hw,cataAircraftSet:String(ac),cataConfiguration:cfg}));}
-function render(){if(!state.last)return;const s=state.last;$('maxWeight').textContent=`${s.wat} kg`;$('dropdownRes').textContent=`${s.dropdown} ft`;$('watSummary').textContent=`Perfil ${s.profile==='level'?'Level':'Descending'} · ${s.cfg} · PA ${s.pa} ft`;$('ddSummary').textContent='Dropdown Offshore Landing';$('margin').textContent=`Margin: ${s.margin} kg`;const chip=$('statusChip');chip.textContent=s.ok?'Viável':'Não viável';chip.className=`status-chip ${s.ok?'ok':'bad'}`}
+function mapCfg(cfg){return cfg==='eaps_off'?'eapsOff':cfg==='eaps_on'?'eapsOn':'standard';}
+function calc(){
+  const qnh=Number($('qnh').value),elev=Number($('elevation').value||0),pa=calcPA(qnh,elev);
+  const oat=Number($('oat').value||0),w=Number($('weight').value||0),hw=Number($('wind').value||0);
+  const ac=Number($('aircraft').value||7000),profile=$('profile').value,cfg=$('config').value;
+  let wat;
+  if(cfg==='eaps_off')wat=calculateExactEapsOff(pa,oat,w,hw);
+  else if(cfg==='eaps_on')wat=calculateExactEapsOn(pa,oat,w,hw);
+  else if(cfg==='ibf')wat=calculateExactIbfInstalled(pa,oat,w,hw);
+  else wat=calculateExactOffshoreStandard(pa,oat,w,hw);
+  if(wat.error){state.last={error:wat.error,profile,cfg,qnh,elev,pa,oat,w,hw,ac};render();return;}
+  let dd;
+  try{
+    const ddProfile=profile==='descending'?'offshoreDescending':'offshore';
+    dd=calculateOffshoreDropdown(pa,oat,w,hw,ddProfile,mapCfg(cfg));
+  }catch(e){dd={error:e.message};}
+  const maxWeight=wat.maxWeight,margin=Math.round(maxWeight-w),ok=margin>=0;
+  const dropdown=dd.error?null:Math.round(dd.finalFt);
+  state.last={qnh,elev,pa,oat,w,hw,ac,profile,cfg,wat:maxWeight,dropdown,margin,ok};
+  render();
+  localStorage.setItem('aw139_offshore_landing_v1',JSON.stringify(state.last));
+  localStorage.setItem('aw139_companion_shared_context_v1',JSON.stringify({lastModule:'pouso-offshore',updatedAt:new Date().toISOString(),weightKg:w,oatC:oat,pressureAltitudeFt:pa,headwindKt:hw,cataAircraftSet:String(ac),cataConfiguration:cfg}));
+}
+function render(){
+  if(!state.last)return;const s=state.last;
+  document.querySelector('.result-panel')?.classList.remove('pending');
+  const chip=$('statusChip');
+  if(s.error){chip.textContent='Erro';chip.className='status-chip bad';$('maxWeight').textContent='—';$('dropdownRes').textContent='—';$('watSummary').textContent=s.error;$('ddSummary').textContent='—';$('margin').textContent='—';return;}
+  $('maxWeight').textContent=`${s.wat} kg`;
+  $('dropdownRes').textContent=s.dropdown!=null?`${s.dropdown} ft`:'—';
+  $('watSummary').textContent=`Perfil ${s.profile==='level'?'Level':'Descending'} · ${s.cfg} · PA ${s.pa} ft`;
+  $('ddSummary').textContent='Dropdown Offshore Landing';
+  $('margin').textContent=`Margin: ${s.margin} kg`;
+  chip.textContent=s.ok?'Viável':'Não viável';chip.className=`status-chip ${s.ok?'ok':'bad'}`;
+}
 function restore(){try{const s=JSON.parse(localStorage.getItem('aw139_offshore_landing_v1')||'null');if(!s)return;if(s.qnh!=null)$('qnh').value=s.qnh;if(s.elev!=null)$('elevation').value=s.elev;$('oat').value=s.oat;$('weight').value=s.w;$('wind').value=s.hw;$('aircraft').value=String(s.ac);$('profile').value=s.profile;$('config').value=s.cfg;state.last=s;render();}catch{}}
-document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.viewer-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');const tab=b.dataset.tab;$('vizTitle').textContent=tab==='wat'?'WAT Offshore Procedure':'Dropdown Landing Offshore';$('chartImg').src=charts[tab];}));$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=()=>window.print();restore();
+document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.viewer-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');const tab=b.dataset.tab;$('vizTitle').textContent=tab==='wat'?'WAT Offshore Procedure':'Dropdown Landing Offshore';$('chartImg').src=charts[tab];}));
+$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=()=>window.print();restore();

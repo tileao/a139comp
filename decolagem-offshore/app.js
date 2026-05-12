@@ -1,6 +1,47 @@
 const $=id=>document.getElementById(id);const charts={wat:'../wat/assets/offshore_standard_chart_clip.png',offshore:'../dropdown/assets/dropdown-offshore-6400.png',enhanced:'../dropdown/assets/dropdown-enhanced-7000.png'};const state={};
 function calcPA(qnh,elev){const q=(qnh>=800&&qnh<=1100)?qnh:1013.25;return Math.round(elev+(1013.25-q)*30);}
-function calc(){const qnh=Number($('qnh').value),elev=Number($('elevation').value||0),pa=calcPA(qnh,elev),oat=Number($('oat').value||0),w=Number($('weight').value||0),hw=Number($('wind').value||0),ac=Number($('aircraft').value||7000),proc=$('procedure').value,cfg=$('config').value;let cfgPenalty=0;if(cfg==='eaps_off')cfgPenalty=70; if(cfg==='eaps_on')cfgPenalty=120; if(cfg==='ibf')cfgPenalty=170;const procBonus=proc==='enhanced'?85:20;const wat=Math.max(5600,ac-(pa*0.05)-(oat*11)-cfgPenalty+procBonus+(hw*7));const dropdown=(proc==='enhanced'?28:38)+(pa/520)+(oat/16)-(hw/20);const margin=Math.round(wat-w);const ok=margin>=0;state.last={qnh,elev,pa,oat,w,hw,ac,proc,cfg,wat:Math.round(wat),dropdown:Math.max(8,Math.round(dropdown)),margin,ok};render();localStorage.setItem('aw139_offshore_takeoff_v1',JSON.stringify(state.last));localStorage.setItem('aw139_companion_shared_context_v1',JSON.stringify({lastModule:'decolagem-offshore',updatedAt:new Date().toISOString(),weightKg:w,oatC:oat,pressureAltitudeFt:pa,headwindKt:hw,cataAircraftSet:String(ac),cataConfiguration:cfg}));}
-function render(){if(!state.last)return;const s=state.last;$('maxWeight').textContent=`${s.wat} kg`;$('dropdownRes').textContent=`${s.dropdown} ft`;$('watSummary').textContent=`${s.proc==='enhanced'?'Enhanced':'Offshore'} · ${s.cfg} · PA ${s.pa} ft`;$('ddSummary').textContent='Dropdown Offshore Takeoff';$('margin').textContent=`Margin: ${s.margin} kg`;const chip=$('statusChip');chip.textContent=s.ok?'Viável':'Não viável';chip.className=`status-chip ${s.ok?'ok':'bad'}`;if(document.querySelector('.viewer-tab.active')?.dataset.tab==='dropdown')$('chartImg').src=s.proc==='enhanced'?charts.enhanced:charts.offshore}
+function mapCfg(cfg){return cfg==='eaps_off'?'eapsOff':cfg==='eaps_on'?'eapsOn':'standard';}
+function calc(){
+  const qnh=Number($('qnh').value),elev=Number($('elevation').value||0),pa=calcPA(qnh,elev);
+  const oat=Number($('oat').value||0),w=Number($('weight').value||0),hw=Number($('wind').value||0);
+  const ac=Number($('aircraft').value||7000),proc=$('procedure').value,cfg=$('config').value;
+  let wat;
+  if(proc==='enhanced'){
+    if(cfg==='eaps_off')wat=calculateEnhancedEapsOff(pa,oat,w);
+    else if(cfg==='eaps_on')wat=calculateEnhancedEapsOn(pa,oat,w);
+    else if(cfg==='ibf')wat=calculateEnhancedIbf(pa,oat,w);
+    else wat=calculateEnhancedStandard(pa,oat,w);
+  } else {
+    if(cfg==='eaps_off')wat=calculateExactEapsOff(pa,oat,w,hw);
+    else if(cfg==='eaps_on')wat=calculateExactEapsOn(pa,oat,w,hw);
+    else if(cfg==='ibf')wat=calculateExactIbfInstalled(pa,oat,w,hw);
+    else wat=calculateExactOffshoreStandard(pa,oat,w,hw);
+  }
+  if(wat.error){state.last={error:wat.error,proc,cfg,qnh,elev,pa,oat,w,hw,ac};render();return;}
+  let dd;
+  try{
+    dd=proc==='enhanced'?calculateEnhancedDropdown(pa,oat,w,hw):calculateOffshoreDropdown(pa,oat,w,hw,'offshore',mapCfg(cfg));
+  }catch(e){dd={error:e.message};}
+  const maxWeight=wat.maxWeight,margin=Math.round(maxWeight-w),ok=margin>=0;
+  const dropdown=dd.error?null:Math.round(dd.finalFt);
+  state.last={qnh,elev,pa,oat,w,hw,ac,proc,cfg,wat:maxWeight,dropdown,margin,ok};
+  render();
+  localStorage.setItem('aw139_offshore_takeoff_v1',JSON.stringify(state.last));
+  localStorage.setItem('aw139_companion_shared_context_v1',JSON.stringify({lastModule:'decolagem-offshore',updatedAt:new Date().toISOString(),weightKg:w,oatC:oat,pressureAltitudeFt:pa,headwindKt:hw,cataAircraftSet:String(ac),cataConfiguration:cfg}));
+}
+function render(){
+  if(!state.last)return;const s=state.last;
+  document.querySelector('.result-panel')?.classList.remove('pending');
+  const chip=$('statusChip');
+  if(s.error){chip.textContent='Erro';chip.className='status-chip bad';$('maxWeight').textContent='—';$('dropdownRes').textContent='—';$('watSummary').textContent=s.error;$('ddSummary').textContent='—';$('margin').textContent='—';return;}
+  $('maxWeight').textContent=`${s.wat} kg`;
+  $('dropdownRes').textContent=s.dropdown!=null?`${s.dropdown} ft`:'—';
+  $('watSummary').textContent=`${s.proc==='enhanced'?'Enhanced':'Offshore'} · ${s.cfg} · PA ${s.pa} ft`;
+  $('ddSummary').textContent='Dropdown Offshore Takeoff';
+  $('margin').textContent=`Margin: ${s.margin} kg`;
+  chip.textContent=s.ok?'Viável':'Não viável';chip.className=`status-chip ${s.ok?'ok':'bad'}`;
+  if(document.querySelector('.viewer-tab.active')?.dataset.tab==='dropdown')$('chartImg').src=s.proc==='enhanced'?charts.enhanced:charts.offshore;
+}
 function restore(){try{const s=JSON.parse(localStorage.getItem('aw139_offshore_takeoff_v1')||'null');if(!s)return;if(s.qnh!=null)$('qnh').value=s.qnh;if(s.elev!=null)$('elevation').value=s.elev;$('oat').value=s.oat;$('weight').value=s.w;$('wind').value=s.hw;$('aircraft').value=String(s.ac);$('procedure').value=s.proc;$('config').value=s.cfg;state.last=s;render();}catch{}}
-document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.viewer-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(b.dataset.tab==='wat'){$('vizTitle').textContent='WAT Offshore';$('chartImg').src=charts.wat;}else{$('vizTitle').textContent='Dropdown Offshore';$('chartImg').src=($('procedure').value==='enhanced'?charts.enhanced:charts.offshore);}}));$('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=()=>window.print();restore();
+document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.viewer-tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');if(b.dataset.tab==='wat'){$('vizTitle').textContent='WAT Offshore';$('chartImg').src=charts.wat;}else{$('vizTitle').textContent='Dropdown Offshore';$('chartImg').src=($('procedure').value==='enhanced'?charts.enhanced:charts.offshore);}}));
+$('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=()=>window.print();restore();
