@@ -263,69 +263,83 @@ function calculateEnhancedIbf(paFt, oat, actualWeightKg) {
   return _enhancedCalcFromGraph(SUP97_ENHANCED_IBF_GRAPH, ENHANCED_IBF_TABLE, 'enhanced_ibf', paFt, oat, actualWeightKg, 'CAT A Offshore Enhanced IBF Installed');
 }
 
-// ── Dropdown Calculation Functions ──────────────────────────────────────────
-function bracketBy(items, value, key) {
-  const sorted = [...items].sort((a, b) => a[key] - b[key]);
-  if (value < sorted[0][key] || value > sorted[sorted.length - 1][key]) return null;
-  for (let i = 1; i < sorted.length; i += 1) {
-    const low = sorted[i - 1];
-    const high = sorted[i];
-    if (value >= low[key] && value <= high[key]) return { low, high };
+// ── DD-V7 Dropdown Calculation (interpolação vetorial real via graphData.js) ──
+// Requer window.DROPDOWN_GRAPH_DATA carregado antes deste script.
+
+function _ddv7_inv(a,b,v){return Math.abs(b-a)<1e-9?0:(v-a)/(b-a);}
+function _ddv7_num(c){return Number(c.label);}
+function _ddv7_sorted(f){return [...f].sort((a,b)=>_ddv7_num(a)-_ddv7_num(b));}
+function _ddv7_bracket(fam,value,name){
+  const f=_ddv7_sorted(fam),min=_ddv7_num(f[0]),max=_ddv7_num(f[f.length-1]);
+  if(value<min||value>max) throw new Error(`${name} fora do envelope aprovado (${min} a ${max}).`);
+  for(let i=1;i<f.length;i++) if(value>=_ddv7_num(f[i-1])&&value<=_ddv7_num(f[i])) return {lo:f[i-1],hi:f[i],t:_ddv7_inv(_ddv7_num(f[i-1]),_ddv7_num(f[i]),value)};
+  return {lo:f[f.length-1],hi:f[f.length-1],t:0};
+}
+function _ddv7_yAtX(pts,x){
+  let best=null;
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1],b=pts[i],mn=Math.min(a[0],b[0]),mx=Math.max(a[0],b[0]);
+    if(x>=mn-1e-6&&x<=mx+1e-6&&Math.abs(b[0]-a[0])>1e-6){const t=_ddv7_inv(a[0],b[0],x),y=lerp(a[1],b[1],t),sc=Math.abs(t-.5);if(!best||sc<best.sc)best={y,sc};}
   }
-  return { low: sorted[sorted.length - 1], high: sorted[sorted.length - 1] };
+  if(best)return best.y;
+  if(x<=pts[0][0]){const a=pts[0],b=pts[1];return Math.abs(b[0]-a[0])>1e-6?lerp(a[1],b[1],(x-a[0])/(b[0]-a[0])):a[1];}
+  const a=pts[pts.length-2],b=pts[pts.length-1];return Math.abs(b[0]-a[0])>1e-6?lerp(a[1],b[1],(x-a[0])/(b[0]-a[0])):b[1];
 }
-
-function interpolateWeight(curves, weight, valueKey) {
-  const bracket = bracketBy(curves, weight, 'weight');
-  if (!bracket) throw new Error(`Peso fora do envelope desta carta (${curves[0].weight} a ${curves[curves.length - 1].weight} kg).`);
-  if (bracket.low.weight === bracket.high.weight) return { value: bracket.low[valueKey], low: bracket.low.weight, high: bracket.high.weight };
-  const t = (weight - bracket.low.weight) / (bracket.high.weight - bracket.low.weight);
-  return { value: lerp(bracket.low[valueKey], bracket.high[valueKey], t), low: bracket.low.weight, high: bracket.high.weight };
-}
-
-function isaAtPa(paFt) { return 15 - (paFt / 1000) * 1.98; }
-
-function validateCommon(pa, oat, weight, wind, enhanced) {
-  if ([pa, oat, weight, wind].some(Number.isNaN)) throw new Error('Preencha todos os campos.');
-  if (wind < 0 || wind > 40) throw new Error('Headwind válido: 0 a 40 kt.');
-  if (enhanced) {
-    if (pa < -1000 || pa > 1000) throw new Error('Enhanced: PA válida aproximada de -1000 a 1000 ft.');
-  } else if (pa < -1000 || pa > 5000) {
-    throw new Error('Offshore: PA válida de -1000 a 5000 ft.');
+function _ddv7_xAtY(pts,y){
+  let best=null;
+  for(let i=1;i<pts.length;i++){
+    const a=pts[i-1],b=pts[i],mn=Math.min(a[1],b[1]),mx=Math.max(a[1],b[1]);
+    if(y>=mn-1e-6&&y<=mx+1e-6&&Math.abs(b[1]-a[1])>1e-6){const t=_ddv7_inv(a[1],b[1],y),x=lerp(a[0],b[0],t),sc=Math.abs(t-.5);if(!best||sc<best.sc)best={x,sc};}
   }
-  const maxOat = isaAtPa(pa) + 35;
-  if (oat > maxOat) throw new Error(`OAT acima do limite ISA+35°C nesta PA. Limite aprox.: ${fmt(maxOat, 1)}°C.`);
+  if(best)return best.x;
+  const yF=pts[0][1],yL=pts[pts.length-1][1];
+  if(Math.abs(y-yF)<=Math.abs(y-yL)){const a=pts[0],b=pts[1];return Math.abs(b[1]-a[1])>1e-6?lerp(a[0],b[0],(y-a[1])/(b[1]-a[1])):a[0];}
+  const a=pts[pts.length-2],b=pts[pts.length-1];return Math.abs(b[1]-a[1])>1e-6?lerp(a[0],b[0],(y-a[1])/(b[1]-a[1])):b[0];
+}
+function _ddv7_frame(chart,id){const v=chart.frames[id];return{x0:v[0],y0:v[1],x1:v[2],y1:v[3]};}
+function _ddv7_mapX(v,min,max,f){return f.x0+((v-min)/(max-min))*(f.x1-f.x0);}
+function _ddv7_unmapX(x,min,max,f){return min+((x-f.x0)/(f.x1-f.x0))*(max-min);}
+function _ddv7_chartKey(profile,weight){return profile==='enhanced'?'enhanced7000':weight>6400?'offshore6800':'offshore6400';}
+
+function _ddv7_readOffshore(i,key){
+  const G=window.DROPDOWN_GRAPH_DATA,c=G.charts[key];
+  const lf=_ddv7_frame(c,'left_panel'),rf=_ddv7_frame(c,'right_panel');
+  const xPa=_ddv7_mapX(i.pa,-1000,5000,lf),ob=_ddv7_bracket(c.families.oat,i.oat,'OAT');
+  const y=lerp(_ddv7_yAtX(ob.lo.points,xPa),_ddv7_yAtX(ob.hi.points,xPa),ob.t);
+  const wb=_ddv7_bracket(c.families.gw,i.weight,'GW');
+  const xBase=lerp(_ddv7_xAtY(wb.lo.points,y),_ddv7_xAtY(wb.hi.points,y),wb.t);
+  const base=_ddv7_unmapX(xBase,0,150,rf),wind=-clamp(i.wind||0,0,40),desc=i.profile==='offshoreDescending'?15:0,final=Math.max(0,base+wind+desc);
+  return {chartKey:key,chart:key==='offshore6400'?'Supplement 12 / Figure 4I-1':'Supplement 50 / Figure 4-74',baseFt:base,windCorrectionFt:wind,descendingCorrectionFt:desc,finalFt:final,finalM:final*0.3048,oatInterp:{low:_ddv7_num(ob.lo),high:_ddv7_num(ob.hi)},weightInterp:{low:_ddv7_num(wb.lo),high:_ddv7_num(wb.hi)}};
+}
+function _ddv7_headwindTransfer(c,yEntry,wind){
+  const mf=_ddv7_frame(c,'middle_panel'),x=_ddv7_mapX(wind,0,40,mf);
+  const refs=(c.families.headwindTransfer||[]).map(curve=>({curve,yLeft:_ddv7_yAtX(curve.points,mf.x0+.5)})).sort((a,b)=>a.yLeft-b.yLeft);
+  let lo=refs[0],hi=refs[refs.length-1];
+  for(let k=1;k<refs.length;k++){if(yEntry>=Math.min(refs[k-1].yLeft,refs[k].yLeft)&&yEntry<=Math.max(refs[k-1].yLeft,refs[k].yLeft)){lo=refs[k-1];hi=refs[k];break;}}
+  const t=clamp(_ddv7_inv(lo.yLeft,hi.yLeft,yEntry),0,1);
+  return {x,y:lerp(_ddv7_yAtX(lo.curve.points,x),_ddv7_yAtX(hi.curve.points,x),t)};
+}
+function _ddv7_readEnhanced(i,key){
+  const G=window.DROPDOWN_GRAPH_DATA,c=G.charts[key];
+  const lf=_ddv7_frame(c,'left_panel'),rf=_ddv7_frame(c,'right_panel');
+  const xPa=_ddv7_mapX(i.pa/1000,-1,1,lf),ob=_ddv7_bracket(c.families.oat,i.oat,'OAT');
+  const y1=lerp(_ddv7_yAtX(ob.lo.points,xPa),_ddv7_yAtX(ob.hi.points,xPa),ob.t);
+  const ht=_ddv7_headwindTransfer(c,y1,i.wind||0);
+  const wb=_ddv7_bracket(c.families.gw,i.weight,'GW');
+  const xBase=lerp(_ddv7_xAtY(wb.lo.points,ht.y),_ddv7_xAtY(wb.hi.points,ht.y),wb.t);
+  const base=_ddv7_unmapX(xBase,0,150,rf),final=Math.max(0,base);
+  return {chartKey:key,chart:'Supplement 97 / Figure 4-10',baseFt:base,windCorrectionFt:0,descendingCorrectionFt:0,finalFt:final,finalM:final*0.3048,oatInterp:{low:_ddv7_num(ob.lo),high:_ddv7_num(ob.hi)},weightInterp:{low:_ddv7_num(wb.lo),high:_ddv7_num(wb.hi)}};
 }
 
-function calculateOffshore(inputs) {
-  validateCommon(inputs.pa, inputs.oat, inputs.weight, inputs.wind, false);
-  const weightInterp = interpolateWeight(OFFSHORE_WEIGHT_CURVES, inputs.weight, 'dropFtAtRef');
-  const paFactor = (inputs.pa / 1000) * 4.2;
-  const oatFactor = ((inputs.oat - 15) / 10) * 6.8;
-  const configFactor = inputs.config === 'eapsOn' ? 4 : inputs.config === 'eapsOff' ? 2 : 0;
-  const baseFt = weightInterp.value + paFactor + oatFactor + configFactor;
-  const windCorrectionFt = -Math.min(40, Math.max(0, inputs.wind));
-  const descendingCorrectionFt = inputs.profile === 'offshoreDescending' ? 15 : 0;
-  const finalFt = Math.max(0, baseFt + windCorrectionFt + descendingCorrectionFt);
-  return { chart: inputs.weight > 6400 ? 'Supplement 50 / Figure 4-74' : 'Supplement 12 / Figure 4I-1', weightInterp, baseFt, windCorrectionFt, descendingCorrectionFt, finalFt };
+function calculateOffshoreDropdown(pa,oat,weight,wind,profile,config){
+  const G=window.DROPDOWN_GRAPH_DATA;
+  if(!G?.charts) throw new Error('graphData.js não carregado.');
+  const key=_ddv7_chartKey(profile,weight);
+  return _ddv7_readOffshore({pa,oat,weight,wind:wind||0,profile,config},key);
+}
+function calculateEnhancedDropdown(pa,oat,weight,wind){
+  const G=window.DROPDOWN_GRAPH_DATA;
+  if(!G?.charts) throw new Error('graphData.js não carregado.');
+  return _ddv7_readEnhanced({pa,oat,weight,wind:wind||0,profile:'enhanced',config:'standard'},'enhanced7000');
 }
 
-function calculateEnhanced(inputs) {
-  validateCommon(inputs.pa, inputs.oat, inputs.weight, inputs.wind, true);
-  const weightInterp = interpolateWeight(ENHANCED_WEIGHT_CURVES, inputs.weight, 'lossFtAtRef');
-  const paFactor = (inputs.pa / 1000) * 7.5;
-  const oatFactor = ((inputs.oat - 15) / 10) * 5.5;
-  const baseFt = weightInterp.value + paFactor + oatFactor;
-  const windCorrectionFt = -0.65 * Math.min(40, Math.max(0, inputs.wind));
-  const finalFt = Math.max(0, baseFt + windCorrectionFt);
-  return { chart: 'Supplement 97 / Figure 4-10', weightInterp, baseFt, windCorrectionFt, descendingCorrectionFt: 0, finalFt };
-}
-
-function calculateOffshoreDropdown(pa, oat, weight, wind, profile, config) {
-  const inputs = { pa, oat, weight, wind, profile, config };
-  return calculateOffshore(inputs);
-}
-function calculateEnhancedDropdown(pa, oat, weight, wind) {
-  const inputs = { pa, oat, weight, wind, profile: 'enhanced', config: 'standard' };
-  return calculateEnhanced(inputs);
-}
