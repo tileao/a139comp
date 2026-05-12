@@ -480,9 +480,9 @@ function _drawWATGuides(ctx,sc,result){
   const kgToX=(kg)=>d.main.xMin+(kg-d.main.kgMin)/(d.main.kgMax-d.main.kgMin)*(d.main.xMax-d.main.xMin);
   const maxX=kgToX(result.maxWeight),actualX=kgToX(result.actualWeightKg);
   ctx.save();ctx.lineWidth=2;ctx.setLineDash([]);
-  ctx.strokeStyle=blue;ctx.beginPath();ctx.moveTo(pxX(actualX),pxY(yMain));ctx.lineTo(pxX(actualX),pxY(yHw));ctx.stroke();
-  ctx.strokeStyle=ok;ctx.beginPath();ctx.moveTo(pxX(maxX),pxY(yMain));ctx.lineTo(pxX(maxX),pxY(yHw));ctx.stroke();
+  ctx.strokeStyle=blue;ctx.beginPath();ctx.moveTo(pxX(actualX),pxY(nw.paY));ctx.lineTo(pxX(actualX),pxY(yHw));ctx.stroke();
+  ctx.strokeStyle=ok;ctx.beginPath();ctx.moveTo(pxX(maxX),pxY(nw.paY));ctx.lineTo(pxX(maxX),pxY(yHw));ctx.stroke();
   ctx.restore();
-  dot(nw.noWindX,nw.paY,white);dot(maxX,hw.hwY,ok);
+  dot(nw.noWindX,nw.paY,white);dot(actualX,nw.paY,blue);dot(maxX,hw.hwY,ok);
 }
 
