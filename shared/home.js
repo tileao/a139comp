@@ -24,6 +24,8 @@ function routeForModule(lastModule){
   if(lastModule==='wat') return 'wat/?back=1&return=../index.html';
   if(lastModule==='rto') return 'rto/?back=1&return=../index.html';
   if(lastModule==='adc') return 'adc/?back=1&return=../index.html';
+  if(lastModule==='pouso-offshore') return 'pouso-offshore/';
+  if(lastModule==='decolagem-offshore') return 'decolagem-offshore/';
   return 'cata/';
 }
 
@@ -61,7 +63,7 @@ function render(){
   }
 
   const lastModule=ctx.lastModule||'cata';
-  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC'})[lastModule]||'Cat A Clear Area';
+  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC','pouso-offshore':'Pouso Offshore','decolagem-offshore':'Decolagem Offshore'})[lastModule]||'Cat A Clear Area';
   if(resumeTitle) resumeTitle.textContent=lastLabel;
 
   const summaryParts=[];

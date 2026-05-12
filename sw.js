@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v23-metar-speci';
+const CACHE_NAME = 'aw139-companion-root-v24-offshore-flows';
 const PRECACHE = [
   "./",
   "./README.md",
@@ -65,6 +65,12 @@ const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
   "./offline.html",
+  "./pouso-offshore/index.html",
+  "./pouso-offshore/app.js",
+  "./pouso-offshore/styles.css",
+  "./decolagem-offshore/index.html",
+  "./decolagem-offshore/app.js",
+  "./decolagem-offshore/styles.css",
   "./rto/README.md",
   "./rto/app.js",
   "./rto/assets/icon-180.png",
