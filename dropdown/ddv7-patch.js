@@ -6,27 +6,15 @@
   const PAGE_AR = PAGE_W / PAGE_H;
   const $ = id => document.getElementById(id);
   const paEl=$('pressureAltitude'), oatEl=$('oat'), weightEl=$('actualWeight'), windEl=$('headwind'), profileEl=$('profile'), cfgEl=$('configuration');
-  const runBtn=$('runBtn'), resetBtn=$('resetBtn'), chartCanvas=$('chartCanvas'), fsCanvas=$('fullscreenChartCanvas');
-  const fsLayer=$('chartFullscreen'), openFsBtn=$('openFullscreenBtn'), chartStage=$('chartStage');
+  const runBtn=$('runBtn'), resetBtn=$('resetBtn'), chartCanvas=$('chartCanvas');
   const finalMetric=$('finalMetric'), finalMetricM=$('finalMetricM'), statusBadge=$('statusBadge'), statusTitle=$('statusTitle'), statusText=$('statusText'), statusDetail=$('statusDetail'), interpBox=$('interpBox'), statusCard=$('statusCard');
   let last=null;
-  let fsScale=1, fsPanX=0, fsPanY=0, fsDragging=false, fsStartX=0, fsStartY=0, fsLastTap=0;
 
   const imgs={offshore6400:new Image(),offshore6800:new Image(),enhanced7000:new Image()};
   imgs.offshore6400.src='assets/dropdown-offshore-6400.png';
   imgs.offshore6800.src='assets/dropdown-offshore-6800.png';
   imgs.enhanced7000.src='assets/dropdown-enhanced-7000.png';
-  Object.values(imgs).forEach(i=>i.addEventListener('load',()=>{draw(last,chartCanvas); if(isFullscreenOpen()) drawFullscreen();}));
-
-  const style=document.createElement('style');
-  style.textContent=`
-    .chart-fullscreen{position:fixed!important;inset:0!important;z-index:999999!important;background:#05080d!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:calc(env(safe-area-inset-top) + 58px) 8px calc(env(safe-area-inset-bottom) + 12px)!important;box-sizing:border-box!important;}
-    .chart-fullscreen.hidden{display:none!important;}
-    .chart-fullscreen-viewport{width:100%!important;height:100%!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;touch-action:none!important;}
-    #fullscreenChartCanvas{display:block!important;max-width:98vw!important;max-height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 84px)!important;width:auto!important;height:auto!important;border-radius:8px;background:#fff;box-shadow:0 18px 60px rgba(0,0,0,.45);touch-action:none!important;will-change:transform;}
-    .fullscreen-close-btn{position:fixed!important;top:calc(env(safe-area-inset-top) + 12px)!important;right:14px!important;z-index:1000000!important;width:52px!important;height:52px!important;border-radius:50%!important;background:rgba(15,23,32,.92)!important;border:1px solid rgba(148,163,184,.35)!important;color:#fff!important;font-size:28px!important;line-height:1!important;}
-  `;
-  document.head.appendChild(style);
+  Object.values(imgs).forEach(i=>i.addEventListener('load',()=>{draw(last,chartCanvas); window.ddv7RequestFullscreenUpdate?.();}));
 
   const fmt=(n,d=0)=>new Intl.NumberFormat('pt-BR',{maximumFractionDigits:d,minimumFractionDigits:d}).format(n);
   const parseReq=el=>{const r=String(el.value||'').trim();return(!r||r==='-')?NaN:Number(r.replace(/[^0-9-]/g,''));};
@@ -216,47 +204,13 @@
     statusDetail.textContent=`${r.chart}. Engine DD-V7 aprovada; overlay com linhas-guia para conferência.`;
     interpBox.innerHTML=`<strong>Modo:</strong> DD-V7 engine vetorial aprovada<br><strong>Carta:</strong> ${r.chart}<br><strong>Bracket OAT:</strong> ${r.oatInterp.low} / ${r.oatInterp.high} °C<br><strong>Bracket GW:</strong> ${r.weightInterp.low} / ${r.weightInterp.high} kg<br><strong>Leitura base do gráfico:</strong> ${fmt(r.baseFt,1)} ft<br><strong>Correção de vento:</strong> ${fmt(r.windCorrectionFt,1)} ft<br><strong>Correção Descending:</strong> ${fmt(r.descendingCorrectionFt,1)} ft<br><strong>Resultado final:</strong> ${fmt(r.finalFt,1)} ft (${fmt(r.finalM,1)} m)<br><small>Linhas-guia: PA/OAT, DIST/GW e FINAL projetadas até a borda do gráfico para conferência visual.</small>`;
     draw(r,chartCanvas);
-    if(isFullscreenOpen()) drawFullscreen();
+    window.ddv7RequestFullscreenUpdate?.();
   }
   function runDDV7(){
     setTimeout(()=>{try{render(calc());}catch(e){statusCard.className='card status sticky-result out';statusBadge.textContent='DD-V7 FORA DO ENVELOPE';statusTitle.textContent='Sem cálculo vetorial';statusText.textContent=e.message;statusDetail.textContent='Confira PA, OAT, GW e Headwind.';finalMetric.textContent='—';finalMetricM.textContent='—';}},0);
   }
 
-  function isFullscreenOpen(){ return fsLayer && !fsLayer.classList.contains('hidden'); }
-  function setFsTransform(){ if(fsCanvas) fsCanvas.style.transform=`translate(${fsPanX}px, ${fsPanY}px) scale(${fsScale})`; }
-  function resetFsTransform(){ fsScale=1; fsPanX=0; fsPanY=0; fsDragging=false; setFsTransform(); }
-  function sizeFullscreenCanvas(){
-    if(!fsCanvas)return;
-    const dpr=Math.min(window.devicePixelRatio||1,2);
-    const maxCssW=Math.max(320,window.innerWidth-16);
-    const maxCssH=Math.max(320,window.innerHeight-96);
-    let cssW=maxCssW, cssH=cssW/PAGE_AR;
-    if(cssH>maxCssH){ cssH=maxCssH; cssW=cssH*PAGE_AR; }
-    fsCanvas.width=Math.round(cssW*dpr);
-    fsCanvas.height=Math.round(cssH*dpr);
-    fsCanvas.style.width=`${Math.round(cssW)}px`;
-    fsCanvas.style.height=`${Math.round(cssH)}px`;
-  }
-  function drawFullscreen(){ sizeFullscreenCanvas(); draw(last,fsCanvas); setFsTransform(); }
-  function openFullscreenDDV7(){
-    if(!fsLayer||!fsCanvas)return;
-    fsLayer.classList.remove('hidden'); fsLayer.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden';
-    resetFsTransform(); setTimeout(drawFullscreen,30);
-  }
-  function closeFullscreenDDV7(){ if(!fsLayer)return; fsLayer.classList.add('hidden'); fsLayer.setAttribute('aria-hidden','true'); document.body.style.overflow=''; resetFsTransform(); }
-
   runBtn?.addEventListener('click',runDDV7);
   resetBtn?.addEventListener('click',()=>{last=null;setTimeout(()=>draw(null,chartCanvas),0);});
-  openFsBtn?.addEventListener('click',(e)=>{e.preventDefault(); setTimeout(openFullscreenDDV7,0);});
-  chartStage?.addEventListener('click',()=>setTimeout(openFullscreenDDV7,0));
-  $('closeFullscreenBtn')?.addEventListener('click',(e)=>{e.preventDefault(); closeFullscreenDDV7();});
-  window.addEventListener('resize',()=>{ if(isFullscreenOpen()) drawFullscreen(); });
-  window.addEventListener('orientationchange',()=>setTimeout(()=>{ if(isFullscreenOpen()) drawFullscreen(); },250));
-  fsCanvas?.addEventListener('pointerdown',e=>{fsDragging=true;fsStartX=e.clientX-fsPanX;fsStartY=e.clientY-fsPanY;fsCanvas.setPointerCapture?.(e.pointerId);});
-  fsCanvas?.addEventListener('pointermove',e=>{if(!fsDragging)return;fsPanX=e.clientX-fsStartX;fsPanY=e.clientY-fsStartY;setFsTransform();});
-  fsCanvas?.addEventListener('pointerup',e=>{fsDragging=false;fsCanvas.releasePointerCapture?.(e.pointerId);});
-  fsCanvas?.addEventListener('pointercancel',()=>{fsDragging=false;});
-  fsCanvas?.addEventListener('click',()=>{const now=Date.now(); if(now-fsLastTap<320){fsScale=fsScale===1?2.2:1;if(fsScale===1){fsPanX=0;fsPanY=0;}setFsTransform();} fsLastTap=now;});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeFullscreenDDV7();});
   statusDetail && (statusDetail.textContent='DD-V7 aprovado. Linhas-guia e fullscreen revisados. Headwind vazio = 0 kt.');
 })();
