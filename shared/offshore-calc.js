@@ -463,7 +463,8 @@ function _watCropFor(r){
   const id=r?.profileId||'';
   if(id==='offshore_standard')return{sy:520,sh:920};
   if(id==='offshore_eaps_off'||id==='offshore_eaps_on'||id==='offshore_ibf')return{sy:170,sh:1260};
-  if(id==='confined_standard'||id==='confined_eaps_off'||id==='confined_eaps_on'||id==='confined_ibf')return{sy:600,sh:760};
+  if(id==='confined_standard')return{sy:500,sh:970};
+  if(id==='confined_eaps_off'||id==='confined_eaps_on'||id==='confined_ibf')return{sy:600,sh:760};
   if(id.startsWith('enhanced_'))return{sy:560,sh:850};
   return{sy:0,sh:1872};
 }
@@ -520,8 +521,9 @@ function _drawWATGuides(ctx,sc,sy,result){
     pxX=(x)=>(194.689+x*2.223304)*sc;_pxY=(y)=>(272.253+y*2.224171)*sc;
     d=OFFSHORE_IBF_INSTALLED_EXACT;yMain=d.main.yBottomFt;yHw=d.headwind.yBottom;
   }else if(pid==='confined_standard'){
-    pxX=(x)=>(198.648+x*2.218310)*sc;_pxY=(y)=>(223.436+y*2.332746)*sc;
-    d=_confined.standard;if(!d)return;yMain=d.main.yBottomFt;
+    d=_confined.standard;if(!d)return;
+    pxX=(x)=>(x/d.page.width)*1323*sc;_pxY=(y)=>(y/d.page.height)*1872*sc;
+    yMain=d.main.yBottomFt;
   }else if(pid==='confined_eaps_off'){
     d=_confined.eaps_off;if(!d)return;
     const pl=d.plot,m=d.main;
@@ -535,13 +537,13 @@ function _drawWATGuides(ctx,sc,sy,result){
     pxX=(x)=>(195.025+x*2.221763)*sc;_pxY=(y)=>(273.207+y*2.220671)*sc;
     d=_confined.ibf;if(!d)return;yMain=d.main.yBottomFt;
   }else if(pid==='enhanced_standard'){
-    d=SUP97_ENHANCED_STANDARD_GRAPH;pxX=(x)=>x*sc;_pxY=(y)=>y*sc;yMain=d.main.yBottomFt;
+    d=SUP97_ENHANCED_STANDARD_GRAPH;pxX=(x)=>(186.385+x*0.699842)*sc;_pxY=(y)=>(255.576+y*0.706507)*sc;yMain=d.main.yBottomFt;
   }else if(pid==='enhanced_eaps_off'){
-    d=SUP97_ENHANCED_EAPS_OFF_GRAPH;pxX=(x)=>x*sc;_pxY=(y)=>y*sc;yMain=d.main.yBottomFt;
+    d=SUP97_ENHANCED_EAPS_OFF_GRAPH;pxX=(x)=>(186.385+x*0.699842)*sc;_pxY=(y)=>(256.589+y*0.706870)*sc;yMain=d.main.yBottomFt;
   }else if(pid==='enhanced_eaps_on'){
-    d=SUP97_ENHANCED_EAPS_ON_GRAPH;pxX=(x)=>x*sc;_pxY=(y)=>y*sc;yMain=d.main.yBottomFt;
+    d=SUP97_ENHANCED_EAPS_ON_GRAPH;pxX=(x)=>(186.409+x*0.700393)*sc;_pxY=(y)=>(255.576+y*0.706507)*sc;yMain=d.main.yBottomFt;
   }else if(pid==='enhanced_ibf'){
-    d=SUP97_ENHANCED_IBF_GRAPH;pxX=(x)=>x*sc;_pxY=(y)=>y*sc;yMain=d.main.yBottomFt;
+    d=SUP97_ENHANCED_IBF_GRAPH;pxX=(x)=>(185.368+x*0.701532)*sc;_pxY=(y)=>(255.598+y*0.706507)*sc;yMain=d.main.yBottomFt;
   }else return;
   const yOff=sy*sc;const pxY=(y)=>_pxY(y)-yOff;
   const nw=result.noWind,hw=result.hw;
