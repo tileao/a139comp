@@ -547,10 +547,10 @@ function _drawWATGuides(ctx,sc,sy,result){
   }else return;
   const yOff=sy*sc;const pxY=(y)=>_pxY(y)-yOff;
   const nw=result.noWind,hw=result.hw;
-  const lw=sc<0.5?3:2;
+  const lw=sc<0.5?1.5:2;const dotR=sc<0.5?3:5;
   const amber='#f3b447',white='#ffffff',blue='#52a8ff',ok=result.within?'#14b86a':'#df4f5f';
   const drawCurve=(pts,col)=>{if(!pts||pts.length<2)return;ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.lineJoin='round';ctx.lineCap='round';ctx.setLineDash([]);ctx.beginPath();pts.forEach((p,i)=>{if(i===0)ctx.moveTo(pxX(p.x),pxY(p.y));else ctx.lineTo(pxX(p.x),pxY(p.y));});ctx.stroke();ctx.restore();};
-  const dot=(x,y,col,r)=>{ctx.save();ctx.fillStyle=col;ctx.strokeStyle='#111';ctx.lineWidth=lw*0.75;ctx.beginPath();ctx.arc(pxX(x),pxY(y),r||5,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();};
+  const dot=(x,y,col,r)=>{ctx.save();ctx.fillStyle=col;ctx.strokeStyle='#111';ctx.lineWidth=lw*0.75;ctx.beginPath();ctx.arc(pxX(x),pxY(y),r||dotR,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();};
   drawCurve(nw.lowerCurve,amber);
   if(nw.upperTemp!==nw.lowerTemp)drawCurve(nw.upperCurve,amber);
   ctx.save();ctx.lineWidth=lw;ctx.strokeStyle=white;

@@ -70,6 +70,7 @@ function restore(){
     if(!s){requestAnimationFrame(()=>drawWAT());return;}
     if(s.qnh!=null)$('qnh').value=s.qnh;if(s.elev!=null)$('elevation').value=s.elev;$('oat').value=s.oat;$('weight').value=s.w;$('wind').value=s.hw;$('aircraft').value=String(s.ac);$('procedure').value=s.proc;$('config').value=s.cfg;
     state.last=s;
+    syncDropdownUI();
     requestAnimationFrame(()=>render());
   }catch{}
 }
@@ -102,7 +103,19 @@ document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',(
 }));
 $('watCanvas').addEventListener('click',openFS);$('ddCanvas').addEventListener('click',openFS);
 $('fsClose').addEventListener('click',closeFS);document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeFS();});
-$('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;
+function syncDropdownUI(){
+  const isConfined=$('procedure').value==='confined';
+  const ddTab=document.querySelector('.viewer-tab[data-tab="dropdown"]');
+  if(ddTab)ddTab.style.display=isConfined?'none':'';
+  $('ddBox').style.display=isConfined?'none':'';
+  if(isConfined&&activeTab()==='dropdown'){
+    document.querySelectorAll('.viewer-tab').forEach(x=>x.classList.remove('active'));
+    document.querySelector('.viewer-tab[data-tab="wat"]')?.classList.add('active');
+    showTab('wat');
+  }
+}
+$('procedure').addEventListener('change',()=>{syncDropdownUI();render();});$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;
 const _fields=['weight','qnh','elevation','oat','wind'];
 _fields.forEach((id,i)=>{$(id).addEventListener('keydown',(e)=>{if(e.key!=='Enter')return;e.preventDefault();if(i<_fields.length-1)$(_fields[i+1]).focus();else calc();});});
+syncDropdownUI();
 restore();
