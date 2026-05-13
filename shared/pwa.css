@@ -86,7 +86,6 @@ body.is-standalone .adc-module-topbar {
 }
 @media (max-width: 760px) {
   .pwa-launch-card { width: min(260px, calc(100vw - 32px)); }
-  .pwa-network-chip { left: max(12px, var(--pwa-safe-left)); right: auto; }
 }
 
 body:not(.pwa-shell-ready) .home-shell,

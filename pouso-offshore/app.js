@@ -38,11 +38,14 @@ function render(){
   if(!state.last)return;const s=state.last;
   document.querySelector('.result-panel')?.classList.remove('pending');
   const chip=$('statusChip');
-  if(s.error){chip.textContent='Erro';chip.className='status-chip bad';$('maxWeight').textContent='—';$('dropdownRes').textContent='—';$('watSummary').textContent=s.error;$('ddSummary').textContent='—';$('margin').textContent='—';return;}
+  if(s.error){chip.textContent='Erro';chip.className='status-chip bad';$('maxWeight').textContent='—';$('dropdownRes').textContent='—';$('watSummary').textContent=s.error;$('ddSummary').textContent='—';$('margin').textContent='—';$('watBox').className='result-box';$('ddBox').className='result-box';return;}
+  const ddOk=s.dropdown!=null?(s.elev-s.dropdown)>=15:null;
+  $('watBox').classList.toggle('ok',s.ok);$('watBox').classList.toggle('bad',!s.ok);
+  $('ddBox').classList.toggle('ok',ddOk===true);$('ddBox').classList.toggle('bad',ddOk===false);
   $('maxWeight').textContent=`${s.wat} kg`;
   $('dropdownRes').textContent=s.dropdown!=null?`${s.dropdown} ft`:'—';
   $('watSummary').textContent=`Perfil ${s.profile==='level'?'Level':'Descending'} · ${s.cfg} · PA ${s.pa} ft`;
-  $('ddSummary').textContent='Dropdown Offshore Landing';
+  $('ddSummary').textContent=ddOk!=null?`Clearance ${s.elev-s.dropdown} ft ASL`:'Dropdown Offshore Landing';
   $('margin').textContent=`Margin: ${s.margin} kg`;
   chip.textContent=s.ok?'Viável':'Não viável';chip.className=`status-chip ${s.ok?'ok':'bad'}`;
   const tab=activeTab();
@@ -87,4 +90,7 @@ document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',(
 }));
 $('watCanvas').addEventListener('click',openFS);$('ddCanvas').addEventListener('click',openFS);
 $('fsClose').addEventListener('click',closeFS);document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeFS();});
-$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;restore();
+$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;
+const _fields=['weight','qnh','elevation','oat','wind'];
+_fields.forEach((id,i)=>{$(id).addEventListener('keydown',(e)=>{if(e.key!=='Enter')return;e.preventDefault();if(i<_fields.length-1)$(_fields[i+1]).focus();else calc();});});
+restore();

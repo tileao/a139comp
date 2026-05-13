@@ -1,4 +1,5 @@
 const $=id=>document.getElementById(id);
+_loadConfinedDataFrom('../wat/data/');
 const state={};
 function calcPA(qnh,elev){const q=(qnh>=800&&qnh<=1100)?qnh:1013.25;return Math.round(elev+(1013.25-q)*30);}
 function mapCfg(cfg){return cfg==='eaps_off'?'eapsOff':cfg==='eaps_on'?'eapsOn':'standard';}
@@ -22,7 +23,12 @@ function calc(){
     else if(cfg==='eaps_on')wat=calculateEnhancedEapsOn(pa,oat,w);
     else if(cfg==='ibf')wat=calculateEnhancedIbf(pa,oat,w);
     else wat=calculateEnhancedStandard(pa,oat,w);
-  } else {
+  }else if(proc==='confined'){
+    if(cfg==='eaps_off')wat=calculateExactConfinedEapsOff(pa,oat,w);
+    else if(cfg==='eaps_on')wat=calculateExactConfinedEapsOn(pa,oat,w);
+    else if(cfg==='ibf')wat=calculateExactConfinedIbf(pa,oat,w);
+    else wat=calculateExactConfinedStandard(pa,oat,w);
+  }else{
     if(cfg==='eaps_off')wat=calculateExactEapsOff(pa,oat,w,hw);
     else if(cfg==='eaps_on')wat=calculateExactEapsOn(pa,oat,w,hw);
     else if(cfg==='ibf')wat=calculateExactIbfInstalled(pa,oat,w,hw);
@@ -31,7 +37,7 @@ function calc(){
   if(wat.error){state.last={error:wat.error,proc,cfg,qnh,elev,pa,oat,w,hw,ac,watResult:null,ddResult:null};render();return;}
   let ddResult=null;
   try{
-    ddResult=proc==='enhanced'?calculateEnhancedDropdown(pa,oat,w,hw):calculateOffshoreDropdown(pa,oat,w,hw,'offshore',mapCfg(cfg));
+    if(proc!=='confined')ddResult=proc==='enhanced'?calculateEnhancedDropdown(pa,oat,w,hw):calculateOffshoreDropdown(pa,oat,w,hw,'offshore',mapCfg(cfg));
   }catch(e){}
   const maxWeight=wat.maxWeight,margin=Math.round(maxWeight-w),ok=margin>=0;
   const dropdown=ddResult?Math.round(ddResult.finalFt):null;
@@ -44,11 +50,14 @@ function render(){
   if(!state.last)return;const s=state.last;
   document.querySelector('.result-panel')?.classList.remove('pending');
   const chip=$('statusChip');
-  if(s.error){chip.textContent='Erro';chip.className='status-chip bad';$('maxWeight').textContent='—';$('dropdownRes').textContent='—';$('watSummary').textContent=s.error;$('ddSummary').textContent='—';$('margin').textContent='—';return;}
+  if(s.error){chip.textContent='Erro';chip.className='status-chip bad';$('maxWeight').textContent='—';$('dropdownRes').textContent='—';$('watSummary').textContent=s.error;$('ddSummary').textContent='—';$('margin').textContent='—';$('watBox').className='result-box';$('ddBox').className='result-box';return;}
+  const ddOk=s.dropdown!=null?(s.elev-s.dropdown)>=15:null;
+  $('watBox').classList.toggle('ok',s.ok);$('watBox').classList.toggle('bad',!s.ok);
+  $('ddBox').classList.toggle('ok',ddOk===true);$('ddBox').classList.toggle('bad',ddOk===false);
   $('maxWeight').textContent=`${s.wat} kg`;
   $('dropdownRes').textContent=s.dropdown!=null?`${s.dropdown} ft`:'—';
-  $('watSummary').textContent=`${s.proc==='enhanced'?'Enhanced':'Offshore'} · ${s.cfg} · PA ${s.pa} ft`;
-  $('ddSummary').textContent='Dropdown Offshore Takeoff';
+  $('watSummary').textContent=`${s.proc==='confined'?'Confined Area':s.proc==='enhanced'?'Enhanced':'Offshore'} · ${s.cfg} · PA ${s.pa} ft`;
+  $('ddSummary').textContent=ddOk!=null?`Clearance ${s.elev-s.dropdown} ft ASL`:'Dropdown Offshore Takeoff';
   $('margin').textContent=`Margin: ${s.margin} kg`;
   chip.textContent=s.ok?'Viável':'Não viável';chip.className=`status-chip ${s.ok?'ok':'bad'}`;
   const tab=activeTab();
@@ -93,4 +102,7 @@ document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',(
 }));
 $('watCanvas').addEventListener('click',openFS);$('ddCanvas').addEventListener('click',openFS);
 $('fsClose').addEventListener('click',closeFS);document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeFS();});
-$('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;restore();
+$('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;
+const _fields=['weight','qnh','elevation','oat','wind'];
+_fields.forEach((id,i)=>{$(id).addEventListener('keydown',(e)=>{if(e.key!=='Enter')return;e.preventDefault();if(i<_fields.length-1)$(_fields[i+1]).focus();else calc();});});
+restore();

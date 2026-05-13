@@ -418,6 +418,29 @@ function drawDDV7Canvas(canvas,result,imgBasePath){
   };
   if(img.complete&&img.naturalWidth)render();else img.onload=render;
 }
+// Confined area WAT data - loaded lazily from JSON files
+const _confined={standard:null,eaps_off:null,eaps_on:null,ibf:null};
+function _loadConfinedDataFrom(basePath){
+  const b=basePath||'../wat/data/';
+  Promise.all([
+    fetch(b+'confined-standard-exact.json').then(r=>r.json()),
+    fetch(b+'confined-eapsoff-exact.json').then(r=>r.json()),
+    fetch(b+'confined-eapson-exact.json').then(r=>r.json()),
+    fetch(b+'confined-ibf-6400-exact.json').then(r=>r.json()),
+  ]).then(([s,eo,en,ib])=>{_confined.standard=s;_confined.eaps_off=eo;_confined.eaps_on=en;_confined.ibf=ib;}).catch(()=>{});
+}
+function _mkConfined(data,pid,paFt,oat,actualWeightKg){
+  if(!data)return{error:'Dados confined ainda carregando. Tente novamente em instantes.'};
+  const noWind=genericPdfChartNoWindLimit(data,paFt,oat,pid);
+  if(noWind.error)return noWind;
+  const maxWeight=roundToFive(Math.min(data.main.kgMax,noWind.noWindKg));
+  const margin=maxWeight-actualWeightKg;
+  return{profileId:pid,exact:true,noWind,maxWeight,margin,within:margin>=0,actualWeightKg,paFt,oat,headwindKt:0};
+}
+function calculateExactConfinedStandard(paFt,oat,actualWeightKg){return _mkConfined(_confined.standard,'confined_standard',paFt,oat,actualWeightKg);}
+function calculateExactConfinedEapsOff(paFt,oat,actualWeightKg){return _mkConfined(_confined.eaps_off,'confined_eaps_off',paFt,oat,actualWeightKg);}
+function calculateExactConfinedEapsOn(paFt,oat,actualWeightKg){return _mkConfined(_confined.eaps_on,'confined_eaps_on',paFt,oat,actualWeightKg);}
+function calculateExactConfinedIbf(paFt,oat,actualWeightKg){return _mkConfined(_confined.ibf,'confined_ibf',paFt,oat,actualWeightKg);}
 const _watImgs={};
 function _watLoadImg(src){if(!_watImgs[src]){const i=new Image();i.src=src;_watImgs[src]=i;}return _watImgs[src];}
 function _watPageFor(r){
@@ -426,12 +449,17 @@ function _watPageFor(r){
   if(id==='offshore_eaps_off')return 'docs/page-08.png';
   if(id==='offshore_eaps_on')return 'docs/page-09.png';
   if(id==='offshore_ibf')return 'docs/page-12.png';
+  if(id==='confined_standard')return 'docs/page-04.png';
+  if(id==='confined_eaps_off')return 'docs/page-05.png';
+  if(id==='confined_eaps_on')return 'docs/page-06.png';
+  if(id==='confined_ibf')return 'docs/page-11.png';
   return 'docs/page-07.png';
 }
 function _watCropFor(r){
   const id=r?.profileId||'';
   if(id==='offshore_standard')return{sy:520,sh:920};
   if(id==='offshore_eaps_off'||id==='offshore_eaps_on'||id==='offshore_ibf')return{sy:170,sh:1260};
+  if(id==='confined_standard'||id==='confined_eaps_off'||id==='confined_eaps_on'||id==='confined_ibf')return{sy:180,sh:1260};
   return{sy:0,sh:1872};
 }
 function drawWATCanvas(canvas,watResult,imgBasePath,crop){
@@ -450,7 +478,7 @@ function drawWATCanvas(canvas,watResult,imgBasePath,crop){
     ctx.setTransform(dpr,0,0,dpr,0,0);
     ctx.clearRect(0,0,cssW,cssH);
     ctx.drawImage(img,0,sy,iw,sh,0,0,cssW,cssH);
-    if(watResult&&!watResult.error&&watResult.noWind&&watResult.hw){
+    if(watResult&&!watResult.error&&watResult.noWind){
       _drawWATGuides(ctx,cssW/iw,sy,watResult);
     }
   };
@@ -464,7 +492,7 @@ function createWATExportCanvas(watResult,imgBasePath,callback){
     c.width=img.naturalWidth;c.height=img.naturalHeight;
     const ctx=c.getContext('2d');
     ctx.drawImage(img,0,0);
-    if(watResult&&!watResult.error&&watResult.noWind&&watResult.hw)_drawWATGuides(ctx,1,0,watResult);
+    if(watResult&&!watResult.error&&watResult.noWind)_drawWATGuides(ctx,1,0,watResult);
     callback(c);
   };
   if(img.complete&&img.naturalWidth)go();else img.onload=go;
@@ -486,6 +514,21 @@ function _drawWATGuides(ctx,sc,sy,result){
   }else if(pid==='offshore_ibf'){
     pxX=(x)=>(194.689+x*2.223304)*sc;_pxY=(y)=>(272.253+y*2.224171)*sc;
     d=OFFSHORE_IBF_INSTALLED_EXACT;yMain=d.main.yBottomFt;yHw=d.headwind.yBottom;
+  }else if(pid==='confined_standard'){
+    pxX=(x)=>(198.648+x*2.218310)*sc;_pxY=(y)=>(223.436+y*2.332746)*sc;
+    d=_confined.standard;if(!d)return;yMain=d.main.yBottomFt;
+  }else if(pid==='confined_eaps_off'){
+    d=_confined.eaps_off;if(!d)return;
+    const pl=d.plot,m=d.main;
+    pxX=(x)=>(pl.x0+((x-m.xMin)/(m.xMax-m.xMin))*(pl.x1-pl.x0))*sc;
+    _pxY=(y)=>(pl.y0+((m.yTopFt-y)/(m.yTopFt-m.yBottomFt))*(pl.y1-pl.y0))*sc;
+    yMain=m.yBottomFt;
+  }else if(pid==='confined_eaps_on'){
+    pxX=(x)=>(194.6+x*2.224)*sc;_pxY=(y)=>(272.4+y*2.223)*sc;
+    d=_confined.eaps_on;if(!d)return;yMain=d.main.yBottomFt;
+  }else if(pid==='confined_ibf'){
+    pxX=(x)=>(195.025+x*2.221763)*sc;_pxY=(y)=>(273.207+y*2.220671)*sc;
+    d=_confined.ibf;if(!d)return;yMain=d.main.yBottomFt;
   }else return;
   const yOff=sy*sc;const pxY=(y)=>_pxY(y)-yOff;
   const nw=result.noWind,hw=result.hw;
@@ -497,14 +540,16 @@ function _drawWATGuides(ctx,sc,sy,result){
   if(nw.upperTemp!==nw.lowerTemp)drawCurve(nw.upperCurve,amber);
   ctx.save();ctx.lineWidth=lw;ctx.strokeStyle=white;
   ctx.setLineDash([8,6]);ctx.beginPath();ctx.moveTo(pxX(d.main.xMin),pxY(nw.paY));ctx.lineTo(pxX(d.main.xMax),pxY(nw.paY));ctx.stroke();
-  ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(pxX(d.main.xMin),pxY(hw.hwY));ctx.lineTo(pxX(d.main.xMax),pxY(hw.hwY));ctx.stroke();
+  if(hw){ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(pxX(d.main.xMin),pxY(hw.hwY));ctx.lineTo(pxX(d.main.xMax),pxY(hw.hwY));ctx.stroke();}
   ctx.restore();
   const kgToX=(kg)=>d.main.xMin+(kg-d.main.kgMin)/(d.main.kgMax-d.main.kgMin)*(d.main.xMax-d.main.xMin);
   const maxX=kgToX(result.maxWeight),actualX=kgToX(result.actualWeightKg);
+  const yLineBottom=hw?hw.hwY:yMain;
   ctx.save();ctx.lineWidth=lw;ctx.setLineDash([]);
-  ctx.strokeStyle=blue;ctx.beginPath();ctx.moveTo(pxX(actualX),pxY(nw.paY));ctx.lineTo(pxX(actualX),pxY(yHw));ctx.stroke();
-  ctx.strokeStyle=ok;ctx.beginPath();ctx.moveTo(pxX(maxX),pxY(nw.paY));ctx.lineTo(pxX(maxX),pxY(yHw));ctx.stroke();
+  ctx.strokeStyle=blue;ctx.beginPath();ctx.moveTo(pxX(actualX),pxY(nw.paY));ctx.lineTo(pxX(actualX),pxY(yLineBottom));ctx.stroke();
+  ctx.strokeStyle=ok;ctx.beginPath();ctx.moveTo(pxX(maxX),pxY(nw.paY));ctx.lineTo(pxX(maxX),pxY(yLineBottom));ctx.stroke();
   ctx.restore();
-  dot(nw.noWindX,nw.paY,white);dot(actualX,nw.paY,blue);dot(maxX,hw.hwY,ok);
+  dot(nw.noWindX,nw.paY,white);dot(actualX,nw.paY,blue);
+  if(hw){dot(maxX,hw.hwY,ok);}else{dot(maxX,yMain,ok);}
 }
 
