@@ -15,71 +15,59 @@
   <link rel="stylesheet" href="shared/pwa.css">
 </head>
 <body>
-  <main class="home-shell home-shell-minimal">
-    <header class="home-topbar">
-      <div class="home-brand">
-        <div class="brand-mark" aria-hidden="true"><img src="assets/icon-192.png" alt=""></div>
-        <div>
-          <div class="brand-title">AW139 Companion</div>
-          <div class="brand-subtitle">Escolha a ferramenta</div>
-        </div>
+  <main class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1>AW139 Companion</h1>
+        <p class="subtitle">Dashboard operacional</p>
+      </div>
+      <div class="header-actions" aria-label="Status do sistema">
+        <span class="status-icon connected">●</span>
       </div>
     </header>
 
-    <section class="launcher-hero">
-      <span class="eyebrow">Acesso rápido</span>
-      <h1>Abra direto a ferramenta certa.</h1>
-      <p>Entrada simplificada para Cat A, WAT, RTO, ADC e Dropdown.</p>
-    </section>
-
-    <section class="launcher-grid" aria-label="Ferramentas principais">
-      <a class="launcher-card featured" href="cata/">
+    <section class="dashboard-grid" aria-label="Ferramentas principais">
+      <article class="widget large-widget flight-preview">
         <span class="card-tag">Fluxo principal</span>
         <h2>Cat A Clear Area</h2>
-        <p>WAT, RTO e decisão por ponto em um único fluxo operacional.</p>
-        <span class="card-cta">Abrir</span>
+        <div class="flight-data">
+          <div class="route">WAT ➔ RTO ➔ Decisão</div>
+          <div class="details">
+            <span>Contexto unificado</span>
+            <span>Entrada única</span>
+          </div>
+        </div>
+        <a class="btn-primary action-button" href="cata/">Calcular tudo e abrir fluxo</a>
+      </article>
+
+      <a class="widget small-widget priority-widget" href="pouso-offshore/">
+        <div class="widget-icon">🛬</div>
+        <h3>Pouso Offshore</h3>
       </a>
 
-      <a class="launcher-card" href="wat/?back=1&return=../index.html">
-        <span class="card-tag">Módulo</span>
-        <h2>WAT</h2>
-        <p>Envelope e limite de peso com visualização por gráfico.</p>
-        <span class="card-cta">Abrir</span>
+      <a class="widget small-widget priority-widget" href="decolagem-offshore/">
+        <div class="widget-icon">🚁</div>
+        <h3>Decolagem Offshore</h3>
       </a>
 
-      <a class="launcher-card" href="rto/?back=1&return=../index.html">
-        <span class="card-tag">Módulo</span>
-        <h2>RTO</h2>
-        <p>Distância requerida e apoio à decisão por ponto.</p>
-        <span class="card-cta">Abrir</span>
+      <a class="widget small-widget" href="wat/?back=1&return=../index.html">
+        <div class="widget-icon">📊</div>
+        <h3>WAT</h3>
       </a>
 
-      <a class="launcher-card" href="adc/?back=1&return=../index.html">
-        <span class="card-tag">Módulo</span>
-        <h2>ADC</h2>
-        <p>Carta operacional e análise de viabilidade por pista.</p>
-        <span class="card-cta">Abrir</span>
+      <a class="widget small-widget" href="rto/?back=1&return=../index.html">
+        <div class="widget-icon">🛫</div>
+        <h3>RTO</h3>
       </a>
 
-
-      <a class="launcher-card" href="pouso-offshore/">
-        <span class="card-tag">Novo fluxo</span>
-        <h2>Pouso Offshore</h2>
-        <p>WAT Offshore Procedure + Dropdown (Descending/Level).</p>
-        <span class="card-cta">Abrir</span>
+      <a class="widget small-widget" href="adc/?back=1&return=../index.html">
+        <div class="widget-icon">📏</div>
+        <h3>ADC</h3>
       </a>
 
-      <a class="launcher-card" href="decolagem-offshore/">
-        <span class="card-tag">Novo fluxo</span>
-        <h2>Decolagem Offshore</h2>
-        <p>WAT + Dropdown Offshore / Enhanced Offshore.</p>
-        <span class="card-cta">Abrir</span>
-      </a>
-      <a class="launcher-card" href="dropdown/?back=1&return=../index.html">
-        <span class="card-tag">Módulo</span>
-        <h2>Dropdown</h2>
-        <p>Perda de altura / height loss em CTO OEI offshore.</p>
-        <span class="card-cta">Abrir</span>
+      <a class="widget small-widget" href="dropdown/?back=1&return=../index.html">
+        <div class="widget-icon">📉</div>
+        <h3>Dropdown</h3>
       </a>
     </section>
 
@@ -102,6 +90,26 @@
       <div class="resume-chips" id="resumeChips"></div>
     </section>
   </main>
+
+  <nav class="app-tab-bar" aria-label="Navegação rápida">
+    <a href="index.html" class="tab-item active" aria-current="page">
+      <span class="tab-icon">🏠</span>
+      <span class="tab-label">Home</span>
+    </a>
+    <a href="cata/" class="tab-item">
+      <span class="tab-icon">📋</span>
+      <span class="tab-label">Cat A</span>
+    </a>
+    <a href="wat/?back=1&return=../index.html" class="tab-item">
+      <span class="tab-icon">📊</span>
+      <span class="tab-label">WAT</span>
+    </a>
+    <a href="adc/?back=1&return=../index.html" class="tab-item">
+      <span class="tab-icon">⚙️</span>
+      <span class="tab-label">ADC</span>
+    </a>
+  </nav>
+
   <script src="shared/pwa.js"></script>
   <script src="shared/home.js"></script>
 </body>
