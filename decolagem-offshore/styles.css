@@ -164,5 +164,8 @@ body.fullscreen-body{overflow:hidden}
 
 
 .weight-row{display:grid;grid-template-columns:84px 1fr;gap:8px;align-items:end}
+.weight-input-row{display:flex;gap:8px;align-items:stretch;}
+.weight-input-row input{flex:1 1 auto;min-width:0;}
+.weight-input-row select{flex:0 0 74px;max-width:74px;}
 .mini-select{height:38px;min-height:38px;padding:0 10px;font-size:13px;width:100%;margin-top:0}
 .metar-info-line{font-size:12px;color:#cfe2f5;opacity:.9;margin:-2px 0 8px 0;min-height:16px}
