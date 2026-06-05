@@ -65,6 +65,9 @@ button { cursor:pointer; }
 .hidden { display:none !important; }
 .select-wrap { position:relative; }
 .input-with-toggle { display:grid; grid-template-columns: 56px 1fr; gap:10px; }
+.weight-input-row { display:flex; gap:8px; align-items:stretch; }
+.weight-input-row input { flex:1 1 auto; min-width:0; }
+.weight-input-row select { flex:0 0 74px; max-width:74px; padding:0 8px; }
 .sign-toggle {
   padding:0; min-height:56px; display:grid; place-items:center; font-weight:800; font-size:18px;
   background:#111b28;
