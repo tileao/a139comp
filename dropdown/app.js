@@ -23,6 +23,16 @@ const chartCanvas = document.getElementById('chartCanvas');
 const chartStage = document.getElementById('chartStage');
 
 const FT_TO_M = 0.3048;
+const KG_TO_LB = 2.2046226218;
+const weightUnitEl = document.getElementById('weightUnit');
+const grossWeightLabelEl = document.getElementById('grossWeightLabel');
+function isLbUnit() { return weightUnitEl?.value === 'lb'; }
+function parseWeightKg() { const raw = parseField(weightEl); return Number.isNaN(raw) ? NaN : isLbUnit() ? raw / KG_TO_LB : raw; }
+function updateWeightUi() {
+  const lb = isLbUnit();
+  if (grossWeightLabelEl) grossWeightLabelEl.textContent = `Gross Weight (${lb ? 'lb' : 'kg'})`;
+  weightEl.placeholder = lb ? 'ex. 14770' : 'ex. 6800';
+}
 let currentResult = null;
 
 const OFFSHORE_WEIGHT_CURVES = [
@@ -130,7 +140,7 @@ function calculateDropdown() {
   const inputs = {
     pa: parseField(paEl),
     oat: parseField(oatEl),
-    weight: parseField(weightEl),
+    weight: parseWeightKg(),
     wind: parseField(windEl),
     profile: profileEl.value,
     config: configurationEl.value,
@@ -145,7 +155,7 @@ function yMap(v, min, max, y0, y1) { return y1 - ((v - min) / (max - min)) * (y1
 function getPageKey(result = currentResult) {
   const profile = result?.profile || profileEl.value;
   if (profile === 'enhanced') return 'enhanced7000';
-  const weight = result?.weight ?? parseField(weightEl);
+  const weight = result?.weight ?? parseWeightKg();
   return !Number.isNaN(weight) && weight > 6400 ? 'offshore6800' : 'offshore6400';
 }
 
@@ -317,6 +327,8 @@ function render(result) {
 
 function reset() {
   [paEl, oatEl, weightEl, windEl].forEach(el => { el.value = ''; });
+  if (weightUnitEl) weightUnitEl.value = 'kg';
+  updateWeightUi();
   currentResult = null;
   finalMetric.textContent = '—';
   finalMetricM.textContent = '—';
@@ -354,4 +366,6 @@ runBtn?.addEventListener('click', () => {
 resetBtn?.addEventListener('click', reset);
 profileEl?.addEventListener('change', () => { if (!currentResult) refreshCharts(); });
 weightEl?.addEventListener('input', () => { if (!currentResult) refreshCharts(); });
+weightUnitEl?.addEventListener('change', updateWeightUi);
+updateWeightUi();
 refreshCharts();
