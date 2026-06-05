@@ -408,8 +408,8 @@ function syncProcedureOptionsForAircraft() {
 const autoAdvanceRules = [
   { el: paEl, next: oatEl, minDigits: 3 },
   { el: oatEl, next: weightEl, minDigits: 2 },
-  { el: weightEl, next: headwindEl, minDigits: 4, offshoreOnly: true },
-  { el: weightEl, next: runBtn, minDigits: 4, offshoreOnly: false },
+  { el: weightEl, next: headwindEl, get minDigits() { return isLbUnit() ? 5 : 4; }, offshoreOnly: true },
+  { el: weightEl, next: runBtn, get minDigits() { return isLbUnit() ? 5 : 4; }, offshoreOnly: false },
   { el: headwindEl, next: runBtn, minDigits: 1 }
 ];
 
@@ -440,7 +440,7 @@ function canAdvance(rule) {
   return digits.length >= rule.minDigits;
 }
 function focusNext(target) { if (!target) return; if (target === runBtn) { runBtn.focus(); return; } target.focus(); target.select?.(); }
-function setupAutoAdvance() { autoAdvanceRules.forEach((rule) => { rule.el.addEventListener('input', () => { if (rule.el === oatEl) sanitizeDigitsInput(oatEl, 2); if (rule.el === paEl) sanitizeDigitsInput(paEl, 5); if (rule.el === weightEl) sanitizeDigitsInput(weightEl, 4); if (rule.el === headwindEl) sanitizeDigitsInput(headwindEl, 2); if (canAdvance(rule)) focusNext(rule.next); }); rule.el.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); focusNext(rule.next); } }); }); }
+function setupAutoAdvance() { autoAdvanceRules.forEach((rule) => { rule.el.addEventListener('input', () => { if (rule.el === oatEl) sanitizeDigitsInput(oatEl, 2); if (rule.el === paEl) sanitizeDigitsInput(paEl, 5); if (rule.el === weightEl) sanitizeDigitsInput(weightEl, isLbUnit() ? 5 : 4); if (rule.el === headwindEl) sanitizeDigitsInput(headwindEl, 2); if (canAdvance(rule)) focusNext(rule.next); }); rule.el.addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); focusNext(rule.next); } }); }); }
 paNegativeBtn?.addEventListener('click', () => { toggleSignedInput(paEl, 5); });
 oatNegativeBtn?.addEventListener('click', () => { toggleSignedInput(oatEl, 2); });
 
