@@ -1,6 +1,8 @@
 const paEl = document.getElementById('pressureAltitude');
 const oatEl = document.getElementById('oat');
 const weightEl = document.getElementById('actualWeight');
+const weightUnitEl = document.getElementById('weightUnit');
+const actualWeightLabelEl = document.getElementById('actualWeightLabel');
 const windEl = document.getElementById('headwind');
 const paNegativeBtn = document.getElementById('paNegativeBtn');
 const oatNegativeBtn = document.getElementById('oatNegativeBtn');
@@ -35,6 +37,18 @@ const BASE_PAGE_WIDTH = 842;
 const BASE_PAGE_HEIGHT = 595;
 const BUILD_LABEL = 'BUILD V65 • IBF 7000 left OAT micro-drop';
 const BUILD_CACHE_KEY = 'v65';
+const KG_TO_LB = 2.2046226218;
+function isLbUnit() { return weightUnitEl?.value === 'lb'; }
+function parseWeightKg() {
+  const raw = Number(weightEl.value);
+  if (Number.isNaN(raw)) return Number.NaN;
+  return isLbUnit() ? (raw / KG_TO_LB) : raw;
+}
+function updateWeightUnitUi() {
+  const lb = isLbUnit();
+  if (actualWeightLabelEl) actualWeightLabelEl.textContent = `Gross Weight (${lb ? 'lb' : 'kg'})`;
+  weightEl.placeholder = lb ? 'ex. 14770' : 'ex. 6700';
+}
 
 const state = {
   engine: null,
@@ -72,7 +86,7 @@ function isReferenceOnlyEngine(engine = state.engine) {
   return !!engine && engine.status === 'reference-assets-staged-only';
 }
 
-function resolveEffectiveProfileKey(profileKey, weightKg = parseUnsignedField(weightEl)) {
+function resolveEffectiveProfileKey(profileKey, weightKg = parseWeightKg()) {
   if (profileKey === 'standard') {
     if (Number.isFinite(weightKg) && weightKg > 6800) return 'standard7000';
     return 'standard';
@@ -119,18 +133,18 @@ function renderChartFacts(src) {
 }
 
 async function ensureEffectiveProfileLoaded({ preserveInputs = true, autoRun = false } = {}) {
-  const desiredProfileKey = resolveEffectiveProfileKey(state.profileKey, parseUnsignedField(weightEl));
+  const desiredProfileKey = resolveEffectiveProfileKey(state.profileKey, parseWeightKg());
   if (state.engine && state.activeProfileKey === desiredProfileKey) return;
-  await loadProfile(state.profileKey, { preserveInputs, autoRun, effectiveWeightKg: parseUnsignedField(weightEl) });
+  await loadProfile(state.profileKey, { preserveInputs, autoRun, effectiveWeightKg: parseWeightKg() });
 }
 
 async function refreshWeightSensitiveProfileIfNeeded() {
   if (!['standard', 'eapsOff', 'eapsOn', 'ibfInstalled'].includes(state.profileKey)) return;
   const digits = digitsOnlyLength(weightEl);
-  if (digits < 4) return;
-  const desiredProfileKey = resolveEffectiveProfileKey(state.profileKey, parseUnsignedField(weightEl));
+  if (digits < (isLbUnit() ? 5 : 4)) return;
+  const desiredProfileKey = resolveEffectiveProfileKey(state.profileKey, parseWeightKg());
   if (state.activeProfileKey === desiredProfileKey) return;
-  await loadProfile(state.profileKey, { preserveInputs: true, autoRun: false, effectiveWeightKg: parseUnsignedField(weightEl) });
+  await loadProfile(state.profileKey, { preserveInputs: true, autoRun: false, effectiveWeightKg: parseWeightKg() });
 }
 
 const profiles = {
@@ -179,7 +193,7 @@ const profiles = {
 const autoAdvanceRules = [
   { el: paEl, next: oatEl, minDigits: 3, maxDigits: 4 },
   { el: oatEl, next: weightEl, minDigits: 2, maxDigits: 2 },
-  { el: weightEl, next: windEl, minDigits: 4, maxDigits: 4 },
+  { el: weightEl, next: windEl, get minDigits() { return isLbUnit() ? 5 : 4; }, get maxDigits() { return isLbUnit() ? 5 : 4; } },
   { el: windEl, next: runBtn, minDigits: 2, maxDigits: 2 },
 ];
 
@@ -882,7 +896,7 @@ async function runCalculation({ skipEnsureProfile = false } = {}) {
   const payload = {
     paFt: parseSignedField(paEl),
     oatC: parseSignedField(oatEl),
-    weightKg: parseUnsignedField(weightEl),
+    weightKg: parseWeightKg(),
     headwindKt: String(windEl?.value ?? '').trim() === '' ? 0 : parseUnsignedField(windEl),
   };
 
@@ -909,7 +923,7 @@ async function runCalculation({ skipEnsureProfile = false } = {}) {
 function loadDemo() {
   paEl.value = '0';
   oatEl.value = '25';
-  weightEl.value = '6700';
+  weightEl.value = isLbUnit() ? '14770' : '6700';
   windEl.value = '5';
   runCalculation();
 }
@@ -932,6 +946,8 @@ function resetForm() {
   oatEl.value = '';
   weightEl.value = '';
   windEl.value = '';
+  if (weightUnitEl) weightUnitEl.value = 'kg';
+  updateWeightUnitUi();
   clearResultsOnly();
 }
 
@@ -982,7 +998,7 @@ function updateProfileTexts() {
 }
 
 async function loadProfile(profileKey, { preserveInputs = true, autoRun = true, effectiveWeightKg = null } = {}) {
-  const effectiveProfileKey = resolveEffectiveProfileKey(profileKey, effectiveWeightKg ?? parseUnsignedField(weightEl));
+  const effectiveProfileKey = resolveEffectiveProfileKey(profileKey, effectiveWeightKg ?? parseWeightKg());
   const profile = profiles[effectiveProfileKey];
   if (!profile) throw new Error(`Perfil não suportado: ${effectiveProfileKey}`);
 
@@ -1153,6 +1169,12 @@ async function init() {
     refreshWeightSensitiveProfileIfNeeded().catch(() => {});
   });
 
+  weightUnitEl?.addEventListener('change', () => {
+    updateWeightUnitUi();
+    if (weightEl.value !== '') refreshWeightSensitiveProfileIfNeeded().catch(() => {});
+  });
+
+  updateWeightUnitUi();
   await loadProfile(configurationEl.value || 'standard', { preserveInputs: false });
   applyAdaptiveLayout();
 }

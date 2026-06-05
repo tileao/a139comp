@@ -82,9 +82,15 @@
           </div>
         </label>
 
-        <label class="field-half compact-field">
-          <span>Gross Weight (kg)</span>
-          <input id="actualWeight" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 6700">
+        <label class="field-half compact-field weight-field">
+          <span id="actualWeightLabel">Gross Weight (kg)</span>
+          <div class="weight-input-row">
+            <input id="actualWeight" type="text" inputmode="numeric" enterkeyhint="next" autocomplete="off" placeholder="ex. 6700" maxlength="5">
+            <select id="weightUnit" aria-label="Unidade de peso">
+              <option value="kg" selected>kg</option>
+              <option value="lb">lb</option>
+            </select>
+          </div>
         </label>
 
         <label id="headwindWrap" class="field-half compact-field narrow-field">

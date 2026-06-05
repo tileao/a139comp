@@ -1,5 +1,10 @@
 const $=id=>document.getElementById(id);
 _loadConfinedDataFrom('../wat/data/');
+const KG_TO_LB=2.2046226218;
+function isLbUnit(){return $('weightUnit')?.value==='lb';}
+function parseWeightKg(){const r=Number($('weight').value||0);return isLbUnit()?r/KG_TO_LB:r;}
+function fmtWt(kg){return isLbUnit()?`${Math.round(kg*KG_TO_LB)} lb`:`${kg} kg`;}
+function updateWeightUi(){const lb=isLbUnit();const lbl=$('weightLabel');if(lbl)lbl.textContent=`Weight (${lb?'lb':'kg'})`;$('weight').placeholder=lb?'14330':'6500';}
 const state={};
 function calcPA(qnh,elev){const q=(qnh>=800&&qnh<=1100)?qnh:1013.25;return Math.round(elev+(1013.25-q)*30);}
 function mapCfg(cfg){return cfg==='eaps_off'?'eapsOff':cfg==='eaps_on'?'eapsOn':'standard';}
@@ -15,7 +20,7 @@ function drawDD(){drawDDV7Canvas($('ddCanvas'),state.last?.ddResult,'../dropdown
 function drawWAT(){drawWATCanvas($('watCanvas'),state.last?.watResult,'../wat/');}
 function calc(){
   const qnh=Number($('qnh').value),elev=Number($('elevation').value||0),pa=calcPA(qnh,elev);
-  const oat=Number($('oat').value||0),w=Number($('weight').value||0),hw=Number($('wind').value||0);
+  const oat=Number($('oat').value||0),wRaw=Number($('weight').value||0),w=isLbUnit()?wRaw/KG_TO_LB:wRaw,hw=Number($('wind').value||0);
   const ac=Number($('aircraft').value||7000),proc=$('procedure').value,cfg=$('config').value;
   let wat;
   if(proc==='enhanced'){
@@ -41,9 +46,9 @@ function calc(){
   }catch(e){}
   const maxWeight=wat.maxWeight,margin=Math.round(maxWeight-w),ok=margin>=0;
   const dropdown=ddResult?Math.round(ddResult.finalFt):null;
-  state.last={qnh,elev,pa,oat,w,hw,ac,proc,cfg,wat:maxWeight,watResult:wat,dropdown,margin,ok,ddResult};
+  state.last={qnh,elev,pa,oat,w,wRaw,hw,ac,proc,cfg,wat:maxWeight,watResult:wat,dropdown,margin,ok,ddResult};
   render();
-  localStorage.setItem('aw139_offshore_takeoff_v1',JSON.stringify({qnh,elev,pa,oat,w,hw,ac,proc,cfg,wat:maxWeight,dropdown,margin,ok}));
+  localStorage.setItem('aw139_offshore_takeoff_v1',JSON.stringify({qnh,elev,pa,oat,w,wRaw,weightUnit:isLbUnit()?'lb':'kg',hw,ac,proc,cfg,wat:maxWeight,dropdown,margin,ok}));
   localStorage.setItem('aw139_companion_shared_context_v1',JSON.stringify({lastModule:'decolagem-offshore',updatedAt:new Date().toISOString(),weightKg:w,oatC:oat,pressureAltitudeFt:pa,headwindKt:hw,cataAircraftSet:String(ac),cataConfiguration:cfg}));
 }
 function render(){
@@ -54,11 +59,11 @@ function render(){
   const ddOk=s.dropdown!=null?(s.elev-s.dropdown)>=15:null;
   $('watBox').classList.toggle('ok',s.ok);$('watBox').classList.toggle('bad',!s.ok);
   $('ddBox').classList.toggle('ok',ddOk===true);$('ddBox').classList.toggle('bad',ddOk===false);
-  $('maxWeight').textContent=`${s.wat} kg`;
+  $('maxWeight').textContent=fmtWt(s.wat);
   $('dropdownRes').textContent=s.dropdown!=null?`${s.dropdown} ft`:'—';
   $('watSummary').textContent=`${s.proc==='confined'?'Confined Area':s.proc==='enhanced'?'Enhanced':'Offshore'} · ${s.cfg} · PA ${s.pa} ft`;
   $('ddSummary').textContent=ddOk!=null?`Clearance ${s.elev-s.dropdown} ft ASL`:'Dropdown Offshore Takeoff';
-  $('margin').textContent=`Margin: ${s.margin} kg`;
+  $('margin').textContent=`Margin: ${fmtWt(s.margin)}`;
   chip.textContent=s.ok?'Viável':'Não viável';chip.className=`status-chip ${s.ok?'ok':'bad'}`;
   const tab=activeTab();
   if(tab==='dropdown')drawDD();
@@ -68,7 +73,7 @@ function restore(){
   try{
     const s=JSON.parse(localStorage.getItem('aw139_offshore_takeoff_v1')||'null');
     if(!s){requestAnimationFrame(()=>drawWAT());return;}
-    if(s.qnh!=null)$('qnh').value=s.qnh;if(s.elev!=null)$('elevation').value=s.elev;$('oat').value=s.oat;$('weight').value=s.w;$('wind').value=s.hw;$('aircraft').value=String(s.ac);$('procedure').value=s.proc;$('config').value=s.cfg;
+    if(s.qnh!=null)$('qnh').value=s.qnh;if(s.elev!=null)$('elevation').value=s.elev;$('oat').value=s.oat;if($('weightUnit')&&s.weightUnit)$('weightUnit').value=s.weightUnit;$('weight').value=s.wRaw!=null?s.wRaw:s.w;$('wind').value=s.hw;$('aircraft').value=String(s.ac);$('procedure').value=s.proc;$('config').value=s.cfg;updateWeightUi();
     state.last=s;
     requestAnimationFrame(()=>render());
   }catch{}
@@ -103,6 +108,7 @@ document.querySelectorAll('.viewer-tab').forEach(b=>b.addEventListener('click',(
 $('watCanvas').addEventListener('click',openFS);$('ddCanvas').addEventListener('click',openFS);
 $('fsClose').addEventListener('click',closeFS);document.addEventListener('keydown',(e)=>{if(e.key==='Escape')closeFS();});
 $('procedure').addEventListener('change',render);$('runBtn').onclick=calc;$('resetBtn').onclick=()=>location.reload();$('pdfBtn').onclick=exportPDF;
+$('weightUnit')?.addEventListener('change',updateWeightUi);
 const _fields=['weight','qnh','elevation','oat','wind'];
 _fields.forEach((id,i)=>{$(id).addEventListener('keydown',(e)=>{if(e.key!=='Enter')return;e.preventDefault();if(i<_fields.length-1)$(_fields[i+1]).focus();else calc();});});
 restore();

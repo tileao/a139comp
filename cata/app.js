@@ -1068,6 +1068,7 @@ async function runRTO(input) {
   await waitForNoPendingRto(doc, 2500);
   try { await doc.defaultView?.clearResultsOnly?.(); } catch {}
 
+  setField(doc, 'weightUnit', 'kg');
   setField(doc, 'headwind', input.headwindKt);
   setField(doc, 'pressureAltitude', input.pressureAltitudeFt);
   setField(doc, 'oat', input.oatC);
