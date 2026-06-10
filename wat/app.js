@@ -437,6 +437,7 @@ function canAdvance(rule) {
   const raw = String(rule.el.value ?? '');
   const digits = raw.replace(/[^0-9]/g, '');
   if (rule.el === oatEl) return digits.length === rule.minDigits;
+  if (rule.el === paEl && raw.startsWith('-')) return false;
   return digits.length >= rule.minDigits;
 }
 function focusNext(target) { if (!target) return; if (target === runBtn) { runBtn.focus(); return; } target.focus(); target.select?.(); }
@@ -714,7 +715,7 @@ function calculateExactOffshoreStandard(paFt,oat,actualWeightKg,headwindKt) { co
 
 function off_xToKg(x) { const m = OFFSHORE_EAPS_OFF_EXACT.main; return m.kgMin + ((x - m.xMin) / (m.xMax - m.xMin)) * (m.kgMax - m.kgMin); }
 function off_kgToX(kg) { const m = OFFSHORE_EAPS_OFF_EXACT.main; return m.xMin + ((kg - m.kgMin) / (m.kgMax - m.kgMin)) * (m.xMax - m.xMin); }
-function off_paToY(paFt) { const m = OFFSHORE_EAPS_OFF_EXACT.main; const pa = clamp(paFt, Math.max(0, m.yMinFt), m.yMaxFt); return m.yTopFt + ((m.yMaxFt - pa) / (m.yMaxFt - m.yMinFt)) * (m.yBottomFt - m.yTopFt); }
+function off_paToY(paFt) { const m = OFFSHORE_EAPS_OFF_EXACT.main; const pa = clamp(paFt, m.yMinFt, m.yMaxFt); return m.yTopFt + ((m.yMaxFt - pa) / (m.yMaxFt - m.yMinFt)) * (m.yBottomFt - m.yTopFt); }
 function off_hwToY(hwKt) { const hw = OFFSHORE_EAPS_OFF_EXACT.headwind; const kt = clamp(hwKt, 0, hw.maxKt); return hw.yTop + (kt / hw.maxKt) * (hw.yBottom - hw.yTop); }
 function off_getSortedTemps() { return Object.keys(OFFSHORE_EAPS_OFF_EXACT.tempCurves).map(Number).sort((a,b)=>a-b); }
 function off_getCurveForTemp(temp) { return toPoints(OFFSHORE_EAPS_OFF_EXACT.tempCurves[String(temp)]); }
