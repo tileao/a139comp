@@ -705,7 +705,7 @@ function xAtY(points, y) {
 
 function std_xToKg(x) { const m = OFFSHORE_STANDARD_EXACT.main; return m.kgMin + ((x - m.xMin) / (m.xMax - m.xMin)) * (m.kgMax - m.kgMin); }
 function std_kgToX(kg) { const m = OFFSHORE_STANDARD_EXACT.main; return m.xMin + ((kg - m.kgMin) / (m.kgMax - m.kgMin)) * (m.xMax - m.xMin); }
-function std_paToY(paFt) { const m = OFFSHORE_STANDARD_EXACT.main; const pa = clamp(paFt, 0, m.maxPaFt); return m.yZeroFt - (pa / m.maxPaFt) * (m.yZeroFt - m.yTopFt); }
+function std_paToY(paFt) { const m = OFFSHORE_STANDARD_EXACT.main; const pa = clamp(paFt, -1000, m.maxPaFt); return m.yZeroFt - (pa / m.maxPaFt) * (m.yZeroFt - m.yTopFt); }
 function std_hwToY(hwKt) { const hw = OFFSHORE_STANDARD_EXACT.headwind; const kt = clamp(hwKt, 0, hw.maxKt); return hw.yTop + (kt / hw.maxKt) * (hw.yBottom - hw.yTop); }
 function std_getSortedTemps() { return Object.keys(OFFSHORE_STANDARD_EXACT.tempCurves).map(Number).sort((a,b)=>a-b); }
 function std_getCurveForTemp(temp) { return toPoints(OFFSHORE_STANDARD_EXACT.tempCurves[String(temp)]); }
