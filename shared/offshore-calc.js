@@ -125,7 +125,7 @@ function genericPdfChartNoWindLimit(data, paFt, oat, label) { const temps=generi
 // ── Offshore Standard WAT (6800 kg) ─────────────────────────────────────────
 function std_xToKg(x) { const m = OFFSHORE_STANDARD_EXACT.main; return m.kgMin + ((x - m.xMin) / (m.xMax - m.xMin)) * (m.kgMax - m.kgMin); }
 function std_kgToX(kg) { const m = OFFSHORE_STANDARD_EXACT.main; return m.xMin + ((kg - m.kgMin) / (m.kgMax - m.kgMin)) * (m.xMax - m.xMin); }
-function std_paToY(paFt) { const m = OFFSHORE_STANDARD_EXACT.main; const pa = clamp(paFt, 0, m.maxPaFt); return m.yZeroFt - (pa / m.maxPaFt) * (m.yZeroFt - m.yTopFt); }
+function std_paToY(paFt) { const m = OFFSHORE_STANDARD_EXACT.main; const pa = clamp(paFt, -1000, m.maxPaFt); return m.yZeroFt - (pa / m.maxPaFt) * (m.yZeroFt - m.yTopFt); }
 function std_hwToY(hwKt) { const hw = OFFSHORE_STANDARD_EXACT.headwind; const kt = clamp(hwKt, 0, hw.maxKt); return hw.yTop + (kt / hw.maxKt) * (hw.yBottom - hw.yTop); }
 function std_getSortedTemps() { return Object.keys(OFFSHORE_STANDARD_EXACT.tempCurves).map(Number).sort((a,b)=>a-b); }
 function std_getCurveForTemp(temp) { return toPoints(OFFSHORE_STANDARD_EXACT.tempCurves[String(temp)]); }
@@ -136,7 +136,7 @@ function calculateExactOffshoreStandard(paFt,oat,actualWeightKg,headwindKt) { co
 // ── EAPS OFF WAT (6800 kg) ──────────────────────────────────────────────────
 function off_xToKg(x) { const m = OFFSHORE_EAPS_OFF_EXACT.main; return m.kgMin + ((x - m.xMin) / (m.xMax - m.xMin)) * (m.kgMax - m.kgMin); }
 function off_kgToX(kg) { const m = OFFSHORE_EAPS_OFF_EXACT.main; return m.xMin + ((kg - m.kgMin) / (m.kgMax - m.kgMin)) * (m.xMax - m.xMin); }
-function off_paToY(paFt) { const m = OFFSHORE_EAPS_OFF_EXACT.main; const pa = clamp(paFt, Math.max(0, m.yMinFt), m.yMaxFt); return m.yTopFt + ((m.yMaxFt - pa) / (m.yMaxFt - m.yMinFt)) * (m.yBottomFt - m.yTopFt); }
+function off_paToY(paFt) { const m = OFFSHORE_EAPS_OFF_EXACT.main; const pa = clamp(paFt, m.yMinFt, m.yMaxFt); return m.yTopFt + ((m.yMaxFt - pa) / (m.yMaxFt - m.yMinFt)) * (m.yBottomFt - m.yTopFt); }
 function off_hwToY(hwKt) { const hw = OFFSHORE_EAPS_OFF_EXACT.headwind; const kt = clamp(hwKt, 0, hw.maxKt); return hw.yTop + (kt / hw.maxKt) * (hw.yBottom - hw.yTop); }
 function off_getSortedTemps() { return Object.keys(OFFSHORE_EAPS_OFF_EXACT.tempCurves).map(Number).sort((a,b)=>a-b); }
 function off_getCurveForTemp(temp) { return toPoints(OFFSHORE_EAPS_OFF_EXACT.tempCurves[String(temp)]); }
