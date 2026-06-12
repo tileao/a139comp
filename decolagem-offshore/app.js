@@ -92,11 +92,15 @@ function closeFS(){$('fsOverlay').hidden=true;document.body.classList.remove('fu
 function exportPDF(){
   if(!state.last?.watResult||state.last.watResult.error){window.print();return;}
   createWATExportCanvas(state.last.watResult,'../wat/',(ec)=>{
-    ec.toBlob(blob=>{
+    ec.toBlob(async blob=>{
+      const file=new File([blob],'wat-offshore.png',{type:'image/png'});
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:'WAT Offshore'});return;}catch(e){if(e.name==='AbortError')return;}
+      }
       const url=URL.createObjectURL(blob);
       const win=window.open('','_blank');
       if(!win){window.print();return;}
-      win.document.write('<!DOCTYPE html><html><head><title>WAT Export</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fff}img{display:block;width:100%;height:auto}@media print{@page{margin:6mm}}</style></head><body><img src="'+url+'" onload="window.print()"></body></html>');
+      win.document.write('<!DOCTYPE html><html><head><title>WAT Export</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#fff;font-family:system-ui,sans-serif}.bar{position:sticky;top:0;z-index:9;display:flex;gap:8px;padding:10px 12px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #ddd}.btn{height:40px;padding:0 16px;border-radius:8px;border:1px solid #ccc;background:#f0f0f0;font-size:14px;font-weight:600;cursor:pointer}.btn.ok{background:#2FA7A0;color:#fff;border-color:#2FA7A0}img{display:block;width:100%;height:auto}@media print{.bar{display:none}@page{margin:6mm}}</style></head><body><div class="bar"><button class="btn" onclick="window.close()">&#x2715; Fechar</button><button class="btn ok" onclick="window.print()">&#x1F4E4; Compartilhar</button></div><img src="'+url+'"></body></html>');
       win.document.close();
     },'image/png');
   });
