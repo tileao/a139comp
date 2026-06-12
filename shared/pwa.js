@@ -9,6 +9,7 @@
   };
   window.__aw139PwaState = state;
 
+  const hadController = !!(navigator.serviceWorker && navigator.serviceWorker.controller);
   const launchMask = createLaunchMask();
   const networkChip = createNetworkChip();
   let lastScrollState = false;
@@ -269,6 +270,15 @@
     });
   }
 
+  function showCacheUpdatedBanner(){
+    const bar = ensureBar();
+    bar.querySelector('.pwa-toast-text').textContent = 'App atualizado! Abra cada módulo online uma vez para garantir o uso offline.';
+    const btn = bar.querySelector('.pwa-toast-action');
+    btn.hidden = true;
+    btn.onclick = null;
+    bar.hidden = false;
+  }
+
   function showOnlineToast(message){
     const bar = ensureBar();
     const btn = bar.querySelector('.pwa-toast-action');
@@ -347,12 +357,19 @@
     document.body.classList.toggle('is-standalone', state.installed);
     updateInstallStatusText();
     wireInstallButton();
+    if (localStorage.getItem('aw139_sw_updated')) {
+      localStorage.removeItem('aw139_sw_updated');
+      window.setTimeout(showCacheUpdatedBanner, 800);
+    }
     renderGlobalBottomNav();
     updateViewportClasses();
     window.dispatchEvent(new CustomEvent('aw139-pwa-state', { detail: state }));
   });
 
   if (navigator.serviceWorker) {
-    navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadController) localStorage.setItem('aw139_sw_updated', '1');
+      window.location.reload();
+    });
   }
 })();

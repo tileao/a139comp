@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v33-enhanced-confined-fix';
+const CACHE_NAME = 'aw139-companion-root-v34-neg-pa-labels-banner';
 const PRECACHE = [
   "./",
   "./README.md",
