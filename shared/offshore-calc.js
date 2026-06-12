@@ -552,7 +552,7 @@ function _drawWATGuides(ctx,sc,sy,result){
   const amber='#f3b447',white='#ffffff',blue='#52a8ff',ok=result.within?'#14b86a':'#df4f5f';
   const drawCurve=(pts,col)=>{if(!pts||pts.length<2)return;ctx.save();ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.lineJoin='round';ctx.lineCap='round';ctx.setLineDash([]);ctx.beginPath();pts.forEach((p,i)=>{if(i===0)ctx.moveTo(pxX(p.x),pxY(p.y));else ctx.lineTo(pxX(p.x),pxY(p.y));});ctx.stroke();ctx.restore();};
   const dot=(x,y,col,r)=>{ctx.save();ctx.fillStyle=col;ctx.strokeStyle='#111';ctx.lineWidth=lw*0.75;ctx.beginPath();ctx.arc(pxX(x),pxY(y),r||dr,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();};
-  const lbl=(px,py,text,col)=>{ctx.save();const fs=Math.round(sc<0.5?11:14);ctx.font=`bold ${fs}px system-ui,sans-serif`;const tw=ctx.measureText(text).width;const bw=Math.max(30,tw+12);const bh=fs+10;const bx=px+6,by=py-bh-6;ctx.fillStyle='rgba(255,255,255,.86)';ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(bx,by,bw,bh,4);else ctx.rect(bx,by,bw,bh);ctx.fill();ctx.stroke();ctx.fillStyle='#111';ctx.fillText(text,bx+6,by+fs+1);ctx.restore();};
+  const lbl=(px,py,text,col,flip=false)=>{ctx.save();const fs=Math.round(sc<0.5?8:10);ctx.font=`bold ${fs}px system-ui,sans-serif`;const tw=ctx.measureText(text).width;const bw=Math.max(22,tw+8);const bh=fs+6;const bx=px+4,by=flip?py+dr+2:py-bh-4;ctx.fillStyle='rgba(255,255,255,.82)';ctx.strokeStyle=col;ctx.lineWidth=1;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(bx,by,bw,bh,3);else ctx.rect(bx,by,bw,bh);ctx.fill();ctx.stroke();ctx.fillStyle='#111';ctx.fillText(text,bx+4,by+fs);ctx.restore();};
   drawCurve(nw.lowerCurve,amber);
   if(nw.upperTemp!==nw.lowerTemp)drawCurve(nw.upperCurve,amber);
   ctx.save();ctx.lineWidth=lw;ctx.strokeStyle=white;
@@ -567,7 +567,7 @@ function _drawWATGuides(ctx,sc,sy,result){
   ctx.strokeStyle=ok;ctx.beginPath();ctx.moveTo(pxX(maxX),pxY(nw.paY));ctx.lineTo(pxX(maxX),pxY(yLineBottom));ctx.stroke();
   ctx.restore();
   dot(nw.noWindX,nw.paY,white);lbl(pxX(nw.noWindX),pxY(nw.paY),'OAT/PA',white);
-  dot(actualX,nw.paY,blue);lbl(pxX(actualX),pxY(nw.paY),'ATUAL',blue);
+  dot(actualX,nw.paY,blue);lbl(pxX(actualX),pxY(nw.paY),'ATUAL',blue,true);
   if(hw){dot(maxX,hw.hwY,ok);lbl(pxX(maxX),pxY(hw.hwY),'WAT MAX',ok);}else{dot(maxX,yMain,ok);lbl(pxX(maxX),pxY(yMain),'WAT MAX',ok);}
 }
 
