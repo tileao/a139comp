@@ -157,7 +157,7 @@
 
   function launchIconPath(){
     const path = pagePath();
-    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/')) return '../assets/icon-192.png';
+    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/') || path.includes('/pouso-offshore/') || path.includes('/decolagem-offshore/')) return '../assets/icon-192.png';
     return 'assets/icon-192.png';
   }
 
