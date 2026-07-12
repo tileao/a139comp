@@ -137,7 +137,7 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
 
 .viewer-pane[hidden] { display: none !important; }
 
-.topbar-chart-btn { margin-left: auto; flex: none; }
+.topbar-chart-btn { flex: none; }
 
 @media (min-width: 901px) {
   .workspace.chart-hidden .sidebar {
@@ -520,7 +520,16 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.table-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .table-title {
@@ -638,8 +647,14 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   .floating-table .table-scroll { max-height: 32vh; }
 }
 
+@media (max-width: 480px) {
+  /* título + dois botões de alternância não cabem numa linha só */
+  .floating-table .table-header-row { flex-wrap: wrap; }
+  .floating-table .table-header-actions { width: 100%; justify-content: flex-start; }
+}
+
 @media print {
-  .topbar, .action-row, .add-leg-btn, .remove-leg-btn, #fullscreenBtn, .back-btn, #toggleTableBtn { display: none !important; }
+  .topbar, .action-row, .add-leg-btn, .remove-leg-btn, #fullscreenBtn, .back-btn, #toggleTableBtn, #toggleChartBtn { display: none !important; }
   body { background: #fff; color: #000; }
   .panel, .leg-card, .result-box, .chart-wrap { border-color: #999; background: #fff; }
   .viewer-pane { border-left: none; }

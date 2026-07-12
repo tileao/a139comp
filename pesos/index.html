@@ -23,13 +23,15 @@
         <div class="topbar-name">AW139 Companion</div>
         <div class="topbar-subtitle">Pesos por Perna</div>
       </div>
-      <button class="ghost-btn small-btn topbar-chart-btn" id="toggleChartBtn" type="button" aria-expanded="true">Ocultar gráfico</button>
     </header>
 
     <div class="floating-table">
       <div class="table-header-row">
         <h3 class="table-title">Tabela do voo</h3>
-        <button class="ghost-btn small-btn" id="toggleTableBtn" type="button" aria-expanded="true">Ocultar tabela</button>
+        <div class="table-header-actions">
+          <button class="ghost-btn small-btn topbar-chart-btn" id="toggleChartBtn" type="button" aria-expanded="true">Ocultar gráfico</button>
+          <button class="ghost-btn small-btn" id="toggleTableBtn" type="button" aria-expanded="true">Ocultar tabela</button>
+        </div>
       </div>
       <div class="table-scroll" id="tableContainer">
         <table class="flight-table" id="flightTable">
