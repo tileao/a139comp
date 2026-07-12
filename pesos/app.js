@@ -1644,6 +1644,11 @@
 
     lastCalcResult = computeWithAutofill();
     render(lastCalcResult);
+    // Republica o voo salvo no contexto compartilhado já na abertura: os
+    // chips de localidade no WAT/RTO/SLO dependem de pesoPernas, que antes
+    // só era gravado num toque em "Calcular pesos" — um voo salvo numa
+    // versão anterior nunca aparecia nos outros módulos.
+    if (lastCalcResult && lastCalcResult.results.length) writeSharedContext(lastCalcResult);
 
     // hook de depuração/testes (não usado pela UI)
     window.aw139PesosDebug = function () { return lastCalcResult; };
