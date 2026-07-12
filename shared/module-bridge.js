@@ -182,7 +182,9 @@
       const i=Number(btn.dataset.leg);
       const l=legs[i];
       setIf('actualWeight', l.tow);
-      const wx=i>0 ? legs[i-1].weather : null;
+      // 1ª decolagem: wx da origem informado no Pesos ("WX dec.");
+      // demais: wx registrado no pouso da perna anterior (mesma localidade)
+      const wx=i>0 ? legs[i-1].weather : (l.weatherOrigem || null);
       if(wx){
         if(wx.temperatura!=null && wx.temperatura!=='') setIf('oat', num(wx.temperatura));
         if(wx.vento){ const kt=num(String(wx.vento).split('/')[1]); if(kt!=null) setIf('headwind', kt); }

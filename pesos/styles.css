@@ -346,9 +346,9 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   margin-right: 8px;
 }
 
-.wx-btn { flex: none; }
+.wx-btn, .wx-origin-btn { flex: none; }
 
-.wx-btn.wx-filled {
+.wx-btn.wx-filled, .wx-origin-btn.wx-filled {
   border-color: var(--teal-border);
   color: var(--teal);
 }
