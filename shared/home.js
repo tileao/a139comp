@@ -29,7 +29,9 @@ function routeForModule(lastModule){
   if(lastModule==='ncl') return 'ncl/?embed=1&back=1&return=../index.html';
   if(lastModule==='pouso-offshore') return 'pouso-offshore/';
   if(lastModule==='decolagem-offshore') return 'decolagem-offshore/';
-  return 'cata/';
+  if(lastModule==='cata') return 'cata/';
+  // fluxo principal: o voo começa no Pesos
+  return 'pesos/?embed=1&back=1&return=../index.html';
 }
 
 function labelConfig(v){
@@ -41,7 +43,7 @@ function setContinueDisabled(){
   if(!continueLink) return;
   continueLink.classList.add('disabled');
   continueLink.setAttribute('aria-disabled','true');
-  continueLink.href='cata/';
+  continueLink.href='pesos/?embed=1&back=1&return=../index.html';
 }
 
 function setContinueEnabled(href){
@@ -65,8 +67,8 @@ function render(){
     return;
   }
 
-  const lastModule=ctx.lastModule||'cata';
-  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC',pesos:'Pesos por Perna',slo:'SLO','pouso-offshore':'Pouso Offshore','decolagem-offshore':'Decolagem Offshore'})[lastModule]||'Cat A Clear Area';
+  const lastModule=ctx.lastModule||'pesos';
+  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC',pesos:'Pesos por Perna',slo:'SLO',ncl:'Checklist NCL',cata:'Cat A Clear Area','pouso-offshore':'Pouso Offshore','decolagem-offshore':'Decolagem Offshore'})[lastModule]||'Pesos por Perna';
   if(resumeTitle) resumeTitle.textContent=lastLabel;
 
   const summaryParts=[];
