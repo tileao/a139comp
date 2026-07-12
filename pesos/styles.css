@@ -53,6 +53,9 @@ body {
   z-index: 30;
   background: var(--panel-bg);
   border-bottom: 1px solid var(--slate-border);
+  /* Reservado aqui (não só no .topbar) para que a tabela flutuante não
+     fique sob o notch/status bar quando ?embed=1 oculta o topbar. */
+  padding-top: env(safe-area-inset-top);
 }
 
 .topbar {
@@ -60,7 +63,6 @@ body {
   align-items: center;
   gap: 10px;
   padding: 10px 16px;
-  padding-top: calc(10px + env(safe-area-inset-top));
   background: var(--panel-bg);
   border-bottom: 1px solid var(--slate-border);
 }
@@ -78,8 +80,14 @@ body {
   overflow: auto;
 }
 
+/* Fixo (fora do #topbar) para continuar visível mesmo com ?embed=1, que
+   oculta a topbar inteira — sem isso, o botão voltar some junto. */
 .back-btn {
-  background: transparent;
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top));
+  left: 14px;
+  z-index: 200;
+  background: rgba(17, 27, 38, 0.92);
   border: 1px solid var(--slate-border);
   color: var(--text);
   border-radius: 8px;
@@ -87,7 +95,15 @@ body {
   height: 32px;
   font-size: 16px;
   cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
+
+/* O back-btn fixo flutua por cima do conteúdo — abre espaço à esquerda
+   tanto na topbar (modo normal) quanto no cabeçalho da tabela flutuante
+   (modo ?embed=1, quando a topbar inteira fica oculta) para não sobrepor
+   texto/título. */
+body.has-back-btn .topbar,
+body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
 
 .topbar-titles { display: flex; flex-direction: column; line-height: 1.2; }
 .topbar-name { font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.02em; }

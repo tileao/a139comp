@@ -787,6 +787,7 @@
   if (params.has('back') || params.has('return')){
     const back = $('backBtn');
     back.hidden = false;
+    document.body.classList.add('has-back-btn');
     back.addEventListener('click', (e) => {
       e.preventDefault();
       const ret = params.get('return');
