@@ -1,14 +1,16 @@
 'use strict';
 
 // Bump a versão a cada release para invalidar caches antigos.
-var CACHE_NAME = 'aw139-pesos-v10';
+var CACHE_NAME = 'aw139-pesos-v11';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './manifest.webmanifest',
-  './icon.png'
+  './icon.png',
+  '../shared/pwa.css',
+  '../shared/pwa.js'
 ];
 
 self.addEventListener('install', function (event) {
