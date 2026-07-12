@@ -234,6 +234,9 @@
     cards.forEach(function (card, i) {
       $('.leg-number', card).textContent = 'Perna ' + (i + 1);
       $('.leg-route-label', card).textContent = stops[i] + ' → ' + stops[i + 1];
+      // wx de decolagem só na 1ª perna: nas demais, a decolagem herda o wx
+      // registrado no pouso da perna anterior (mesma localidade)
+      $('.wx-origin-btn', card).hidden = i !== 0;
       updateWxButton(card);
     });
     $('#fuelPanel').hidden = wanted === 0;
@@ -258,10 +261,12 @@
   ];
 
   var wxCard = null;
+  var wxKey = 'weather'; // 'weather' = destino/pouso; 'weatherOrigem' = decolagem (só perna 1)
 
-  function getLegWeather(card) {
+  function getLegWeather(card, key) {
     try {
-      return card.dataset.weather ? JSON.parse(card.dataset.weather) : null;
+      var raw = card.dataset[key || 'weather'];
+      return raw ? JSON.parse(raw) : null;
     } catch (e) {
       return null;
     }
@@ -272,6 +277,12 @@
     var has = !!getLegWeather(card);
     btn.classList.toggle('wx-filled', has);
     btn.textContent = has ? 'WX ✓' : 'WX';
+    var originBtn = $('.wx-origin-btn', card);
+    if (originBtn) {
+      var hasOrigin = !!getLegWeather(card, 'weatherOrigem');
+      originBtn.classList.toggle('wx-filled', hasOrigin);
+      originBtn.textContent = hasOrigin ? 'WX dec. ✓' : 'WX dec.';
+    }
   }
 
   function applyWxTypeVisibility() {
@@ -285,13 +296,16 @@
     return /^S[A-Z]{3}$/.test(dest) ? 'aero' : 'um';
   }
 
-  function openWxDialog(card) {
+  function openWxDialog(card, isOrigin) {
     wxCard = card;
-    var dest = ($('.leg-route-label', card).textContent.split('→')[1] || '').trim();
+    wxKey = isOrigin ? 'weatherOrigem' : 'weather';
+    var parts = $('.leg-route-label', card).textContent.split('→');
+    var place = (isOrigin ? parts[0] : parts[1] || '').trim();
     var legNum = $('.leg-number', card).textContent;
-    document.getElementById('wxTitle').textContent = 'Weather — ' + dest + ' (' + legNum + ')';
-    var data = getLegWeather(card) || {};
-    document.getElementById('wxType').value = data.type || guessWxType(dest);
+    document.getElementById('wxTitle').textContent =
+      'Weather — ' + place + (isOrigin ? ' (decolagem)' : ' (' + legNum + ')');
+    var data = getLegWeather(card, wxKey) || {};
+    document.getElementById('wxType').value = data.type || guessWxType(place);
     WX_FIELDS.forEach(function (f) {
       document.getElementById(f[1]).value = data[f[0]] !== undefined ? data[f[0]] : '';
     });
@@ -308,8 +322,8 @@
       data[f[0]] = v;
       if (v !== '') hasAny = true;
     });
-    if (hasAny) wxCard.dataset.weather = JSON.stringify(data);
-    else delete wxCard.dataset.weather;
+    if (hasAny) wxCard.dataset[wxKey] = JSON.stringify(data);
+    else delete wxCard.dataset[wxKey];
     updateWxButton(wxCard);
   }
 
@@ -317,6 +331,7 @@
     saveWxDialog();
     document.getElementById('wxOverlay').hidden = true;
     wxCard = null;
+    wxKey = 'weather';
     scheduleRecalc();
   }
 
@@ -438,7 +453,8 @@
         consumptionKg: parseNum($('.consumption-input', card).value),
         timeMin: parseNum($('.flight-time-input', card).value),
         rateKgH: parseNum($('.fuel-rate-input', card).value),
-        weather: getLegWeather(card)
+        weather: getLegWeather(card),
+        weatherOrigem: getLegWeather(card, 'weatherOrigem')
       };
     });
   }
@@ -652,6 +668,7 @@
         cgTowMm: cgTowMm,
         cgLwMm: cgLwMm,
         weather: leg.weather || null,
+        weatherOrigem: leg.weatherOrigem || null,
         issues: legIssues,
         status: worst
       });
@@ -1244,7 +1261,8 @@
           destino: r.destText,
           tow: round1(r.tow),
           lw: round1(r.lw),
-          weather: r.weather || null
+          weather: r.weather || null,
+          weatherOrigem: r.weatherOrigem || null
         };
       });
       localStorage.setItem(SHARED_KEY, JSON.stringify(updated));
@@ -1286,7 +1304,8 @@
         timeMin: $('.flight-time-input', card).value,
         rateKgH: $('.fuel-rate-input', card).value,
         takeoffManual: $('.takeoff-fuel-input', card).dataset.manual === '1',
-        weather: getLegWeather(card)
+        weather: getLegWeather(card),
+        weatherOrigem: getLegWeather(card, 'weatherOrigem')
       };
     });
     return {
@@ -1336,6 +1355,7 @@
       $('.fuel-rate-input', card).value = legData.rateKgH || '400';
       if (legData.takeoffManual) $('.takeoff-fuel-input', card).dataset.manual = '1';
       if (legData.weather) card.dataset.weather = JSON.stringify(legData.weather);
+      if (legData.weatherOrigem) card.dataset.weatherOrigem = JSON.stringify(legData.weatherOrigem);
       updateWxButton(card);
       toggleConsumptionMode(card);
     });
@@ -1449,6 +1469,8 @@
     });
 
     legsContainer.addEventListener('click', function (e) {
+      var originBtn = e.target.closest('.wx-origin-btn');
+      if (originBtn) { openWxDialog(originBtn.closest('.leg-card'), true); return; }
       var btn = e.target.closest('.wx-btn');
       if (btn) openWxDialog(btn.closest('.leg-card'));
     });
