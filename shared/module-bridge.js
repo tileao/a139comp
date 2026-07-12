@@ -8,18 +8,42 @@
   function loadCtx(){ try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}} }
   function saveCtx(ctx){ localStorage.setItem(KEY, JSON.stringify({...loadCtx(), ...ctx, updatedAt:new Date().toISOString(), lastModule:mod})); }
   function num(v){ if(v==null) return null; const s=String(v).replace(',', '.').trim(); if(!s) return null; const n=Number(s); return Number.isFinite(n)?n:null; }
+  // Números exibidos em pt-BR usam "." como separador de milhar (ex.: "6.800 kg").
+  // Extrair dígitos com um replace ingênuo trataria o ponto como decimal (6.8);
+  // aqui removemos o ponto de milhar antes de converter vírgula decimal, se houver.
+  function numFromLocaleText(text){
+    if(text==null) return null;
+    let s=String(text).replace(/[^0-9.,-]/g,'').trim();
+    if(!s) return null;
+    if(s.indexOf(',')!==-1) s=s.replace(/\./g,'').replace(',', '.');
+    else s=s.replace(/\./g,'');
+    const n=Number(s);
+    return Number.isFinite(n)?n:null;
+  }
   function setIf(id,val){ const el=document.getElementById(id); if(!el || val==null || val==='') return; el.value=val; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); }
   function setSelectByDeparture(id, token, dep){ const el=document.getElementById(id); if(!el) return false; const rawToken=token==null?'':String(token).trim(); const rawDep=dep==null?'':String(dep).trim(); let opt=rawToken?[...el.options].find(o=>o.value===rawToken):null; if(!opt && rawDep) opt=[...el.options].find(o=>String(o.value||'').split('::')[1]===rawDep || String(o.textContent||'').trim()===rawDep); if(!opt) return false; el.value=opt.value; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); return true; }
   function setRadio(name,val){ if(val==null || val==='') return; const el=document.querySelector(`input[name="${name}"][value="${val}"]`); if(!el) return; el.checked=true; el.dispatchEvent(new Event('change',{bubbles:true})); }
   function getIf(id){ const el=document.getElementById(id); return el?el.value:null; }
   function mapRtoConfig(v){ return ({standard:'standard', eaps_off:'eapsOff', eaps_on:'eapsOn', ibf:'ibfInstalled'})[v] || v || 'standard'; }
+  // Weather do módulo Pesos (pesoWeatherPorPerna) na perna crítica (pesoPernaCritica),
+  // usado como sugestão de OAT/vento quando o WAT/RTO ainda não têm valor próprio.
+  function pesoCriticalWeather(ctx){
+    const list=ctx.pesoWeatherPorPerna;
+    if(!Array.isArray(list) || !list.length) return null;
+    const idx=(ctx.pesoPernaCritica!=null ? ctx.pesoPernaCritica-1 : 0);
+    const entry=list[idx] || list[0];
+    return (entry && entry.weather) || null;
+  }
   function applyContext(){
     const ctx=loadCtx();
     if(mod==='wat' || mod==='rto'){
+      const wx=pesoCriticalWeather(ctx);
+      const wxTempC=wx && wx.temperatura!=null ? num(wx.temperatura) : null;
+      const wxWindKt=wx && wx.vento ? num(String(wx.vento).split('/')[1]) : null;
       setIf('pressureAltitude', ctx.pressureAltitudeFt);
-      setIf('oat', ctx.oatC);
+      setIf('oat', ctx.oatC!=null ? ctx.oatC : wxTempC);
       setIf('actualWeight', ctx.weightKg);
-      setIf('headwind', ctx.headwindKt);
+      setIf('headwind', ctx.headwindKt!=null ? ctx.headwindKt : wxWindKt);
     }
     if(mod==='wat'){
       setRadio('aircraftSet', ctx.cataAircraftSet || '6800');
@@ -38,8 +62,11 @@
       }
     }
   }
-  function captureContext(){
+  function captureContext(opts){
+    const silent = !!(opts && opts.silent);
     if(mod==='wat'){
+      const maxWeightKg=numFromLocaleText((document.getElementById('maxWeight')||{}).textContent);
+      if(maxWeightKg==null) return; // nada calculado ainda
       saveCtx({
         pressureAltitudeFt:num(getIf('pressureAltitude')),
         oatC:num(getIf('oat')),
@@ -48,21 +75,22 @@
         cataAircraftSet:(document.querySelector('input[name="aircraftSet"]:checked')||{}).value||'6800',
         cataProcedure:getIf('procedure'),
         cataConfiguration:getIf('configuration'),
-        watMaxWeightKg:num((document.getElementById('maxWeight')||{}).textContent?.replace(/[^0-9.-]/g,'')),
-        watMarginKg:num((document.getElementById('margin')||{}).textContent?.replace(/[^0-9.-]/g,''))
+        watMaxWeightKg:maxWeightKg,
+        watMarginKg:numFromLocaleText((document.getElementById('margin')||{}).textContent)
       });
-      alert('Contexto WAT salvo.');
+      if(!silent) alert('Contexto WAT salvo.');
     } else if(mod==='rto'){
-      const finalText=(document.getElementById('finalMetric')||{}).textContent||'';
+      const rtoMeters=numFromLocaleText((document.getElementById('finalMetric')||{}).textContent);
+      if(rtoMeters==null) return; // nada calculado ainda
       saveCtx({
         pressureAltitudeFt:num(getIf('pressureAltitude')),
         oatC:num(getIf('oat')),
         weightKg:num(getIf('actualWeight')),
         headwindKt:num(getIf('headwind')),
         cataConfiguration:getIf('configuration'),
-        rtoMeters:num(finalText.replace(/[^0-9.-]/g,''))
+        rtoMeters
       });
-      alert('Contexto RTO salvo.');
+      if(!silent) alert('Contexto RTO salvo.');
     } else if(mod==='adc'){
       const depSelect=document.getElementById('departureEndSelect');
       const depToken=(depSelect||{}).value||null;
@@ -124,5 +152,18 @@
     }
     bar.addEventListener('click',(e)=>{ const act=e.target?.dataset?.act; if(!act) return; if(act==='load') applyContext(); if(act==='save') captureContext(); if(act==='inbox') writeAdcInbox(); if(act==='back') goBack();});
   }
-  window.addEventListener('DOMContentLoaded',()=>{ applyContext(); addBar(); });
+  // Grava automaticamente no contexto compartilhado sempre que o WAT/RTO
+  // terminam um cálculo (sem exigir clique manual em "salvar"), para que o
+  // watMaxWeightKg apareça na tabela do módulo Pesos assim que disponível.
+  function autoSaveOnResult(){
+    const targetId = mod==='wat' ? 'maxWeight' : mod==='rto' ? 'finalMetric' : null;
+    if(!targetId) return;
+    const target=document.getElementById(targetId);
+    if(!target) return;
+    let timer=null;
+    const trigger=()=>{ clearTimeout(timer); timer=setTimeout(()=>captureContext({silent:true}), 250); };
+    new MutationObserver(trigger).observe(target, { childList:true, characterData:true, subtree:true });
+    trigger();
+  }
+  window.addEventListener('DOMContentLoaded',()=>{ applyContext(); addBar(); autoSaveOnResult(); });
 })();

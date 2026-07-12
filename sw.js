@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v35-fix-icon-fs-share';
+const CACHE_NAME = 'aw139-companion-root-v36-network-first';
 const PRECACHE = [
   "./",
   "./README.md",
@@ -65,6 +65,32 @@ const PRECACHE = [
   "./index.html",
   "./manifest.webmanifest",
   "./offline.html",
+  "./ncl/index.html",
+  "./ncl/manifest.webmanifest",
+  "./ncl/service-worker.js",
+  "./ncl/assets/icon-192.svg",
+  "./ncl/assets/icon-512.svg",
+  "./ncl/assets/omni-logo.png",
+  "./ncl/src/app.js",
+  "./ncl/src/styles.css",
+  "./ncl/src/checklist/engine.js",
+  "./ncl/src/checklist/storage.js",
+  "./ncl/src/data/checklist-data.js",
+  "./pesos/index.html",
+  "./pesos/app.js",
+  "./pesos/styles.css",
+  "./pesos/manifest.webmanifest",
+  "./pesos/sw.js",
+  "./pesos/icon.png",
+  "./slo/index.html",
+  "./slo/app.js",
+  "./slo/styles.css",
+  "./slo/manifest.webmanifest",
+  "./slo/sw.js",
+  "./slo/assets/icon-32.png",
+  "./slo/assets/icon-180.png",
+  "./slo/assets/icon-192.png",
+  "./slo/assets/icon-512.png",
   "./pouso-offshore/index.html",
   "./pouso-offshore/app.js",
   "./pouso-offshore/styles.css",
@@ -217,6 +243,9 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
+// Network-first com fallback ao cache: garante que atualizações publicadas
+// cheguem ao dispositivo em vez de ficarem presas numa versão antiga em
+// cache (essencial no iPhone, que agressivamente reaproveita o cache HTTP).
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -224,8 +253,6 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
-    const cached = await caches.match(request, { ignoreSearch: true });
-    if (cached) return cached;
     try {
       const fresh = await fetch(request);
       if (fresh && fresh.ok) {
@@ -234,6 +261,8 @@ self.addEventListener('fetch', (event) => {
       }
       return fresh;
     } catch (error) {
+      const cached = await caches.match(request, { ignoreSearch: true });
+      if (cached) return cached;
       if (request.mode === 'navigate') {
         const offline = await caches.match('./offline.html', { ignoreSearch: true });
         if (offline) return offline;

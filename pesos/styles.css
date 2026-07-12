@@ -1,0 +1,635 @@
+:root {
+  --bg: #0b1220;
+  --panel-bg: #111b26;
+  --panel-bg-alt: #14202e;
+  --slate: #17273a;
+  --slate-border: #22384d;
+  --text: #e5eef8;
+  --text-dim: #9fb2c3;
+  --teal: rgba(70, 194, 186, 1);
+  --teal-dim: rgba(70, 194, 186, 0.18);
+  --teal-border: rgba(70, 194, 186, 0.45);
+  --amber: #e0a94b;
+  --amber-bg: rgba(224, 169, 75, 0.15);
+  --red: #e0615a;
+  --red-bg: rgba(224, 97, 90, 0.15);
+  --green: #58c78a;
+  --green-bg: rgba(88, 199, 138, 0.15);
+}
+
+* { box-sizing: border-box; }
+
+/* Classes com display próprio (grid/flex) venceriam a regra nativa do
+   [hidden]; esta regra global garante que hidden sempre oculte. As exceções
+   de impressão (.table-scroll/.viewer-pane) têm especificidade maior. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  /* clip corta o overflow sem criar scroll container (hidden quebraria o
+     position:sticky do .top-stack); hidden fica como fallback antigo */
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.cockpit-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.top-stack {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--slate-border);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top));
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--slate-border);
+}
+
+.floating-table {
+  padding: 8px 16px 10px;
+}
+
+.floating-table .table-header-row {
+  margin-bottom: 6px;
+}
+
+.floating-table .table-scroll {
+  max-height: 38vh;
+  overflow: auto;
+}
+
+.back-btn {
+  background: transparent;
+  border: 1px solid var(--slate-border);
+  color: var(--text);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.topbar-titles { display: flex; flex-direction: column; line-height: 1.2; }
+.topbar-name { font-size: 13px; font-weight: 600; color: var(--text-dim); letter-spacing: 0.02em; }
+.topbar-subtitle { font-size: 17px; font-weight: 700; }
+
+.workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  flex: 1 1 420px;
+  max-width: 480px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.viewer-pane {
+  flex: 1 1 auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  border-left: 1px solid var(--slate-border);
+}
+
+.viewer-pane[hidden] { display: none !important; }
+
+.topbar-chart-btn { margin-left: auto; flex: none; }
+
+@media (min-width: 901px) {
+  .workspace.chart-hidden .sidebar {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+}
+
+.viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.viewer-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-mode-select {
+  background: var(--slate);
+  border: 1px solid var(--slate-border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.chart-wrap {
+  flex: 1;
+  background: var(--panel-bg);
+  border: 1px solid var(--slate-border);
+  border-radius: 12px;
+  position: relative;
+  min-height: 320px;
+}
+
+#weightChart {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.chart-legend .legend-item { display: flex; align-items: center; gap: 6px; }
+.chart-legend .swatch { width: 12px; height: 3px; display: inline-block; border-radius: 2px; }
+
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--slate-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.panel-header-row, .result-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.panel-header-row .panel-title, .result-header-row .panel-title { margin-bottom: 0; }
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-field { margin-bottom: 6px; }
+
+.route-input {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.route-legs-note {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.manifest-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr) 56px;
+  gap: 6px;
+  align-items: end;
+  background: var(--panel-bg-alt);
+  border: 1px solid var(--slate-border);
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.manifest-cell { font-size: 11px; }
+.manifest-cell input, .manifest-cell select { padding: 8px 6px; font-size: 14px; }
+.manifest-unit-cell select { padding: 8px 2px; font-size: 13px; }
+
+.manifest-row .manifest-cell:nth-child(1) { grid-column: 1 / span 3; }
+.manifest-row .manifest-cell:nth-child(2) { grid-column: 4 / span 3; }
+.manifest-row .remove-manifest-row-btn { grid-column: 7; grid-row: 1; }
+.manifest-row .manifest-cell:nth-child(3) { grid-column: 1 / span 2; }
+.manifest-row .manifest-cell:nth-child(4) { grid-column: 3 / span 2; }
+.manifest-row .manifest-cell:nth-child(5) { grid-column: 5 / span 2; }
+.manifest-row .manifest-unit-cell { grid-column: 7; grid-row: 2; }
+
+.remove-manifest-row-btn {
+  background: transparent;
+  border: 1px solid var(--slate-border);
+  color: var(--text-dim);
+  border-radius: 6px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 12px;
+  justify-self: end;
+}
+
+.form-grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.form-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 480px) {
+  .form-grid-2 { grid-template-columns: 1fr 1fr; gap: 8px; }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.field input, .field select {
+  background: var(--slate);
+  border: 1px solid var(--slate-border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 15px;
+  font-family: inherit;
+  width: 100%;
+}
+
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--teal-border);
+}
+
+.leg-card {
+  background: var(--panel-bg-alt);
+  border: 1px solid var(--slate-border);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.leg-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.leg-number {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--teal);
+}
+
+.leg-route-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.04em;
+  flex: 1;
+  text-align: right;
+  margin-right: 8px;
+}
+
+.wx-btn { flex: none; }
+
+.wx-btn.wx-filled {
+  border-color: var(--teal-border);
+  color: var(--teal);
+}
+
+.wx-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 8, 16, 0.72);
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  padding-top: calc(16px + env(safe-area-inset-top));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.wx-dialog {
+  background: var(--panel-bg);
+  border: 1px solid var(--slate-border);
+  border-radius: 14px;
+  padding: 16px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.wx-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.wx-header .panel-title { margin-bottom: 0; }
+
+.wx-actions { margin-top: 4px; }
+
+.leg-derived-note {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Painel Aeronave recolhível */
+#aircraftDetails summary { list-style: none; }
+#aircraftDetails summary::-webkit-details-marker { display: none; }
+
+.config-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.config-summary-row .panel-title { margin-bottom: 0; flex: none; }
+
+.config-summary {
+  font-size: 12px;
+  color: var(--text-dim);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.config-chevron {
+  color: var(--text-dim);
+  font-size: 11px;
+  flex: none;
+  transition: transform 0.15s ease;
+}
+
+#aircraftDetails[open] .config-chevron { transform: rotate(90deg); }
+#aircraftDetails[open] .config-summary { visibility: hidden; }
+#aircraftDetails > .form-grid { margin-top: 12px; }
+
+.add-leg-btn { width: 100%; margin-top: 4px; }
+
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.run-btn {
+  flex: 1 1 160px;
+  background: var(--teal);
+  color: #05221f;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ghost-btn {
+  flex: 1 1 120px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--slate-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.small-btn {
+  flex: none;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.status-chip {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--slate);
+  color: var(--text-dim);
+  border: 1px solid var(--slate-border);
+}
+
+.status-chip[data-state="ok"] { background: var(--green-bg); color: var(--green); border-color: rgba(88,199,138,0.4); }
+.status-chip[data-state="warn"] { background: var(--amber-bg); color: var(--amber); border-color: rgba(224,169,75,0.4); }
+.status-chip[data-state="error"] { background: var(--red-bg); color: var(--red); border-color: rgba(224,97,90,0.4); }
+
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.result-box {
+  background: var(--slate);
+  border: 1px solid var(--slate-border);
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.result-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.result-value { font-size: 18px; font-weight: 700; }
+.result-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+.alerts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.alert-item {
+  font-size: 12.5px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--slate-border);
+  background: var(--slate);
+}
+
+.alert-item.warn { background: var(--amber-bg); color: var(--amber); border-color: rgba(224,169,75,0.4); }
+.alert-item.error { background: var(--red-bg); color: var(--red); border-color: rgba(224,97,90,0.4); }
+
+.table-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.table-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-dim);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--slate-border);
+  border-radius: 10px;
+}
+
+.table-scroll[hidden] { display: none; }
+
+.flight-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 640px;
+  font-size: 12.5px;
+}
+
+.flight-table th, .flight-table td {
+  padding: 8px 9px;
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--slate-border);
+}
+
+.flight-table th:first-child, .flight-table td:first-child { text-align: left; }
+
+.flight-table thead th {
+  background: var(--panel-bg-alt);
+  color: var(--text-dim);
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.flight-table tbody tr.critical-row {
+  background: rgba(224, 169, 75, 0.1);
+}
+
+.flight-table tbody tr.error-row {
+  background: rgba(224, 97, 90, 0.12);
+}
+
+.table-status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.table-status-pill.ok { background: var(--green-bg); color: var(--green); }
+.table-status-pill.warn { background: var(--amber-bg); color: var(--amber); }
+.table-status-pill.error { background: var(--red-bg); color: var(--red); }
+
+.wat-margin-ok { color: var(--green); font-weight: 700; }
+.wat-margin-warn { color: var(--amber); font-weight: 700; }
+.wat-margin-bad { color: var(--red); font-weight: 700; }
+
+.disclaimer {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 6px 4px 14px;
+}
+
+.chart-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.chart-fullscreen-overlay[hidden] { display: none; }
+
+#weightChartFullscreen {
+  width: 100%;
+  height: 100%;
+}
+
+.close-fullscreen-btn {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top));
+  right: calc(16px + env(safe-area-inset-right));
+  background: var(--panel-bg);
+  border: 1px solid var(--slate-border);
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 101;
+}
+
+@media (max-width: 900px) {
+  .workspace { flex-direction: column; }
+  .sidebar { max-width: none; }
+  /* o gráfico parte de cima: viewer antes do formulário no mobile */
+  .viewer-pane { order: -1; border-left: none; border-bottom: 1px solid var(--slate-border); }
+  /* altura fixa: com flex:1 o wrap herdaria a altura do próprio canvas
+     (dimensionado pelo JS), realimentando qualquer altura anterior */
+  .chart-wrap { flex: none; height: 340px; min-height: 0; }
+  .floating-table { padding: 6px 12px 8px; }
+  .floating-table .table-scroll { max-height: 32vh; }
+}
+
+@media print {
+  .topbar, .action-row, .add-leg-btn, .remove-leg-btn, #fullscreenBtn, .back-btn, #toggleTableBtn { display: none !important; }
+  body { background: #fff; color: #000; }
+  .panel, .leg-card, .result-box, .chart-wrap { border-color: #999; background: #fff; }
+  .viewer-pane { border-left: none; }
+  .workspace { flex-direction: column; }
+  .top-stack { position: static; background: #fff; border-bottom: none; }
+  .floating-table .table-scroll { max-height: none; overflow: visible; }
+  .table-scroll[hidden] { display: block !important; overflow-x: visible; }
+  .viewer-pane[hidden] { display: flex !important; }
+}
