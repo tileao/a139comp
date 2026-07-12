@@ -1,4 +1,4 @@
-const CACHE_NAME = "aw139-checklist-v2.1-rev24-b44-companion-bridge";
+const CACHE_NAME = "aw139-checklist-v2.1-rev24-b45-global-tab-bar";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -10,7 +10,9 @@ const APP_SHELL = [
   "./src/checklist/engine.js",
   "./assets/icon-192.svg",
   "./assets/icon-512.svg",
-  "./assets/omni-logo.png"
+  "./assets/omni-logo.png",
+  "../shared/pwa.css",
+  "../shared/pwa.js"
 ];
 
 self.addEventListener("install", event => {

@@ -29,6 +29,12 @@
   display: none !important;
 }
 
+/* A barra global do app (shared/pwa.js) cede lugar à barra própria da
+   checklist durante a execução; volta a aparecer na tela inicial. */
+body:has(.bottom-bar) .app-tab-bar {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;

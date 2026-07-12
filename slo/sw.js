@@ -1,5 +1,5 @@
 // Bump a versão a cada release para invalidar caches antigos.
-const CACHE = 'slo-circuito-offshore-v16';
+const CACHE = 'slo-circuito-offshore-v17';
 const PRECACHE = [
   './',
   './index.html',
@@ -9,7 +9,9 @@ const PRECACHE = [
   './assets/icon-32.png',
   './assets/icon-180.png',
   './assets/icon-192.png',
-  './assets/icon-512.png'
+  './assets/icon-512.png',
+  '../shared/pwa.css',
+  '../shared/pwa.js'
 ];
 
 self.addEventListener('install', (e) => {
