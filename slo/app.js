@@ -613,7 +613,8 @@
     '3': { rollPitchDeg: 3, incDeg: 3.5, heaveRateMs: 1.0, heaveM: 3.0 }
   };
 
-  let pesoWx = null; // weather da perna crítica do módulo Pesos, lido uma vez no carregamento
+  let pesoWx = null;      // weather importado do módulo Pesos (perna crítica ou chip clicado)
+  let pesoWxLabel = null; // destino/UM a que esse weather se refere
 
   function loadSharedCtx(){
     try { return JSON.parse(localStorage.getItem(CTX_KEY) || '{}'); } catch (e) { return {}; }
@@ -634,21 +635,66 @@
     node.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  /* preenchimento explícito (clique no chip da rota) sobrescreve o campo */
+  function setFieldForce(id, val){
+    const node = $(id);
+    if (!node || val == null || val === '') return;
+    node.value = val;
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function applyPesoLeg(leg, force){
+    const wx = leg && leg.weather;
+    if (!wx || wx.type !== 'um') return;
+    pesoWx = wx;
+    pesoWxLabel = leg.destino || null;
+    const set = force ? setFieldForce : setFieldIfEmpty;
+    set('umIcao', leg.destino);
+    set('shipHeading', num(wx.aproamento));
+    if (wx.vento){
+      const parts = String(wx.vento).split('/');
+      set('windFrom', num(parts[0]));
+      set('windKt', num(parts[1]));
+    }
+    if (force) evaluate();
+  }
+
+  // Chips com as UMs da rota do Pesos: clicar importa o deque daquela
+  // localidade (o wx de cada perna no Pesos é o do destino/pouso).
+  function addPesoRouteChips(ctx){
+    const legs = ctx.pesoPernas || ctx.pesoWeatherPorPerna;
+    if (!Array.isArray(legs)) return;
+    const umLegs = legs.filter(l => l.weather && l.weather.type === 'um');
+    if (!umLegs.length) return;
+    const form = document.querySelector('.entry-panel form');
+    if (!form) return;
+    const strip = document.createElement('div');
+    strip.id = 'pesoRouteChips';
+    strip.innerHTML = '<span class="chips-label">Helideques da rota (Pesos)</span>' +
+      umLegs.map(l => `<button type="button" data-perna="${l.perna}" title="Perna ${l.perna} — pouso em ${l.destino}">${l.destino}</button>`).join('');
+    strip.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-perna]');
+      if (!btn) return;
+      const leg = umLegs.find(l => String(l.perna) === btn.dataset.perna);
+      if (!leg) return;
+      applyPesoLeg(leg, true);
+      strip.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
+    });
+    form.parentElement.insertBefore(strip, form);
+  }
+
   // Preenche uma única vez, no carregamento, os campos ainda vazios com os
-  // dados de weather da perna crítica calculada pelo módulo Pesos.
+  // dados de weather da perna crítica calculada pelo módulo Pesos, e monta
+  // os chips de importação por localidade.
   function importFromPesosOnce(){
     const ctx = loadSharedCtx();
+    addPesoRouteChips(ctx);
     const leg = pesoCriticalLeg(ctx);
     const wx = leg && leg.weather;
     pesoWx = wx || null;
     if (!wx || wx.type !== 'um') return;
-    setFieldIfEmpty('umIcao', leg.destino);
-    setFieldIfEmpty('shipHeading', num(wx.aproamento));
-    if (wx.vento){
-      const parts = String(wx.vento).split('/');
-      setFieldIfEmpty('windFrom', num(parts[0]));
-      setFieldIfEmpty('windKt', num(parts[1]));
-    }
+    applyPesoLeg(leg, false);
   }
 
   function renderDeckWx(cls){
@@ -664,6 +710,8 @@
       ['Heave rate', pesoWx.heaveRate, 'm/s', lim.heaveRateMs],
       ['Inclinação', pesoWx.inclinacao, '°', lim.incDeg]
     ];
+    const title = box.querySelector('.deck-wx-title');
+    if (title) title.textContent = 'Movimento do deque — ' + (pesoWxLabel ? pesoWxLabel + ' · ' : '') + 'via Pesos';
     const overLimit = [];
     box.querySelector('.deck-wx-grid').innerHTML = rows.map(([label, val, unit, max]) => {
       const n = num(val);

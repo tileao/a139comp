@@ -1234,6 +1234,19 @@
       updated.pesoWeatherPorPerna = results.map(function (r) {
         return { perna: r.index + 1, destino: r.destText, weather: r.weather };
       });
+      // Estado da aeronave perna a perna, para os outros módulos importarem
+      // os dados de uma localidade específica da rota (peso de decolagem na
+      // origem, peso de pouso e weather no destino).
+      updated.pesoPernas = results.map(function (r) {
+        return {
+          perna: r.index + 1,
+          origem: r.originText,
+          destino: r.destText,
+          tow: round1(r.tow),
+          lw: round1(r.lw),
+          weather: r.weather || null
+        };
+      });
       localStorage.setItem(SHARED_KEY, JSON.stringify(updated));
     } catch (e) { /* localStorage indisponível */ }
   }
@@ -1487,6 +1500,28 @@
         var y = document.getElementById('resultPanel').getBoundingClientRect().top + window.scrollY - stackH - 8;
         window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
       }
+    });
+
+    document.getElementById('flightResetBtn').addEventListener('click', function () {
+      if (!window.confirm('Resetar o voo? Rota, manifesto, combustível e weather serão apagados (a aeronave fica).')) return;
+      document.getElementById('routeInput').value = '';
+      manifestRowsContainer.innerHTML = '';
+      legsContainer.innerHTML = '';
+      rebuildLegCards([]);
+      addManifestRow(null);
+      // Remove do contexto compartilhado os dados derivados do voo (merge,
+      // nunca sobrescrita total) para os outros módulos não herdarem um voo
+      // que acabou de ser descartado. A matrícula fica: é da aeronave.
+      try {
+        var raw = localStorage.getItem(SHARED_KEY);
+        if (raw) {
+          var ctx = JSON.parse(raw);
+          ['pesoTowMaxKg', 'pesoPernaCritica', 'pesoZfwKg', 'pesoCgTowMm',
+           'pesoWeatherPorPerna', 'pesoPernas', 'weightKg'].forEach(function (k) { delete ctx[k]; });
+          localStorage.setItem(SHARED_KEY, JSON.stringify(ctx));
+        }
+      } catch (e) { /* localStorage indisponível */ }
+      scheduleRecalc();
     });
 
     document.getElementById('resetBtn').addEventListener('click', function () {
