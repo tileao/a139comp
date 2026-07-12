@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-rto-offline-v3-landscape-fix';
+const CACHE_NAME = 'aw139-rto-offline-v4-network-first';
 const ASSETS = [
   "./",
   "../assets/icon-180.png",
@@ -77,6 +77,9 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
+// Network-first com fallback ao cache: garante que atualizações publicadas
+// cheguem ao dispositivo em vez de ficarem presas numa versão antiga em
+// cache (essencial no iPhone, que agressivamente reaproveita o cache HTTP).
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -84,8 +87,6 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
-    const cached = await caches.match(request, { ignoreSearch: true });
-    if (cached) return cached;
     try {
       const fresh = await fetch(request);
       if (fresh && fresh.ok) {
@@ -94,6 +95,8 @@ self.addEventListener('fetch', (event) => {
       }
       return fresh;
     } catch (error) {
+      const cached = await caches.match(request, { ignoreSearch: true });
+      if (cached) return cached;
       if (request.mode === 'navigate') {
         const offline = await caches.match('./index.html', { ignoreSearch: true }) || await caches.match('../offline.html', { ignoreSearch: true });
         if (offline) return offline;

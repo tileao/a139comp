@@ -24,6 +24,9 @@ function routeForModule(lastModule){
   if(lastModule==='wat') return 'wat/?back=1&return=../index.html';
   if(lastModule==='rto') return 'rto/?back=1&return=../index.html';
   if(lastModule==='adc') return 'adc/?back=1&return=../index.html';
+  if(lastModule==='pesos') return 'pesos/?embed=1&back=1&return=../index.html';
+  if(lastModule==='slo') return 'slo/?embed=1&back=1&return=../index.html';
+  if(lastModule==='ncl') return 'ncl/?embed=1&back=1&return=../index.html';
   if(lastModule==='pouso-offshore') return 'pouso-offshore/';
   if(lastModule==='decolagem-offshore') return 'decolagem-offshore/';
   return 'cata/';
@@ -63,7 +66,7 @@ function render(){
   }
 
   const lastModule=ctx.lastModule||'cata';
-  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC','pouso-offshore':'Pouso Offshore','decolagem-offshore':'Decolagem Offshore'})[lastModule]||'Cat A Clear Area';
+  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC',pesos:'Pesos por Perna',slo:'SLO','pouso-offshore':'Pouso Offshore','decolagem-offshore':'Decolagem Offshore'})[lastModule]||'Cat A Clear Area';
   if(resumeTitle) resumeTitle.textContent=lastLabel;
 
   const summaryParts=[];
@@ -78,12 +81,14 @@ function render(){
   if(resumeSummary) resumeSummary.textContent=summaryParts.length?summaryParts.join(' · '):'Contexto salvo pronto para retomada.';
 
   const chips=[];
+  if(ctx.pesoMatricula) chips.push(ctx.pesoMatricula);
   if(ctx.cataAircraftSet) chips.push(`Aeronave ${ctx.cataAircraftSet}`);
   if(ctx.cataConfiguration) chips.push(labelConfig(ctx.cataConfiguration));
   if(ctx.pressureAltitudeFt!=null) chips.push(`PA ${ctx.pressureAltitudeFt}`);
   if(ctx.oatC!=null) chips.push(`OAT ${ctx.oatC}`);
   if(ctx.weightKg!=null) chips.push(`Peso ${ctx.weightKg}`);
   if(ctx.rtoMeters!=null) chips.push(`RTO ${ctx.rtoMeters} m`);
+  if(ctx.circuitoFinalHeading!=null) chips.push(`SLO final ${ctx.circuitoFinalHeading}°`);
   chips.slice(0,6).forEach(item=>resumeChips?.appendChild(chip(item)));
 
   if(continueText) continueText.textContent=`Retomar ${lastLabel} com o último contexto salvo.`;
