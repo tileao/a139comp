@@ -1,7 +1,13 @@
 (function(){
   const KEY='aw139_companion_shared_context_v1';
   const params = new URLSearchParams(location.search);
-  const mod = location.pathname.includes('/wat/') ? 'wat' : location.pathname.includes('/rto/') ? 'rto' : location.pathname.includes('/adc/') ? 'adc' : 'unknown';
+  const mod = location.pathname.includes('/wat/') ? 'wat'
+    : location.pathname.includes('/rto/') ? 'rto'
+    : location.pathname.includes('/adc/') ? 'adc'
+    : location.pathname.includes('/cata/') ? 'cata'
+    : location.pathname.includes('/pouso-offshore/') ? 'pouso-offshore'
+    : location.pathname.includes('/decolagem-offshore/') ? 'decolagem-offshore'
+    : 'unknown';
   const isEmbed = params.get('embed') === '1';
   const hasBack = params.has('back') || /\/cata\//.test(document.referrer || '');
   const returnUrl = params.get('return');
@@ -118,6 +124,9 @@
   }
   function addBar(){
     if(isEmbed) return;
+    // Só nos módulos que sempre tiveram a barra da ponte (voltar/home no
+    // topbar). Nos demais, a navegação fica com a barra global do app.
+    if(mod!=='wat' && mod!=='rto' && mod!=='adc') return;
     const slot=document.querySelector('.topbar-right, .appbar-right');
     const isTopbarMode=!!slot;
     const bar=document.createElement('div');
@@ -152,34 +161,45 @@
     }
     bar.addEventListener('click',(e)=>{ const act=e.target?.dataset?.act; if(!act) return; if(act==='load') applyContext(); if(act==='save') captureContext(); if(act==='inbox') writeAdcInbox(); if(act==='back') goBack();});
   }
-  // Barra com as decolagens da rota do módulo Pesos: um botão por perna,
-  // na origem de cada uma. Clicar importa o estado da aeronave naquela
-  // localidade: peso (TOW da perna) e, quando houver, o weather registrado
-  // na CHEGADA à localidade (wx da perna anterior — o wx de cada perna no
-  // Pesos é o do destino/pouso), que vale para a decolagem seguinte dali.
+  // Faixa com as localidades da rota do módulo Pesos: um botão por perna.
+  // Módulos de DECOLAGEM (wat/rto/cata/decolagem-offshore) listam as origens
+  // (peso = TOW; wx = o registrado na chegada àquela localidade — o wx de
+  // cada perna no Pesos é o do destino/pouso — ou o "WX dec." na 1ª perna).
+  // Módulos de POUSO (pouso-offshore) listam os destinos (peso = LW; wx = o
+  // da própria perna).
+  const STRIP_CONFIG={
+    wat: { kind:'dep', weightId:'actualWeight', oatId:'oat', windId:'headwind' },
+    rto: { kind:'dep', weightId:'actualWeight', oatId:'oat', windId:'headwind' },
+    cata:{ kind:'dep', weightId:'actualWeight', oatId:'oat', qnhId:'qnh', windDirId:'windDir', windSpeedId:'windSpeed' },
+    'decolagem-offshore': { kind:'dep', weightId:'weight', oatId:'oat', qnhId:'qnh', windId:'wind', unitId:'weightUnit' },
+    'pouso-offshore':     { kind:'arr', weightId:'weight', oatId:'oat', qnhId:'qnh', windId:'wind', unitId:'weightUnit' }
+  };
   function addRouteStrip(){
-    if(mod!=='wat' && mod!=='rto') return;
+    const cfg=STRIP_CONFIG[mod];
+    if(!cfg) return;
     const legs=loadCtx().pesoPernas;
     const hasLegs=Array.isArray(legs) && legs.length>0;
+    const isArr=cfg.kind==='arr';
     const strip=document.createElement('div');
     strip.id='pesoRouteStrip';
     // Sem voo publicado, a faixa vira um aviso com atalho — assim dá para
     // ver que a integração está ativa mesmo antes do primeiro cálculo.
-    strip.innerHTML='<span class="strip-label">Decolagem (Pesos)</span>'+(hasLegs
+    strip.innerHTML=`<span class="strip-label">${isArr?'Pouso':'Decolagem'} (Pesos)</span>`+(hasLegs
       ? legs.map((l,i)=>
-          `<button type="button" data-leg="${i}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${l.origem}<small>${Math.round(l.tow).toLocaleString('pt-BR')} kg</small></button>`
+          `<button type="button" data-leg="${i}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${isArr?l.destino:l.origem}<small>${Math.round(isArr?l.lw:l.tow).toLocaleString('pt-BR')} kg</small></button>`
         ).join('')
       : '<span class="strip-hint">Sem voo publicado — calcule a rota no Pesos.</span><a class="strip-open" href="../pesos/?embed=1&back=1">Abrir Pesos</a>');
     const style=document.createElement('style');
     style.textContent=`
-      #pesoRouteStrip{display:flex;align-items:center;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px 12px 0;padding:8px 12px;background:rgba(20,30,45,.92);border:1px solid rgba(148,163,184,.16);border-radius:14px}
+      #pesoRouteStrip{display:flex;align-items:center;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:calc(8px + env(safe-area-inset-top, 0px)) 12px 0;padding:8px 12px;background:rgba(15,23,42,.94);border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.24);backdrop-filter:blur(12px)}
+      #pesoRouteStrip::-webkit-scrollbar{display:none}
       #pesoRouteStrip .strip-label{flex:none;font:800 10px Inter,-apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#9db0c4}
-      #pesoRouteStrip button{flex:none;width:auto;min-height:0;display:grid;justify-items:center;gap:1px;border:1px solid rgba(148,163,184,.22);background:#1b2836;color:#e5eef8;border-radius:10px;padding:5px 12px;font:700 12px Inter,-apple-system,sans-serif;cursor:pointer;line-height:1.15}
+      #pesoRouteStrip button{flex:none;width:auto;min-height:40px;display:grid;justify-items:center;align-content:center;gap:1px;border:1px solid rgba(148,163,184,.22);background:#1b2836;color:#e5eef8;border-radius:12px;padding:5px 14px;font:700 13px Inter,-apple-system,sans-serif;cursor:pointer;line-height:1.15}
       #pesoRouteStrip button small{font-size:10px;font-weight:600;color:#9db0c4}
       #pesoRouteStrip button.active{border-color:rgba(70,194,186,.65);background:rgba(70,194,186,.14)}
       #pesoRouteStrip button.active small{color:#46c2ba}
       #pesoRouteStrip .strip-hint{flex:none;font:600 12px Inter,-apple-system,sans-serif;color:#9db0c4}
-      #pesoRouteStrip .strip-open{flex:none;border:1px solid rgba(70,194,186,.45);background:rgba(70,194,186,.12);color:#a9e6e2;text-decoration:none;border-radius:10px;padding:5px 12px;font:700 12px Inter,-apple-system,sans-serif}
+      #pesoRouteStrip .strip-open{flex:none;min-height:40px;display:grid;place-items:center;border:1px solid rgba(70,194,186,.45);background:rgba(70,194,186,.12);color:#a9e6e2;text-decoration:none;border-radius:12px;padding:5px 14px;font:700 13px Inter,-apple-system,sans-serif}
     `;
     document.head.appendChild(style);
     strip.addEventListener('click',(e)=>{
@@ -187,18 +207,24 @@
       if(!btn) return;
       const i=Number(btn.dataset.leg);
       const l=legs[i];
-      setIf('actualWeight', l.tow);
-      // 1ª decolagem: wx da origem informado no Pesos ("WX dec.");
-      // demais: wx registrado no pouso da perna anterior (mesma localidade)
-      const wx=i>0 ? legs[i-1].weather : (l.weatherOrigem || null);
+      if(cfg.unitId) setIf(cfg.unitId, 'kg');
+      setIf(cfg.weightId, isArr ? l.lw : l.tow);
+      const wx=isArr ? l.weather : (i>0 ? legs[i-1].weather : (l.weatherOrigem || null));
       if(wx){
-        if(wx.temperatura!=null && wx.temperatura!=='') setIf('oat', num(wx.temperatura));
-        if(wx.vento){ const kt=num(String(wx.vento).split('/')[1]); if(kt!=null) setIf('headwind', kt); }
+        if(cfg.oatId && wx.temperatura!=null && wx.temperatura!=='') setIf(cfg.oatId, num(wx.temperatura));
+        if(cfg.qnhId && wx.qnh) setIf(cfg.qnhId, num(wx.qnh));
+        if(wx.vento){
+          const parts=String(wx.vento).split('/');
+          const dir=num(parts[0]), kt=num(parts[1]);
+          if(cfg.windId && kt!=null) setIf(cfg.windId, kt);
+          if(cfg.windDirId && dir!=null) setIf(cfg.windDirId, dir);
+          if(cfg.windSpeedId && kt!=null) setIf(cfg.windSpeedId, kt);
+        }
       }
       strip.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
     });
-    // No topo do body, antes do .app-shell: o shell do WAT/RTO é um grid
-    // com grid-template-areas, e um filho extra cairia numa linha implícita
+    // No topo do body, antes do shell: os shells são grids com
+    // grid-template-areas, e um filho extra cairia numa linha implícita
     // lá no fim da página.
     document.body.insertBefore(strip, document.body.firstChild);
   }
