@@ -152,6 +152,48 @@
     }
     bar.addEventListener('click',(e)=>{ const act=e.target?.dataset?.act; if(!act) return; if(act==='load') applyContext(); if(act==='save') captureContext(); if(act==='inbox') writeAdcInbox(); if(act==='back') goBack();});
   }
+  // Barra com as decolagens da rota do módulo Pesos: um botão por perna,
+  // na origem de cada uma. Clicar importa o estado da aeronave naquela
+  // localidade: peso (TOW da perna) e, quando houver, o weather registrado
+  // na CHEGADA à localidade (wx da perna anterior — o wx de cada perna no
+  // Pesos é o do destino/pouso), que vale para a decolagem seguinte dali.
+  function addRouteStrip(){
+    if(mod!=='wat' && mod!=='rto') return;
+    const legs=loadCtx().pesoPernas;
+    if(!Array.isArray(legs) || !legs.length) return;
+    const strip=document.createElement('div');
+    strip.id='pesoRouteStrip';
+    strip.innerHTML='<span class="strip-label">Decolagem (Pesos)</span>'+legs.map((l,i)=>
+      `<button type="button" data-leg="${i}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${l.origem}<small>${Math.round(l.tow).toLocaleString('pt-BR')} kg</small></button>`
+    ).join('');
+    const style=document.createElement('style');
+    style.textContent=`
+      #pesoRouteStrip{display:flex;align-items:center;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px 12px 0;padding:8px 12px;background:rgba(20,30,45,.92);border:1px solid rgba(148,163,184,.16);border-radius:14px}
+      #pesoRouteStrip .strip-label{flex:none;font:800 10px Inter,-apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#9db0c4}
+      #pesoRouteStrip button{flex:none;width:auto;min-height:0;display:grid;justify-items:center;gap:1px;border:1px solid rgba(148,163,184,.22);background:#1b2836;color:#e5eef8;border-radius:10px;padding:5px 12px;font:700 12px Inter,-apple-system,sans-serif;cursor:pointer;line-height:1.15}
+      #pesoRouteStrip button small{font-size:10px;font-weight:600;color:#9db0c4}
+      #pesoRouteStrip button.active{border-color:rgba(70,194,186,.65);background:rgba(70,194,186,.14)}
+      #pesoRouteStrip button.active small{color:#46c2ba}
+    `;
+    document.head.appendChild(style);
+    strip.addEventListener('click',(e)=>{
+      const btn=e.target.closest('button[data-leg]');
+      if(!btn) return;
+      const i=Number(btn.dataset.leg);
+      const l=legs[i];
+      setIf('actualWeight', l.tow);
+      const wx=i>0 ? legs[i-1].weather : null;
+      if(wx){
+        if(wx.temperatura!=null && wx.temperatura!=='') setIf('oat', num(wx.temperatura));
+        if(wx.vento){ const kt=num(String(wx.vento).split('/')[1]); if(kt!=null) setIf('headwind', kt); }
+      }
+      strip.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+    // No topo do body, antes do .app-shell: o shell do WAT/RTO é um grid
+    // com grid-template-areas, e um filho extra cairia numa linha implícita
+    // lá no fim da página.
+    document.body.insertBefore(strip, document.body.firstChild);
+  }
   // Grava automaticamente no contexto compartilhado sempre que o WAT/RTO
   // terminam um cálculo (sem exigir clique manual em "salvar"), para que o
   // watMaxWeightKg apareça na tabela do módulo Pesos assim que disponível.
@@ -165,5 +207,5 @@
     new MutationObserver(trigger).observe(target, { childList:true, characterData:true, subtree:true });
     trigger();
   }
-  window.addEventListener('DOMContentLoaded',()=>{ applyContext(); addBar(); autoSaveOnResult(); });
+  window.addEventListener('DOMContentLoaded',()=>{ applyContext(); addBar(); addRouteStrip(); autoSaveOnResult(); });
 })();
