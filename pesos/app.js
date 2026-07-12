@@ -147,6 +147,7 @@
       var backBtn = document.getElementById('backBtn');
       var returnUrl = params.get('return');
       backBtn.hidden = false;
+      document.body.classList.add('has-back-btn');
       backBtn.addEventListener('click', function () {
         if (returnUrl) location.href = returnUrl;
         else history.back();

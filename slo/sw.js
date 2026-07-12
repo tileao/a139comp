@@ -1,5 +1,5 @@
 // Bump a versão a cada release para invalidar caches antigos.
-const CACHE = 'slo-circuito-offshore-v13';
+const CACHE = 'slo-circuito-offshore-v14';
 const PRECACHE = [
   './',
   './index.html',
