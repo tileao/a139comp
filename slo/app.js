@@ -664,15 +664,20 @@
   // localidade (o wx de cada perna no Pesos é o do destino/pouso).
   function addPesoRouteChips(ctx){
     const legs = ctx.pesoPernas || ctx.pesoWeatherPorPerna;
-    if (!Array.isArray(legs)) return;
-    const umLegs = legs.filter(l => l.weather && l.weather.type === 'um');
-    if (!umLegs.length) return;
+    const umLegs = Array.isArray(legs) ? legs.filter(l => l.weather && l.weather.type === 'um') : [];
     const form = document.querySelector('.entry-panel form');
     if (!form) return;
     const strip = document.createElement('div');
     strip.id = 'pesoRouteChips';
+    // Sem dados, vira um aviso do que falta — dá para ver que a integração
+    // está ativa e o motivo de não haver chips.
+    const hint = !Array.isArray(legs) || !legs.length
+      ? '<span class="chips-hint">Sem voo do Pesos — calcule a rota lá para importar.</span>'
+      : '<span class="chips-hint">Preencha o WX das UMs no Pesos para importar.</span>';
     strip.innerHTML = '<span class="chips-label">Helideques da rota (Pesos)</span>' +
-      umLegs.map(l => `<button type="button" data-perna="${l.perna}" title="Perna ${l.perna} — pouso em ${l.destino}">${l.destino}</button>`).join('');
+      (umLegs.length
+        ? umLegs.map(l => `<button type="button" data-perna="${l.perna}" title="Perna ${l.perna} — pouso em ${l.destino}">${l.destino}</button>`).join('')
+        : hint);
     strip.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-perna]');
       if (!btn) return;

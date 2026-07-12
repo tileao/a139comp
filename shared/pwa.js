@@ -225,18 +225,20 @@
     if (!document.getElementById('aw139GlobalTabBarStyles')) {
       const style = document.createElement('style');
       style.id = 'aw139GlobalTabBarStyles';
-      style.textContent = '.app-tab-bar{position:fixed;left:max(12px, env(safe-area-inset-left));right:max(12px, env(safe-area-inset-right));bottom:max(12px, env(safe-area-inset-bottom));z-index:9998;background:rgba(15,23,42,.94);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:8px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;box-shadow:0 18px 40px rgba(0,0,0,.28);backdrop-filter:blur(12px)}.tab-item{display:grid;justify-items:center;gap:2px;padding:6px;border-radius:12px;color:#bfd1e3;text-decoration:none}.tab-item.active{background:rgba(47,167,160,.22);color:#e9fbfa}.tab-icon{font-size:18px;line-height:1}.tab-label{font-size:11px;font-weight:700;text-align:center}body{padding-bottom:max(92px, calc(80px + env(safe-area-inset-bottom)))}';
+      style.textContent = '.app-tab-bar{position:fixed;left:max(12px, env(safe-area-inset-left));right:max(12px, env(safe-area-inset-right));bottom:max(12px, env(safe-area-inset-bottom));z-index:9998;background:rgba(15,23,42,.94);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:8px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;box-shadow:0 18px 40px rgba(0,0,0,.28);backdrop-filter:blur(12px)}.tab-item{display:grid;justify-items:center;gap:2px;padding:6px 2px;border-radius:12px;color:#bfd1e3;text-decoration:none;min-width:0}.tab-item.active{background:rgba(47,167,160,.22);color:#e9fbfa}.tab-icon{font-size:18px;line-height:1}.tab-label{font-size:10px;font-weight:700;text-align:center;line-height:1.15}body{padding-bottom:max(92px, calc(80px + env(safe-area-inset-bottom)))}';
       document.head.appendChild(style);
     }
     const prefix = basePrefix();
     const items = [
       { key: 'home', icon: '🏠', label: 'Home', href: prefix + 'index.html' },
+      { key: 'pesos', icon: '⚖️', label: 'Pesos', href: prefix + 'pesos/?embed=1&back=1&return=../index.html' },
       { key: 'cata', icon: '📋', label: 'Cat A', href: prefix + 'cata/' },
       { key: 'pouso-offshore', icon: '🛬', label: 'Pouso Offshore', href: prefix + 'pouso-offshore/' },
       { key: 'decolagem-offshore', icon: '🚁', label: 'Decolagem Offshore', href: prefix + 'decolagem-offshore/' }
     ];
     const path = pagePath();
     const currentKey = path.endsWith('/index.html') || path === '/' ? 'home'
+      : path.includes('/pesos/') ? 'pesos'
       : path.includes('/cata/') ? 'cata'
       : path.includes('/pouso-offshore/') ? 'pouso-offshore'
       : path.includes('/decolagem-offshore/') ? 'decolagem-offshore'
