@@ -88,6 +88,7 @@ body.has-back-btn .topbar{padding-left:44px}
 #pesoRouteChips .chips-label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
 #pesoRouteChips button{border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:5px 12px;font:700 12px inherit;cursor:pointer}
 #pesoRouteChips button.active{border-color:rgba(70,194,186,.65);background:var(--teal-soft);color:#a9e6e2}
+#pesoRouteChips .chips-hint{font-size:12px;font-weight:600;color:var(--dim)}
 
 .deck-wx-panel{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:11px 12px;margin:0 0 10px}
 .deck-wx-panel.deck-wx-alert{border-color:rgba(239,109,109,.45)}

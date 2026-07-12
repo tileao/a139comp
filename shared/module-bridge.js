@@ -160,12 +160,16 @@
   function addRouteStrip(){
     if(mod!=='wat' && mod!=='rto') return;
     const legs=loadCtx().pesoPernas;
-    if(!Array.isArray(legs) || !legs.length) return;
+    const hasLegs=Array.isArray(legs) && legs.length>0;
     const strip=document.createElement('div');
     strip.id='pesoRouteStrip';
-    strip.innerHTML='<span class="strip-label">Decolagem (Pesos)</span>'+legs.map((l,i)=>
-      `<button type="button" data-leg="${i}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${l.origem}<small>${Math.round(l.tow).toLocaleString('pt-BR')} kg</small></button>`
-    ).join('');
+    // Sem voo publicado, a faixa vira um aviso com atalho — assim dá para
+    // ver que a integração está ativa mesmo antes do primeiro cálculo.
+    strip.innerHTML='<span class="strip-label">Decolagem (Pesos)</span>'+(hasLegs
+      ? legs.map((l,i)=>
+          `<button type="button" data-leg="${i}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${l.origem}<small>${Math.round(l.tow).toLocaleString('pt-BR')} kg</small></button>`
+        ).join('')
+      : '<span class="strip-hint">Sem voo publicado — calcule a rota no Pesos.</span><a class="strip-open" href="../pesos/?embed=1&back=1">Abrir Pesos</a>');
     const style=document.createElement('style');
     style.textContent=`
       #pesoRouteStrip{display:flex;align-items:center;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;margin:8px 12px 0;padding:8px 12px;background:rgba(20,30,45,.92);border:1px solid rgba(148,163,184,.16);border-radius:14px}
@@ -174,6 +178,8 @@
       #pesoRouteStrip button small{font-size:10px;font-weight:600;color:#9db0c4}
       #pesoRouteStrip button.active{border-color:rgba(70,194,186,.65);background:rgba(70,194,186,.14)}
       #pesoRouteStrip button.active small{color:#46c2ba}
+      #pesoRouteStrip .strip-hint{flex:none;font:600 12px Inter,-apple-system,sans-serif;color:#9db0c4}
+      #pesoRouteStrip .strip-open{flex:none;border:1px solid rgba(70,194,186,.45);background:rgba(70,194,186,.12);color:#a9e6e2;text-decoration:none;border-radius:10px;padding:5px 12px;font:700 12px Inter,-apple-system,sans-serif}
     `;
     document.head.appendChild(style);
     strip.addEventListener('click',(e)=>{

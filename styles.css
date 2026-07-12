@@ -116,7 +116,7 @@ button{font:inherit}
   backdrop-filter:blur(14px);
   padding:8px;
   display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-template-columns:repeat(5,minmax(0,1fr));
   gap:6px;
 }
 .tab-item{display:grid;justify-items:center;gap:2px;padding:6px;border-radius:12px;color:#bfd1e3}
