@@ -1,238 +1,47 @@
-const CACHE_NAME = 'aw139-companion-root-v42-importar-voo';
+const CACHE_NAME = 'aw139-companion-root-v43-lean-swr';
+
+// Precache mínimo: só o shell dos módulos servidos pelo SW da raiz.
+// WAT, RTO, Pesos, SLO e NCL têm service workers próprios com escopo nas
+// suas pastas — pré-cachear o conteúdo deles aqui duplicava dezenas de MB
+// e re-baixava tudo a cada bump de versão. Assets pesados (cartas ADC,
+// PDFs, páginas do RFM) entram no cache em runtime, no primeiro uso.
 const PRECACHE = [
   "./",
-  "./README.md",
-  "./adc/app.js",
-  "./adc/app.js.bak",
-  "./adc/base_pack_template_v3.json",
-  "./adc/base_pack_template_v4.json",
-  "./adc/base_pack_template_v5.json",
-  "./adc/index.html",
-  "./adc/sbcb_builtin_pack_v3.json",
-  "./adc/sbcb_builtin_pack_v4.json",
-  "./adc/sbcb_builtin_pack_v5.json",
-  "./adc/sbcb_chart_p1.png",
-  "./adc/sbcb_chart_p2.png",
-  "./adc/sbfs_builtin_pack_v3.json",
-  "./adc/sbfs_builtin_pack_v4.json",
-  "./adc/sbfs_builtin_pack_v5.json",
-  "./adc/sbfs_chart_p1.png",
-  "./adc/sbfs_chart_p2.png",
-  "./adc/sbgl_builtin_pack_v3.json",
-  "./adc/sbgl_builtin_pack_v4.json",
-  "./adc/sbgl_builtin_pack_v5.json",
-  "./adc/sbgl_chart_p1.png",
-  "./adc/sbgl_chart_p2.png",
-  "./adc/sbjr_builtin_pack_v3.json",
-  "./adc/sbjr_builtin_pack_v4.json",
-  "./adc/sbjr_builtin_pack_v5.json",
-  "./adc/sbjr_chart_p1.png",
-  "./adc/sbjr_chart_p2.png",
-  "./adc/sbme_builtin_pack_v3.json",
-  "./adc/sbme_builtin_pack_v4.json",
-  "./adc/sbme_builtin_pack_v5.json",
-  "./adc/sbme_chart_p1.png",
-  "./adc/sbme_chart_p2.png",
-  "./adc/sbmi_builtin_pack_v3.json",
-  "./adc/sbmi_builtin_pack_v4.json",
-  "./adc/sbmi_builtin_pack_v5.json",
-  "./adc/sbmi_chart_p1.png",
-  "./adc/sbmi_chart_p2.png",
-  "./adc/sbnf_builtin_pack_v3.json",
-  "./adc/sbnf_builtin_pack_v4.json",
-  "./adc/sbnf_builtin_pack_v5.json",
-  "./adc/sbnf_chart_p1.png",
-  "./adc/sbnf_chart_p2.png",
-  "./adc/sbrj_builtin_pack_v3.json",
-  "./adc/sbrj_builtin_pack_v4.json",
-  "./adc/sbrj_builtin_pack_v5.json",
-  "./adc/sbrj_chart_p1.png",
-  "./adc/sbrj_chart_p2.png",
-  "./adc/sbvt_builtin_pack_v3.json",
-  "./adc/sbvt_builtin_pack_v4.json",
-  "./adc/sbvt_builtin_pack_v5.json",
-  "./adc/sbvt_chart_p1.png",
-  "./adc/sbvt_chart_p2.png",
+  "./index.html",
+  "./styles.css",
+  "./manifest.webmanifest",
+  "./offline.html",
   "./assets/icon-180.png",
   "./assets/icon-192.png",
   "./assets/icon-32.png",
   "./assets/icon-512.png",
-  "./assets/icon-source.png",
   "./assets/icon.svg",
   "./cata/app.js",
   "./cata/index.html",
   "./cata/styles.css",
-  "./importar-voo/app.js",
-  "./importar-voo/index.html",
-  "./importar-voo/manifest.webmanifest",
-  "./importar-voo/parser.js",
-  "./importar-voo/styles.css",
-  "./importar-voo/sw.js",
-  "./importar-voo/vendor/pdf.min.mjs",
-  "./importar-voo/vendor/pdf.worker.min.mjs",
-  "./index.html",
-  "./manifest.webmanifest",
-  "./offline.html",
-  "./ncl/index.html",
-  "./ncl/manifest.webmanifest",
-  "./ncl/service-worker.js",
-  "./ncl/assets/icon-192.svg",
-  "./ncl/assets/icon-512.svg",
-  "./ncl/assets/omni-logo.png",
-  "./ncl/src/app.js",
-  "./ncl/src/styles.css",
-  "./ncl/src/checklist/engine.js",
-  "./ncl/src/checklist/storage.js",
-  "./ncl/src/data/checklist-data.js",
-  "./pesos/index.html",
-  "./pesos/app.js",
-  "./pesos/styles.css",
-  "./pesos/manifest.webmanifest",
-  "./pesos/sw.js",
-  "./pesos/icon.png",
-  "./slo/index.html",
-  "./slo/app.js",
-  "./slo/styles.css",
-  "./slo/manifest.webmanifest",
-  "./slo/sw.js",
-  "./slo/assets/icon-32.png",
-  "./slo/assets/icon-180.png",
-  "./slo/assets/icon-192.png",
-  "./slo/assets/icon-512.png",
+  "./adc/app.js",
+  "./adc/index.html",
   "./pouso-offshore/index.html",
   "./pouso-offshore/app.js",
   "./pouso-offshore/styles.css",
   "./decolagem-offshore/index.html",
   "./decolagem-offshore/app.js",
   "./decolagem-offshore/styles.css",
-  "./rto/README.md",
-  "./rto/app.js",
-  "./rto/assets/icon-180.png",
-  "./rto/assets/icon-192.png",
-  "./rto/assets/icon-32.png",
-  "./rto/assets/icon-512.png",
-  "./rto/assets/icon-source.png",
-  "./rto/assets/icon.svg",
-  "./rto/data/figure_4_54_engine_data.json",
-  "./rto/data/figure_4_54_vector_geometry.json",
-  "./rto/data/figure_4_54_vector_linework.json",
-  "./rto/data/figure_4_56_engine_data.json",
-  "./rto/data/figure_4_58_engine_data.json",
-  "./rto/data/figure_4_68a_engine_data.json",
-  "./rto/data/figure_4_92_engine_data.json",
-  "./rto/data/figure_4_94_engine_data.json",
-  "./rto/data/figure_4_94_reference.json",
-  "./rto/data/figure_4_96_engine_data.json",
-  "./rto/data/figure_4_96_reference.json",
-  "./rto/data/figure_4_98_engine_data.json",
-  "./rto/data/figure_4_98_reference.json",
-  "./rto/docs/figure_4_58_center_right_corrected_reference_v17.png",
-  "./rto/docs/figure_4_58_left_semantic_corrected_v15.png",
-  "./rto/docs/figure_4_94_combined_fresh_v46.png",
-  "./rto/docs/figure_4_94_semantic_fresh_v46.png",
-  "./rto/docs/figure_4_94_vector_only_fresh_v46.png",
-  "./rto/docs/figure_4_96_combined_fresh_v54.png",
-  "./rto/docs/figure_4_96_semantic_audit_sheet_v56.png",
-  "./rto/docs/figure_4_96_semantic_fresh_v54.png",
-  "./rto/docs/figure_4_96_vector_precise_v55.png",
-  "./rto/docs/figure_4_98_center_semantic_audit_v62.png",
-  "./rto/docs/figure_4_98_left_semantic_audit_v62.png",
-  "./rto/docs/figure_4_98_right_semantic_audit_v62.png",
-  "./rto/docs/figure_4_98_semantic_audit_sheet_v62.png",
-  "./rto/docs/figure_4_98_vector_exact_v62.png",
-  "./rto/docs/page_s50_108a_figure_4_68a.png",
-  "./rto/docs/page_s50_85_figure_4_54.png",
-  "./rto/docs/page_s50_89_figure_4_56.png",
-  "./rto/docs/page_s50_93_figure_4_58.png",
-  "./rto/docs/page_s90_123_figure_4_92.png",
-  "./rto/docs/page_s90_127_figure_4_94.png",
-  "./rto/docs/page_s90_131_figure_4_96.png",
-  "./rto/docs/page_s90_135_figure_4_98.png",
-  "./rto/index.html",
-  "./rto/manifest.webmanifest",
-  "./rto/styles.css",
-  "./rto/sw.js",
+  "./dropdown/index.html",
+  "./dropdown/app.js",
+  "./dropdown/styles.css",
   "./dropdown/graphData.js",
+  "./dropdown/ddv7-patch.js",
+  "./dropdown/ddv7-fullscreen-fix.js",
+  "./dropdown/assets/dropdown-enhanced-7000.png",
+  "./dropdown/assets/dropdown-offshore-6400.png",
+  "./dropdown/assets/dropdown-offshore-6800.png",
   "./shared/home.js",
   "./shared/module-bridge.js",
   "./shared/module-layout.css",
   "./shared/offshore-calc.js",
   "./shared/pwa.css",
-  "./shared/pwa.js",
-  "./styles.css",
-  "./sw.js",
-  "./wat/README.md",
-  "./wat/app.js",
-  "./wat/assets/icon-180.png",
-  "./wat/assets/icon-192.png",
-  "./wat/assets/icon-32.png",
-  "./wat/assets/icon-512.png",
-  "./wat/assets/icon-source.png",
-  "./wat/assets/icon.svg",
-  "./wat/assets/offshore_standard_chart_clip.png",
-  "./wat/data/chart-schema.json",
-  "./wat/data/clear-eapsoff-exact.json",
-  "./wat/data/clear-eapson-exact.json",
-  "./wat/data/clear-standard-exact.json",
-  "./wat/data/confined-eapsoff-6400-exact.json",
-  "./wat/data/confined-eapsoff-exact.json",
-  "./wat/data/confined-eapson-6400-exact.json",
-  "./wat/data/confined-eapson-exact.json",
-  "./wat/data/confined-ibf-6400-exact.json",
-  "./wat/data/confined-standard-6400-exact.json",
-  "./wat/data/confined-standard-exact.json",
-  "./wat/data/eaps-off-exact.json",
-  "./wat/data/ibf-cleararea-exact.json",
-  "./wat/data/ibf-confined-exact.json",
-  "./wat/data/ibf-installed-exact.json",
-  "./wat/data/sup90-clear-eapsoff-exact.json",
-  "./wat/data/sup90-clear-eapson-exact.json",
-  "./wat/data/sup90-clear-ibf-exact.json",
-  "./wat/data/sup90-clear-standard-exact.json",
-  "./wat/data/sup90-cleararea-stageA.json",
-  "./wat/data/sup90-cleararea-stageB.json",
-  "./wat/docs/Confined 6400 charts.pdf",
-  "./wat/docs/WAC charts 6800.pdf",
-  "./wat/docs/WAT enhanced.pdf",
-  "./wat/docs/page-01.png",
-  "./wat/docs/page-02.png",
-  "./wat/docs/page-03.png",
-  "./wat/docs/page-04.png",
-  "./wat/docs/page-05.png",
-  "./wat/docs/page-06.png",
-  "./wat/docs/page-07.png",
-  "./wat/docs/page-08.png",
-  "./wat/docs/page-09.png",
-  "./wat/docs/page-10.png",
-  "./wat/docs/page-11.png",
-  "./wat/docs/page-12.png",
-  "./wat/docs/page-13.png",
-  "./wat/docs/page-14.png",
-  "./wat/docs/page-15.png",
-  "./wat/docs/page-16.png",
-  "./wat/docs/page-17.png",
-  "./wat/docs/page-18.png",
-  "./wat/docs/page-19.png",
-  "./wat/docs/page-20.png",
-  "./wat/docs/page-21.png",
-  "./wat/docs/page-22.png",
-  "./wat/docs/page-23.png",
-  "./wat/docs/page-24.png",
-  "./wat/docs/page-25.png",
-  "./wat/docs/page-26.png",
-  "./wat/docs/page-27.png",
-  "./wat/docs/page-28.png",
-  "./wat/docs/page-29.png",
-  "./wat/docs/page-30.png",
-  "./wat/docs/page-31.png",
-  "./wat/docs/page-32.png",
-  "./wat/docs/page-33.png",
-  "./wat/docs/wat7000.pdf",
-  "./wat/index.html",
-  "./wat/manifest.webmanifest",
-  "./wat/styles.css",
-  "./wat/sw.js",
-  "./wat/test_overlay_case.png"
+  "./shared/pwa.js"
 ];
 
 self.addEventListener('install', (event) => {
@@ -242,7 +51,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('aw139-companion-root-') && k !== CACHE_NAME).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -251,9 +60,9 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-// Network-first com fallback ao cache: garante que atualizações publicadas
-// cheguem ao dispositivo em vez de ficarem presas numa versão antiga em
-// cache (essencial no iPhone, que agressivamente reaproveita o cache HTTP).
+// Stale-while-revalidate: responde do cache na hora (app instantâneo) e
+// atualiza o cache em segundo plano — a versão nova chega na abertura
+// seguinte (o pwa.js recarrega sozinho quando o SW novo assume).
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -261,21 +70,23 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
-    try {
-      const fresh = await fetch(request);
+    const cached = await caches.match(request, { ignoreSearch: true });
+    const refresh = fetch(request).then((fresh) => {
       if (fresh && fresh.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, fresh.clone());
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, fresh.clone()));
       }
       return fresh;
-    } catch (error) {
-      const cached = await caches.match(request, { ignoreSearch: true });
-      if (cached) return cached;
-      if (request.mode === 'navigate') {
-        const offline = await caches.match('./offline.html', { ignoreSearch: true });
-        if (offline) return offline;
-      }
-      throw error;
+    }).catch(() => null);
+    if (cached) {
+      event.waitUntil(refresh);
+      return cached;
     }
+    const fresh = await refresh;
+    if (fresh) return fresh;
+    if (request.mode === 'navigate') {
+      const offline = await caches.match('./offline.html', { ignoreSearch: true });
+      if (offline) return offline;
+    }
+    return Response.error();
   })());
 });
