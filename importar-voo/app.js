@@ -178,7 +178,8 @@
             : 'Não foi possível carregar o leitor de PDF (pdf.js). Verifique se a pasta vendor/ foi publicada junto com o restante do módulo e recarregue a página.'
         );
       } else {
-        showError('Não foi possível ler este PDF. Verifique se o arquivo não está corrompido e tente novamente.');
+        var detail = (err && (err.message || String(err))) || 'erro desconhecido';
+        showError('Não foi possível ler este PDF. Verifique se o arquivo não está corrompido e tente novamente.\nDetalhe técnico: ' + detail);
       }
       setUploadStatus('', '');
     }

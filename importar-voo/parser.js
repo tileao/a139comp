@@ -564,6 +564,21 @@ function buildFpHelidecks(waypoints) {
 }
 
 function parseFlightPreview(pages) {
+  try {
+    return parseFlightPreviewInner(pages);
+  } catch (err) {
+    // Rede de segurança final: qualquer exceção não prevista em algum
+    // formato de PDF fora do exemplar usado para calibrar o parser vira um
+    // resultado inválido tolerante, nunca uma exceção não tratada.
+    return {
+      meta: { valid: false, warnings: [`Erro inesperado ao interpretar o PDF: ${err && err.message ? err.message : err}.`] },
+      data: null,
+      debug: {},
+    };
+  }
+}
+
+function parseFlightPreviewInner(pages) {
   const warnings = [];
   const debug = {};
   const items = flattenItems(pages);
@@ -580,11 +595,41 @@ function parseFlightPreview(pages) {
     };
   }
 
-  const header = parseHeader(items, debug);
-  const { waypoints, legs } = parseRoute(items, debug);
-  const totals = parseTotals(items, debug);
-  const defaults = parseDefaults(items, debug);
-  const metars = parseMetars(items, debug);
+  // Cada seção roda isolada: um formato inesperado numa página real (fora
+  // do único exemplar usado para calibrar o parser) não pode derrubar as
+  // demais seções — a promessa de tolerância vale também para exceções
+  // inesperadas, não só para campos ausentes.
+  function safeSection(label, fn, fallback) {
+    try {
+      return fn();
+    } catch (err) {
+      warnings.push(`Falha ao interpretar "${label}": ${err && err.message ? err.message : err}.`);
+      return fallback;
+    }
+  }
+
+  const header = safeSection('cabeçalho', () => parseHeader(items, debug), {
+    flightId: null, dateRaw: null, dateISO: null, minimalReserveMin: null,
+    crew: {
+      p1: { name: null, weightKg: null, code: null, side: null },
+      p2: { name: null, weightKg: null, code: null, side: null },
+      fa: { name: null, weightKg: null, code: null, side: null },
+    },
+    plKg: null,
+    aircraft: {
+      registration: null, model: null, cruiseKt: null,
+      fuelFlowGndKgH: null, fuelFlowFlightKgH: null, maxFuelKg: null,
+      eewKg: null, cg: null, oewKg: null, minReqFuelKg: null,
+    },
+  });
+  const route = safeSection('rota', () => parseRoute(items, debug), { waypoints: [], legs: [] });
+  const waypoints = route.waypoints || [];
+  const legs = route.legs || [];
+  const totals = safeSection('totais', () => parseTotals(items, debug), { rideNm: null, totalTimeHms: null, totalTimeMin: null });
+  const defaults = safeSection('defaults', () => parseDefaults(items, debug), { paxStdKg: null, bagStdKg: null });
+  const metars = safeSection('METAR/TAF', () => parseMetars(items, debug), []);
+  const fpRoute = safeSection('tabela de rota derivada', () => buildFpRoute(waypoints, legs), []);
+  const fpHelidecks = safeSection('lista de helideques derivada', () => buildFpHelidecks(waypoints), []);
 
   if (!header.flightId) warnings.push('Flight N°/ID não encontrado.');
   if (!legs.length) warnings.push('Nenhuma perna de rota encontrada.');
@@ -597,8 +642,8 @@ function parseFlightPreview(pages) {
     totals,
     defaults,
     metars,
-    fpRoute: buildFpRoute(waypoints, legs),
-    fpHelidecks: buildFpHelidecks(waypoints),
+    fpRoute,
+    fpHelidecks,
   };
 
   return { meta: { valid: true, warnings, pageCount: pages.length }, data, debug };
