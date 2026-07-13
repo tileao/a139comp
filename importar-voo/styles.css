@@ -226,7 +226,7 @@ body.has-back-btn .topbar { padding-left: 44px; }
 .status-chip[data-state="error"] { background: var(--red-bg); color: var(--red); border-color: rgba(224,97,90,0.4); }
 .status-chip[data-state="saved"] { background: var(--teal-dim); color: var(--teal); border-color: var(--teal-border); }
 
-.alert-item { font-size: 12.5px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--slate-border); background: var(--slate); }
+.alert-item { font-size: 12.5px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--slate-border); background: var(--slate); white-space: pre-line; }
 .alert-item.warn { background: var(--amber-bg); color: var(--amber); border-color: rgba(224,169,75,0.4); }
 .alert-item.error { background: var(--red-bg); color: var(--red); border-color: rgba(224,97,90,0.4); }
 
