@@ -90,9 +90,21 @@
   var pdfjsLibPromise = null;
   function loadPdfJs() {
     if (!pdfjsLibPromise) {
-      pdfjsLibPromise = import('./vendor/pdf.min.mjs').then(function (mod) {
-        mod.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
+      // URL absoluta: em alguns contextos (ex.: arquivo aberto via file://
+      // direto, sem servidor) o import() dinâmico não consegue resolver um
+      // especificador relativo a partir de um script clássico. Com URL
+      // absoluta pelo menos a resolução funciona — o fetch em si ainda falha
+      // sob file://, tratado abaixo com uma mensagem específica.
+      var vendorUrl = new URL('./vendor/pdf.min.mjs', document.baseURI).href;
+      var workerUrl = new URL('./vendor/pdf.worker.min.mjs', document.baseURI).href;
+      pdfjsLibPromise = import(vendorUrl).then(function (mod) {
+        mod.GlobalWorkerOptions.workerSrc = workerUrl;
         return mod;
+      }).catch(function (err) {
+        pdfjsLibPromise = null; // permite tentar de novo (ex.: após servir por http)
+        var wrapped = new Error('Falha ao carregar o pdf.js (' + vendorUrl + '): ' + err.message);
+        wrapped.isLibraryLoadError = true;
+        throw wrapped;
       });
     }
     return pdfjsLibPromise;
@@ -159,7 +171,15 @@
       setUploadStatus('PDF "' + file.name + '" lido — ' + pages.length + ' página(s). Revise os dados abaixo antes de gravar.', 'ok');
     } catch (err) {
       console.error('[importar-voo] falha ao ler o Flight Preview', err);
-      showError('Não foi possível ler este PDF. Verifique se o arquivo não está corrompido e tente novamente.');
+      if (err && err.isLibraryLoadError) {
+        showError(
+          location.protocol === 'file:'
+            ? 'Não foi possível carregar o leitor de PDF (pdf.js) porque o módulo foi aberto diretamente do arquivo (file://). Sirva a pasta por um servidor local — ex.: "python3 -m http.server" — e acesse por http://localhost:8000/importar-voo/, ou instale/abra o app pela URL publicada.'
+            : 'Não foi possível carregar o leitor de PDF (pdf.js). Verifique se a pasta vendor/ foi publicada junto com o restante do módulo e recarregue a página.'
+        );
+      } else {
+        showError('Não foi possível ler este PDF. Verifique se o arquivo não está corrompido e tente novamente.');
+      }
       setUploadStatus('', '');
     }
   }
@@ -477,5 +497,13 @@
     setUploadStatus('', '');
   });
 
+  function warnIfFileProtocol() {
+    if (location.protocol === 'file:') {
+      var warning = document.getElementById('fileProtocolWarning');
+      if (warning) warning.hidden = false;
+    }
+  }
+
   applyQueryParams();
+  warnIfFileProtocol();
 })();
