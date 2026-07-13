@@ -30,6 +30,12 @@
   <div class="workspace workspace-single">
     <section class="sidebar sidebar-wide">
 
+      <section class="panel" id="fileProtocolWarning" hidden>
+        <div class="alert-item error">
+          Esta página foi aberta diretamente do arquivo (file://) — o navegador bloqueia o carregamento do leitor de PDF nesse modo. Sirva a pasta por um servidor local, ex.: <code>python3 -m http.server</code>, e acesse por <code>http://localhost:8000/importar-voo/</code>, ou use a URL publicada do app.
+        </div>
+      </section>
+
       <section class="panel" id="uploadPanel">
         <h2 class="panel-title">Flight Preview (PDF)</h2>
         <p class="panel-hint">O arquivo é lido inteiramente no seu dispositivo — nada é enviado pela rede. Aceita o Flight Preview do formulário F-OPR 184 (3–4 páginas).</p>
