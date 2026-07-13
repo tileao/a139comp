@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>AW139 Companion — Pesos por Perna</title>
-<meta name="description" content="Cálculo da evolução do peso do AW139 ao longo das pernas de um voo multi-trecho.">
+<title>AW139 Companion — Planejamento do Voo</title>
+<meta name="description" content="Planejamento do voo do AW139: rota, manifesto, combustível, weather e evolução do peso perna a perna.">
 <meta name="theme-color" content="#0b1220">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pesos/Perna">
+<meta name="apple-mobile-web-app-title" content="Voo">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.png" type="image/png">
 <link rel="apple-touch-icon" href="./icon.png">
@@ -22,7 +22,7 @@
     <header class="topbar" id="topbar">
       <div class="topbar-titles">
         <div class="topbar-name">AW139 Companion</div>
-        <div class="topbar-subtitle">Pesos por Perna</div>
+        <div class="topbar-subtitle">Planejamento do Voo</div>
       </div>
     </header>
 
@@ -131,7 +131,7 @@
       </section>
 
       <section class="panel" id="fuelPanel">
-        <h2 class="panel-title">Combustível por perna</h2>
+        <h2 class="panel-title">Etapas do voo</h2>
         <div id="legsContainer"></div>
       </section>
 
@@ -284,9 +284,10 @@
     <div class="leg-header">
       <span class="leg-number"></span>
       <span class="leg-route-label"></span>
-      <button type="button" class="ghost-btn small-btn wx-origin-btn" hidden>WX dec.</button>
-      <button type="button" class="ghost-btn small-btn wx-btn">WX</button>
+      <button type="button" class="ghost-btn wx-origin-btn" hidden>WX dec.</button>
+      <button type="button" class="ghost-btn wx-btn">WX</button>
     </div>
+    <button type="button" class="wx-summary" hidden></button>
     <div class="form-grid form-grid-2">
       <label class="field">
         <span>Comb. na decolagem (kg)</span>

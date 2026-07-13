@@ -184,11 +184,11 @@
     strip.id='pesoRouteStrip';
     // Sem voo publicado, a faixa vira um aviso com atalho — assim dá para
     // ver que a integração está ativa mesmo antes do primeiro cálculo.
-    strip.innerHTML=`<span class="strip-label">${isArr?'Pouso':'Decolagem'} (Pesos)</span>`+(hasLegs
+    strip.innerHTML=`<span class="strip-label">${isArr?'Pouso':'Decolagem'} (Voo)</span>`+(hasLegs
       ? legs.map((l,i)=>
           `<button type="button" data-leg="${i}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${isArr?l.destino:l.origem}<small>${Math.round(isArr?l.lw:l.tow).toLocaleString('pt-BR')} kg</small></button>`
         ).join('')
-      : '<span class="strip-hint">Sem voo publicado — calcule a rota no Pesos.</span><a class="strip-open" href="../pesos/?embed=1&back=1">Abrir Pesos</a>');
+      : '<span class="strip-hint">Sem voo publicado — calcule a rota no Planejamento do Voo.</span><a class="strip-open" href="../pesos/?embed=1&back=1">Abrir Planejamento</a>');
     const style=document.createElement('style');
     style.textContent=`
       #pesoRouteStrip{display:flex;align-items:center;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:calc(8px + env(safe-area-inset-top, 0px)) 12px 0;padding:8px 12px;background:rgba(15,23,42,.94);border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.24);backdrop-filter:blur(12px)}

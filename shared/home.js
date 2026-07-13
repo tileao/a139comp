@@ -68,7 +68,7 @@ function render(){
   }
 
   const lastModule=ctx.lastModule||'pesos';
-  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC',pesos:'Pesos por Perna',slo:'SLO',ncl:'Checklist NCL',cata:'Cat A Clear Area','pouso-offshore':'Pouso Offshore','decolagem-offshore':'Decolagem Offshore'})[lastModule]||'Pesos por Perna';
+  const lastLabel=({wat:'WAT',rto:'RTO',adc:'ADC',pesos:'Planejamento do Voo',slo:'SLO',ncl:'Checklist NCL',cata:'Cat A Clear Area','pouso-offshore':'Pouso Offshore','decolagem-offshore':'Decolagem Offshore'})[lastModule]||'Planejamento do Voo';
   if(resumeTitle) resumeTitle.textContent=lastLabel;
 
   const summaryParts=[];

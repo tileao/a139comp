@@ -327,6 +327,8 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 8px;
 }
 
@@ -346,12 +348,46 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   margin-right: 8px;
 }
 
-.wx-btn, .wx-origin-btn { flex: none; }
+/* Botões de weather: alvo de toque grande, fáceis de achar e editar.
+   Quebram para a linha de baixo do cabeçalho e dividem a largura
+   (perna 1 tem WX dec. + WX lado a lado; as demais, WX inteiro). */
+.leg-header .wx-btn, .leg-header .wx-origin-btn {
+  flex: 1 1 40%;
+  min-height: 44px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 12px;
+}
 
-.wx-btn.wx-filled, .wx-origin-btn.wx-filled {
+.leg-header .leg-number, .leg-header .leg-route-label { white-space: nowrap; }
+
+.leg-header .wx-btn.wx-filled, .leg-header .wx-origin-btn.wx-filled {
   border-color: var(--teal-border);
   color: var(--teal);
+  background: var(--teal-dim);
 }
+
+/* Resumo do WX salvo, clicável para editar sem reabrir às cegas */
+.wx-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  border: 1px dashed var(--teal-border);
+  background: rgba(70, 194, 186, 0.06);
+  color: var(--text-dim);
+  border-radius: 10px;
+  padding: 7px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.wx-summary strong { color: var(--teal); font-weight: 800; }
 
 .wx-overlay {
   position: fixed;

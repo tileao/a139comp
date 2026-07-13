@@ -672,9 +672,9 @@
     // Sem dados, vira um aviso do que falta — dá para ver que a integração
     // está ativa e o motivo de não haver chips.
     const hint = !Array.isArray(legs) || !legs.length
-      ? '<span class="chips-hint">Sem voo do Pesos — calcule a rota lá para importar.</span>'
-      : '<span class="chips-hint">Preencha o WX das UMs no Pesos para importar.</span>';
-    strip.innerHTML = '<span class="chips-label">Helideques da rota (Pesos)</span>' +
+      ? '<span class="chips-hint">Sem voo publicado — calcule a rota no Planejamento do Voo.</span>'
+      : '<span class="chips-hint">Preencha o WX das UMs no Planejamento do Voo para importar.</span>';
+    strip.innerHTML = '<span class="chips-label">Helideques da rota (Voo)</span>' +
       (umLegs.length
         ? umLegs.map(l => `<button type="button" data-perna="${l.perna}" title="Perna ${l.perna} — pouso em ${l.destino}">${l.destino}</button>`).join('')
         : hint);
@@ -716,7 +716,7 @@
       ['Inclinação', pesoWx.inclinacao, '°', lim.incDeg]
     ];
     const title = box.querySelector('.deck-wx-title');
-    if (title) title.textContent = 'Movimento do deque — ' + (pesoWxLabel ? pesoWxLabel + ' · ' : '') + 'via Pesos';
+    if (title) title.textContent = 'Movimento do deque — ' + (pesoWxLabel ? pesoWxLabel + ' · ' : '') + 'via Planejamento do Voo';
     const overLimit = [];
     box.querySelector('.deck-wx-grid').innerHTML = rows.map(([label, val, unit, max]) => {
       const n = num(val);

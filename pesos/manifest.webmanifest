@@ -1,7 +1,7 @@
 {
-  "name": "AW139 Companion — Pesos por Perna",
-  "short_name": "Pesos/Perna",
-  "description": "Cálculo da evolução do peso do AW139 ao longo das pernas de um voo multi-trecho.",
+  "name": "AW139 Companion — Planejamento do Voo",
+  "short_name": "Voo",
+  "description": "Planejamento do voo do AW139: rota, manifesto, combustível, weather e evolução do peso perna a perna.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

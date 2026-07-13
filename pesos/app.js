@@ -272,6 +272,21 @@
     }
   }
 
+  function wxSummaryText(wx) {
+    if (!wx) return '';
+    var parts = [];
+    if (wx.vento) parts.push(wx.vento);
+    if (wx.temperatura) parts.push(wx.temperatura + '°C');
+    if (wx.qnh) parts.push('QNH ' + wx.qnh);
+    if (wx.type === 'um') {
+      if (wx.pitch) parts.push('P ' + wx.pitch + '°');
+      if (wx.roll) parts.push('R ' + wx.roll + '°');
+      if (wx.heave) parts.push('H ' + wx.heave + ' m');
+      if (wx.statusLight) parts.push(wx.statusLight === 'vermelho' ? 'LUZ VERMELHA' : 'luz verde');
+    }
+    return parts.join(' · ');
+  }
+
   function updateWxButton(card) {
     var btn = $('.wx-btn', card);
     var has = !!getLegWeather(card);
@@ -282,6 +297,21 @@
       var hasOrigin = !!getLegWeather(card, 'weatherOrigem');
       originBtn.classList.toggle('wx-filled', hasOrigin);
       originBtn.textContent = hasOrigin ? 'WX dec. ✓' : 'WX dec.';
+    }
+    // Resumo clicável do weather salvo: dá para conferir e editar sem
+    // reabrir o diálogo às cegas.
+    var summaryBtn = $('.wx-summary', card);
+    if (summaryBtn) {
+      var routeParts = $('.leg-route-label', card).textContent.split('→');
+      var origName = (routeParts[0] || '').trim();
+      var destName = (routeParts[1] || '').trim();
+      var origTxt = wxSummaryText(getLegWeather(card, 'weatherOrigem'));
+      var destTxt = wxSummaryText(getLegWeather(card));
+      var html = '';
+      if (origTxt) html += '<span><strong>' + escapeHtml(origName) + ' dec.</strong> ' + escapeHtml(origTxt) + '</span>';
+      if (destTxt) html += '<span><strong>' + escapeHtml(destName) + '</strong> ' + escapeHtml(destTxt) + '</span>';
+      summaryBtn.innerHTML = html;
+      summaryBtn.hidden = !html;
     }
   }
 
@@ -1472,10 +1502,80 @@
       var originBtn = e.target.closest('.wx-origin-btn');
       if (originBtn) { openWxDialog(originBtn.closest('.leg-card'), true); return; }
       var btn = e.target.closest('.wx-btn');
-      if (btn) openWxDialog(btn.closest('.leg-card'));
+      if (btn) { openWxDialog(btn.closest('.leg-card')); return; }
+      var summaryBtn = e.target.closest('.wx-summary');
+      if (summaryBtn) {
+        var card = summaryBtn.closest('.leg-card');
+        // abre o wx do destino; se a perna só tem o wx de decolagem, abre esse
+        openWxDialog(card, !getLegWeather(card) && !!getLegWeather(card, 'weatherOrigem'));
+      }
     });
 
     var wxOverlay = document.getElementById('wxOverlay');
+
+    // Auto-avanço no diálogo WX: campos de comprimento fixo pulam para o
+    // próximo ao completar (QNH 4 dígitos, aproamento 3, temperatura 2) e o
+    // vento ganha a barra automática no formato dir/int (060/18). Enter
+    // também avança em qualquer campo.
+    var WX_AUTO_LEN = { wxQnh: 4, wxAproamento: 3, wxTemp: 2 };
+    function wxVisibleFields() {
+      return WX_FIELDS.map(function (f) { return document.getElementById(f[1]); })
+        .filter(function (el) { return el && !el.closest('label').hidden; });
+    }
+    function focusNextWx(el) {
+      var fields = wxVisibleFields();
+      var i = fields.indexOf(el);
+      if (i >= 0 && i < fields.length - 1) {
+        fields[i + 1].focus();
+        if (fields[i + 1].select) fields[i + 1].select();
+      } else if (i === fields.length - 1) {
+        el.blur();
+      }
+    }
+    wxOverlay.addEventListener('input', function (e) {
+      var el = e.target;
+      if (!el.matches('input')) return;
+      var v = el.value.trim();
+      if (el.id === 'wxVento') {
+        // só insere a barra quando o texto cresce; apagar não a recoloca
+        var prev = el.dataset.prevVento || '';
+        el.dataset.prevVento = v;
+        if (v.length > prev.length && /^\d{3}$/.test(v)) {
+          el.value = v + '/';
+          el.dataset.prevVento = el.value;
+          return;
+        }
+        if (/^\d{3}\/\d{2}$/.test(v)) focusNextWx(el);
+        return;
+      }
+      var len = WX_AUTO_LEN[el.id];
+      if (len && v.length >= len && /^\d+$/.test(v)) focusNextWx(el);
+    });
+    wxOverlay.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var el = e.target;
+      if (el.matches('input, select')) { e.preventDefault(); focusNextWx(el); }
+    });
+
+    // Enter avança para o próximo campo também no formulário principal
+    // (teclado numérico do iPhone mostra "avançar" via enterkeyhint).
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var el = e.target;
+      if (!el.matches || !el.matches('input') || el.closest('#wxOverlay')) return;
+      var sidebar = document.querySelector('.sidebar');
+      if (!sidebar || !sidebar.contains(el)) return;
+      var fields = $$('input, select', sidebar).filter(function (f) {
+        return !f.disabled && f.offsetParent !== null;
+      });
+      var i = fields.indexOf(el);
+      if (i >= 0 && i < fields.length - 1) {
+        e.preventDefault();
+        fields[i + 1].focus();
+        if (fields[i + 1].select) fields[i + 1].select();
+      }
+    });
+
     document.getElementById('wxType').addEventListener('change', applyWxTypeVisibility);
     document.getElementById('wxSaveBtn').addEventListener('click', closeWxDialog);
     document.getElementById('wxCloseBtn').addEventListener('click', closeWxDialog);
