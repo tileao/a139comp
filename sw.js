@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v40-route-strip-all';
+const CACHE_NAME = 'aw139-companion-root-v41-planejamento';
 const PRECACHE = [
   "./",
   "./README.md",
