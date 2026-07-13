@@ -1,24 +1,21 @@
-const CACHE_NAME = 'aw139-wat-offline-v5-network-first';
+const CACHE_NAME = 'aw139-wat-offline-v6-lean-swr';
 const ASSETS = [
   "./",
   "../assets/icon-180.png",
   "../assets/icon-192.png",
   "../assets/icon-32.png",
   "../assets/icon-512.png",
-  "../assets/icon-source.png",
   "../assets/icon.svg",
   "../offline.html",
   "../shared/module-bridge.js",
   "../shared/module-layout.css",
   "../shared/pwa.css",
   "../shared/pwa.js",
-  "./README.md",
   "./app.js",
   "./assets/icon-180.png",
   "./assets/icon-192.png",
   "./assets/icon-32.png",
   "./assets/icon-512.png",
-  "./assets/icon-source.png",
   "./assets/icon.svg",
   "./assets/offshore_standard_chart_clip.png",
   "./data/chart-schema.json",
@@ -42,9 +39,6 @@ const ASSETS = [
   "./data/sup90-clear-standard-exact.json",
   "./data/sup90-cleararea-stageA.json",
   "./data/sup90-cleararea-stageB.json",
-  "./docs/Confined 6400 charts.pdf",
-  "./docs/WAC charts 6800.pdf",
-  "./docs/WAT enhanced.pdf",
   "./docs/page-01.png",
   "./docs/page-02.png",
   "./docs/page-03.png",
@@ -78,12 +72,10 @@ const ASSETS = [
   "./docs/page-31.png",
   "./docs/page-32.png",
   "./docs/page-33.png",
-  "./docs/wat7000.pdf",
   "./index.html",
   "./manifest.webmanifest",
   "./styles.css",
-  "./sw.js",
-  "./test_overlay_case.png"
+  "./sw.js"
 ];
 
 self.addEventListener('install', (event) => {
@@ -93,7 +85,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k.startsWith('aw139-wat-offline-') && k !== CACHE_NAME).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -102,9 +94,9 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
-// Network-first com fallback ao cache: garante que atualizações publicadas
-// cheguem ao dispositivo em vez de ficarem presas numa versão antiga em
-// cache (essencial no iPhone, que agressivamente reaproveita o cache HTTP).
+// Stale-while-revalidate: responde do cache na hora (app instantâneo) e
+// atualiza o cache em segundo plano — a versão nova chega na abertura
+// seguinte (o pwa.js recarrega sozinho quando o SW novo assume).
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
@@ -112,21 +104,23 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   event.respondWith((async () => {
-    try {
-      const fresh = await fetch(request);
+    const cached = await caches.match(request, { ignoreSearch: true });
+    const refresh = fetch(request).then((fresh) => {
       if (fresh && fresh.ok) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(request, fresh.clone());
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, fresh.clone()));
       }
       return fresh;
-    } catch (error) {
-      const cached = await caches.match(request, { ignoreSearch: true });
-      if (cached) return cached;
-      if (request.mode === 'navigate') {
-        const offline = await caches.match('./index.html', { ignoreSearch: true }) || await caches.match('../offline.html', { ignoreSearch: true });
-        if (offline) return offline;
-      }
-      throw error;
+    }).catch(() => null);
+    if (cached) {
+      event.waitUntil(refresh);
+      return cached;
     }
+    const fresh = await refresh;
+    if (fresh) return fresh;
+    if (request.mode === 'navigate') {
+      const offline = await caches.match('./index.html', { ignoreSearch: true }) || await caches.match('../offline.html', { ignoreSearch: true });
+      if (offline) return offline;
+    }
+    return Response.error();
   })());
 });

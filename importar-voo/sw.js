@@ -1,7 +1,7 @@
 'use strict';
 
 // Bump a versão a cada release para invalidar caches antigos.
-var CACHE_NAME = 'aw139-importar-voo-v1';
+var CACHE_NAME = 'aw139-importar-voo-v2';
 var ASSETS = [
   './',
   './index.html',
@@ -28,29 +28,40 @@ self.addEventListener('install', function (event) {
 self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
-      return Promise.all(keys.filter(function (k) { return k !== CACHE_NAME; }).map(function (k) { return caches.delete(k); }));
+      // Só caches do PRÓPRIO módulo: o Cache Storage é compartilhado por
+      // todo o origin — apagar os demais nukearia os outros módulos.
+      return Promise.all(keys.filter(function (k) { return k.indexOf('aw139-importar-voo-') === 0 && k !== CACHE_NAME; }).map(function (k) { return caches.delete(k); }));
     }).then(function () { return self.clients.claim(); })
   );
 });
 
-// Network-first com fallback ao cache: atualizações publicadas aparecem no
-// próximo carregamento com rede; offline continua funcionando pelo cache
-// (essencial aqui — o pdf.js vendorizado precisa abrir sem rede).
+// Stale-while-revalidate: responde do cache na hora (app instantâneo) e
+// atualiza o cache em segundo plano — a versão nova chega na abertura
+// seguinte.
 self.addEventListener('fetch', function (event) {
-  if (event.request.method !== 'GET') return;
-  event.respondWith(
-    fetch(event.request).then(function (response) {
-      if (response && response.status === 200 && response.type === 'basic') {
-        var copy = response.clone();
-        caches.open(CACHE_NAME).then(function (cache) { cache.put(event.request, copy); });
+  var request = event.request;
+  if (request.method !== 'GET') return;
+  var url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+
+  event.respondWith((async function () {
+    var cached = await caches.match(request, { ignoreSearch: true });
+    var refresh = fetch(request).then(function (fresh) {
+      if (fresh && fresh.ok) {
+        caches.open(CACHE_NAME).then(function (cache) { cache.put(request, fresh.clone()); });
       }
-      return response;
-    }).catch(function () {
-      return caches.match(event.request).then(function (cached) {
-        if (cached) return cached;
-        if (event.request.mode === 'navigate') return caches.match('./index.html');
-        return Response.error();
-      });
-    })
-  );
+      return fresh;
+    }).catch(function () { return null; });
+    if (cached) {
+      event.waitUntil(refresh);
+      return cached;
+    }
+    var fresh = await refresh;
+    if (fresh) return fresh;
+    if (request.mode === 'navigate') {
+      var offline = await caches.match('./index.html', { ignoreSearch: true });
+      if (offline) return offline;
+    }
+    return Response.error();
+  })());
 });

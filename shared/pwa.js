@@ -375,8 +375,14 @@
   });
 
   if (navigator.serviceWorker) {
+    // Recarrega SÓ quando um SW novo substitui um antigo (atualização real).
+    // Na primeira instalação (claim sem controller anterior) recarregar
+    // derrubava a página no meio do uso — uma das causas do app "travar".
+    let reloadedForUpdate = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (hadController) localStorage.setItem('aw139_sw_updated', '1');
+      if (!hadController || reloadedForUpdate) return;
+      reloadedForUpdate = true;
+      localStorage.setItem('aw139_sw_updated', '1');
       window.location.reload();
     });
   }
