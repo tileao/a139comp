@@ -58,7 +58,7 @@
       finalManual: num($('finalManual').value),
       windFrom: num($('windFrom').value),
       windKt: num($('windKt').value) ?? 0,
-      xwindLimit: num($('xwindLimit').value) ?? 35
+      xwindLimit: num($('xwindLimit').value) ?? 20
     };
   }
 
@@ -90,10 +90,20 @@
     return 'proibida';
   }
 
+  /* Limites de vento do AW139 na final: través máximo de 20 kt e, acima de
+     10 kt de través, exigência de pelo menos 5 kt de componente de proa. */
+  const XWIND_HEADWIND_RULE = { crossThresholdKt: 10, minHeadwindKt: 5 };
+
+  function violatesXwindRule(c){
+    return Math.abs(c.cross) > XWIND_HEADWIND_RULE.crossThresholdKt &&
+           c.head < XWIND_HEADWIND_RULE.minHeadwindKt;
+  }
+
   /* proa final sugerida:
      1) a princípio, aproada ao vento — se a chegada vier por dentro do SLO;
      2) fora disso, considerar as componentes: melhor proa por dentro do SLO
-        com través no limite e sem componente de cauda;
+        com través no limite (e proa mínima de 5 kt quando o través passa de
+        10 kt) e sem componente de cauda;
      3) em último caso, as tolerâncias (30° além dos limites) e, só então,
         proas com vento de cauda. Vento calmo → eixo do "H". */
   function suggestFinal(st){
@@ -113,6 +123,7 @@
       if (band === 'proibida') continue;
       const c = windComp(st.windFrom, st.windKt, h);
       if (Math.abs(c.cross) > st.xwindLimit) continue;
+      if (violatesXwindRule(c)) continue;
       const t = band === 'dentro' ? (c.head > -1 ? 0 : 2) : (c.head > -1 ? 1 : 3);
       const dev = axisDev(h, bis);
       const score = c.head - 0.05 * Math.abs(dev); // eixo do "H" só como desempate
@@ -208,7 +219,7 @@
       } else {
         final = suggestFinal(st);
         if (!final)
-          alerts.push({ t: 'bad', m: `Nenhuma proa permitida pelo SLO mantém o través dentro de ${st.xwindLimit} kt. Aproximação inviável — reavaliar.` });
+          alerts.push({ t: 'bad', m: `Nenhuma proa permitida pelo SLO fecha os limites de vento (través ≤ ${st.xwindLimit} kt e, acima de 10 kt de través, proa mínima de 5 kt). Aproximação inviável — reavaliar.` });
       }
     }
 
@@ -219,6 +230,10 @@
         alerts.push({ t: 'warn', m: `Componente de vento de cauda na final (${Math.abs(final.head).toFixed(0)} kt). Reavaliar proa/perfil.` });
       if (Math.abs(final.cross) > 0.8 * st.xwindLimit && Math.abs(final.cross) <= st.xwindLimit)
         alerts.push({ t: 'warn', m: `Través de ${Math.abs(final.cross).toFixed(0)} kt — próximo do limite de ${st.xwindLimit} kt.` });
+      if (violatesXwindRule(final))
+        alerts.push({ t: 'bad', m: `Través de ${Math.abs(final.cross).toFixed(0)} kt (acima de 10 kt) exige pelo menos 5 kt de componente de proa — esta proa tem ${final.head.toFixed(0)} kt.` });
+      else if (Math.abs(final.cross) > XWIND_HEADWIND_RULE.crossThresholdKt)
+        alerts.push({ t: 'info', m: `Través de ${Math.abs(final.cross).toFixed(0)} kt (acima de 10 kt): exigência de ≥ 5 kt de proa atendida (${final.head.toFixed(0)} kt).` });
       if (final.band === 'tolerada' && !final.manual)
         alerts.push({ t: 'warn', m: `Final além dos limites laterais do SLO (tolerância de 30° = 45° do “H”) para manter o través nos limites — segmento pós-LDP integralmente dentro do SLO.` });
     }
@@ -828,7 +843,7 @@
     FIELDS.forEach(id => {
       const node = $(id);
       if (node.tagName === 'SELECT') node.selectedIndex = id === 'deckPos' ? 1 : 0;
-      else node.value = id === 'xwindLimit' ? '35' : '';
+      else node.value = id === 'xwindLimit' ? '20' : '';
     });
     try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
     evaluate();
@@ -857,6 +872,8 @@
   }
 
   loadForm();
+  // migra o default antigo salvo (35 kt) para o limite real do AW139
+  if ($('xwindLimit').value === '35') $('xwindLimit').value = '20';
   importFromPesosOnce();
   evaluate();
 })();
