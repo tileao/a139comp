@@ -174,6 +174,53 @@
     'decolagem-offshore': { kind:'dep', weightId:'weight', oatId:'oat', qnhId:'qnh', windId:'wind', unitId:'weightUnit' },
     'pouso-offshore':     { kind:'arr', weightId:'weight', oatId:'oat', qnhId:'qnh', windId:'wind', unitId:'weightUnit' }
   };
+  // Cat A: além de peso/wx, seleciona a base (carta ADC) pela localidade do
+  // chip e sugere a cabeceira em uso pelo vento (maior componente de proa,
+  // proa magnética = número da cabeceira × 10). O Cat A espelha os selects
+  // do ADC por iframe, então a cabeceira é aplicada quando as opções da
+  // base terminam de sincronizar.
+  function importCataBaseRunway(loc, wx){
+    const baseSel=document.getElementById('baseSelect');
+    const depSel=document.getElementById('departureEndSelect');
+    if(!baseSel || !depSel) return;
+    const locUp=String(loc||'').trim().toUpperCase();
+    const opt=[...baseSel.options].find(o=>String(o.value).trim().toUpperCase()===locUp || String(o.textContent).trim().toUpperCase().indexOf(locUp)===0);
+    if(!opt) return; // origem não é uma base do Cat A (ex.: decolagem de UM)
+    const baseChanged=baseSel.value!==opt.value;
+    const depSnapshot=depSel.innerHTML;
+    if(baseChanged){
+      baseSel.value=opt.value;
+      baseSel.dispatchEvent(new Event('input',{bubbles:true}));
+      baseSel.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+    const dirKt=wx && wx.vento ? String(wx.vento).split('/') : null;
+    const dir=dirKt?num(dirKt[0]):null;
+    const kt=dirKt?num(dirKt[1]):null;
+    if(dir==null || !kt) return; // sem vento, fica a cabeceira padrão da base
+    let tries=0;
+    const timer=setInterval(()=>{
+      tries++;
+      const ready=!baseChanged || depSel.innerHTML!==depSnapshot || tries>25;
+      if(!ready){ if(tries>30) clearInterval(timer); return; }
+      const cands=[...depSel.options].map(o=>{
+        const end=String(o.value||'').split('::')[1] || String(o.textContent||'').trim();
+        const m=/^(\d{2})/.exec(String(end).trim());
+        return m ? { o, hdg:Number(m[1])*10 } : null;
+      }).filter(Boolean);
+      if(!cands.length){ if(tries>30) clearInterval(timer); return; }
+      let best=null, bestHw=-Infinity;
+      cands.forEach(c=>{
+        const hw=kt*Math.cos((dir-c.hdg)*Math.PI/180);
+        if(hw>bestHw){ bestHw=hw; best=c; }
+      });
+      if(best && depSel.value!==best.o.value){
+        depSel.value=best.o.value;
+        depSel.dispatchEvent(new Event('input',{bubbles:true}));
+        depSel.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      clearInterval(timer);
+    },200);
+  }
   function addRouteStrip(){
     const cfg=STRIP_CONFIG[mod];
     if(!cfg) return;
@@ -221,6 +268,7 @@
           if(cfg.windSpeedId && kt!=null) setIf(cfg.windSpeedId, kt);
         }
       }
+      if(mod==='cata') importCataBaseRunway(l.origem, wx);
       strip.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
     });
     // No topo do body, antes do shell: os shells são grids com
