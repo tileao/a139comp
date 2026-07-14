@@ -1514,10 +1514,10 @@
     var wxOverlay = document.getElementById('wxOverlay');
 
     // Auto-avanço no diálogo WX: campos de comprimento fixo pulam para o
-    // próximo ao completar (QNH 4 dígitos, aproamento 3, temperatura 2) e o
-    // vento ganha a barra automática no formato dir/int (060/18). Enter
-    // também avança em qualquer campo.
-    var WX_AUTO_LEN = { wxQnh: 4, wxAproamento: 3, wxTemp: 2 };
+    // próximo ao completar (QNH 4 dígitos, aproamento 3) e o vento ganha a
+    // barra automática no formato dir/int (060/18). Enter também avança em
+    // qualquer campo. Temperatura fica de fora: aceita decimais (28,5).
+    var WX_AUTO_LEN = { wxQnh: 4, wxAproamento: 3 };
     function wxVisibleFields() {
       return WX_FIELDS.map(function (f) { return document.getElementById(f[1]); })
         .filter(function (el) { return el && !el.closest('label').hidden; });
