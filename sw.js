@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v43-lean-swr';
+const CACHE_NAME = 'aw139-companion-root-v44-cata-runway';
 
 // Precache mínimo: só o shell dos módulos servidos pelo SW da raiz.
 // WAT, RTO, Pesos, SLO e NCL têm service workers próprios com escopo nas
