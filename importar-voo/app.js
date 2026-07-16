@@ -696,6 +696,11 @@
   });
 
   function applyParseResult(result, statusSetter, sourceLabel) {
+    // Sempre limpa o status de "Confirmar e gravar" de uma importação
+    // anterior: sem isso, reimportar outro voo sem clicar em "Descartar"
+    // deixava a mensagem de sucesso antiga visível embaixo do formulário
+    // novo, dando a falsa impressão de que o voo atual já tinha sido salvo.
+    setConfirmStatus('', '');
     if (!result.meta.valid) {
       showError((result.meta.warnings && result.meta.warnings.join(' ')) || 'Não foi possível interpretar ' + sourceLabel + '.');
       statusSetter('', '');
