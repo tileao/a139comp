@@ -281,6 +281,7 @@
   // Upload: seleção de arquivo + arrastar-soltar
   // ---------------------------------------------------------------------
   function setUploadStatus(text, kind) {
+    if (!uploadStatus) return;
     uploadStatus.textContent = text || '';
     uploadStatus.className = 'upload-status' + (kind === 'busy' ? ' is-busy' : kind === 'error' ? ' is-error' : '');
   }
@@ -624,6 +625,12 @@
   }
 
   function setConfirmStatus(text, kind) {
+    // Defensivo: se o HTML carregado for de uma versão diferente do app.js
+    // (skew de cache do service worker — ex.: index.html antigo + app.js
+    // novo, ou vice-versa), este elemento pode não existir ainda. Melhor
+    // degradar em silêncio aqui do que travar o fluxo inteiro por causa de
+    // uma linha de status.
+    if (!confirmStatus) return;
     confirmStatus.textContent = text || '';
     confirmStatus.className = 'upload-status' + (kind === 'busy' ? ' is-busy' : kind === 'error' ? ' is-error' : '');
   }
@@ -669,6 +676,7 @@
   copilotPromptBox.textContent = COPILOT_PROMPT;
 
   function setTextImportStatus(text, kind) {
+    if (!textImportStatus) return;
     textImportStatus.textContent = text || '';
     textImportStatus.className = 'upload-status' + (kind === 'busy' ? ' is-busy' : kind === 'error' ? ' is-error' : '');
   }
