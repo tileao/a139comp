@@ -112,21 +112,46 @@
 
   async function extractPages(arrayBuffer) {
     var pdfjsLib = await loadPdfJs();
-    var doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    var pages = [];
-    for (var p = 1; p <= doc.numPages; p++) {
-      var page = await doc.getPage(p);
-      var content = await page.getTextContent();
-      var items = [];
-      for (var i = 0; i < content.items.length; i++) {
-        var it = content.items[i];
-        if (!it.str || !it.str.trim()) continue;
-        var tr = it.transform;
-        items.push({ str: it.str, x: tr[4], y: tr[5], w: it.width, h: it.height, fontName: it.fontName });
-      }
-      pages.push({ pageNumber: p, items: items });
+    var doc;
+    try {
+      doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    } catch (err) {
+      var wrapped = new Error('O pdf.js não conseguiu abrir este PDF: ' + (err && err.message ? err.message : err));
+      wrapped.isPdfOpenError = true;
+      throw wrapped;
     }
-    return pages;
+    var pages = [];
+    var pageErrors = [];
+    for (var p = 1; p <= doc.numPages; p++) {
+      // Isola cada página: uma falha interna do pdf.js processando UMA
+      // página (fonte incomum, anotação, assinatura) não deve derrubar as
+      // demais — o parser já é tolerante a páginas ausentes/incompletas.
+      try {
+        var page = await doc.getPage(p);
+        var content = await page.getTextContent();
+        var items = [];
+        for (var i = 0; i < content.items.length; i++) {
+          var it = content.items[i];
+          if (!it.str || !it.str.trim()) continue;
+          var tr = it.transform;
+          items.push({ str: it.str, x: tr[4], y: tr[5], w: it.width, h: it.height, fontName: it.fontName });
+        }
+        pages.push({ pageNumber: p, items: items });
+      } catch (err) {
+        console.error('[importar-voo] falha ao extrair a página ' + p, err);
+        pageErrors.push(p + ': ' + (err && err.message ? err.message : err));
+        pages.push({ pageNumber: p, items: [] });
+      }
+    }
+    if (pageErrors.length) {
+      console.warn('[importar-voo] páginas com falha na extração:', pageErrors.join(' | '));
+    }
+    if (pageErrors.length === doc.numPages) {
+      var allFailedErr = new Error('Todas as ' + doc.numPages + ' página(s) falharam na extração: ' + pageErrors.join(' | '));
+      allFailedErr.isPdfOpenError = true;
+      throw allFailedErr;
+    }
+    return { pages: pages, pageErrors: pageErrors };
   }
 
   // ---------------------------------------------------------------------
@@ -156,12 +181,18 @@
     reviewRoot.hidden = true;
     try {
       var buffer = await file.arrayBuffer();
-      var pages = await extractPages(buffer);
+      var extracted = await extractPages(buffer);
+      var pages = extracted.pages;
       var result = window.AW139ImportarVooParser.parseFlightPreview(pages);
       if (!result.meta.valid) {
         showError((result.meta.warnings && result.meta.warnings.join(' ')) || 'Não foi possível interpretar este PDF como um Flight Preview.');
         setUploadStatus('', '');
         return;
+      }
+      if (extracted.pageErrors.length) {
+        result.meta.warnings = (result.meta.warnings || []).concat(
+          extracted.pageErrors.map(function (e) { return 'Falha ao ler página ' + e + ' — os campos dela ficaram vazios.'; })
+        );
       }
       state.data = result.data;
       state.debug = result.debug || {};
@@ -177,6 +208,9 @@
             ? 'Não foi possível carregar o leitor de PDF (pdf.js) porque o módulo foi aberto diretamente do arquivo (file://). Sirva a pasta por um servidor local — ex.: "python3 -m http.server" — e acesse por http://localhost:8000/importar-voo/, ou instale/abra o app pela URL publicada.'
             : 'Não foi possível carregar o leitor de PDF (pdf.js). Verifique se a pasta vendor/ foi publicada junto com o restante do módulo e recarregue a página.'
         );
+      } else if (err && err.isPdfOpenError) {
+        var openDetail = (err && (err.message || String(err))) || 'erro desconhecido';
+        showError('O leitor de PDF (pdf.js) não conseguiu processar este arquivo — provavelmente por algum recurso interno do PDF (fonte, anotação, assinatura) que essa versão da biblioteca não suporta. Isso não é um problema com o app em si, mas sim com esse arquivo específico.\nDetalhe técnico: ' + openDetail);
       } else {
         var detail = (err && (err.message || String(err))) || 'erro desconhecido';
         showError('Não foi possível ler este PDF. Verifique se o arquivo não está corrompido e tente novamente.\nDetalhe técnico: ' + detail);
