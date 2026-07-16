@@ -243,8 +243,19 @@ function parseFlightPreviewTextInner(rawText) {
   const helidecks = sections.HELIDECKS ? parseHelidecksSection(sections.HELIDECKS) : [];
   const metars = sections.METARS ? parseMetarsSection(sections.METARS) : [];
 
+  // Sem pernas de rota não há o que revisar/gravar — diferente de um campo
+  // isolado ausente, isso normalmente indica resposta truncada (limite de
+  // tamanho da IA, corte no copiar/colar). Rejeitar aqui evita que
+  // "Confirmar e gravar" sobrescreva uma rota já importada com fpRoute
+  // vazio, já que não há como adicionar pernas manualmente na tela.
+  if (!legs.length) {
+    return {
+      meta: { valid: false, warnings: ['Nenhuma perna de rota encontrada na seção "### LEGS" — o texto pode estar truncado ou incompleto. Copie a resposta inteira do Copilot (do marcador até o fim da seção METARS) antes de colar.'] },
+      data: null,
+      debug,
+    };
+  }
   if (!header || !header.flightId) warnings.push('Flight N°/ID não encontrado no texto.');
-  if (!legs.length) warnings.push('Nenhuma perna de rota encontrada na seção LEGS.');
 
   const base = header || {
     flightId: null, dateRaw: null, dateISO: null, minimalReserveMin: null,
@@ -256,7 +267,7 @@ function parseFlightPreviewTextInner(rawText) {
   const data = {
     ...base,
     waypoints,
-    legs: [],
+    legs,
     metars,
     fpRoute: legs,
     fpHelidecks: helidecks,
