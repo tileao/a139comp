@@ -209,6 +209,18 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   margin: 0 0 10px;
   color: var(--text);
   letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Barra de acento teal — identidade visual consistente entre os quadros */
+.panel-title::before {
+  content: "";
+  width: 3px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--teal);
+  flex: none;
 }
 
 .panel-header-row, .result-header-row {
@@ -429,20 +441,36 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   color: var(--text-dim);
 }
 
-/* Painel Aeronave recolhível */
-#aircraftDetails summary { list-style: none; }
-#aircraftDetails summary::-webkit-details-marker { display: none; }
+/* Painéis recolhíveis (Aeronave, Manifesto) — cabeçalho tocável com botão
+   de minimizar bem visível. */
+.collapsible-panel { padding: 0; }
+.collapsible-panel > details > summary { list-style: none; }
+.collapsible-panel > details > summary::-webkit-details-marker { display: none; }
 
-.config-summary-row {
+.panel-summary {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
+  padding: 12px 14px;
+  min-height: 52px;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.panel-summary:hover { background: rgba(70, 194, 186, 0.05); }
+
+.panel-summary-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
-.config-summary-row .panel-title { margin-bottom: 0; flex: none; }
+.panel-summary .panel-title { margin-bottom: 0; flex: none; }
 
-.config-summary {
+.panel-summary-info {
   font-size: 12px;
   color: var(--text-dim);
   flex: 1;
@@ -453,16 +481,30 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   text-align: right;
 }
 
-.config-chevron {
-  color: var(--text-dim);
-  font-size: 11px;
+/* Botão de minimizar/expandir — destacado: círculo com borda teal e chevron */
+.panel-toggle {
   flex: none;
-  transition: transform 0.15s ease;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  border: 1px solid var(--teal-border);
+  background: var(--teal-dim);
+  color: var(--teal);
+  transition: transform 0.2s ease, background 0.15s ease;
 }
+.panel-summary:hover .panel-toggle { background: rgba(70, 194, 186, 0.28); }
+.panel-toggle svg { width: 20px; height: 20px; display: block; }
 
-#aircraftDetails[open] .config-chevron { transform: rotate(90deg); }
-#aircraftDetails[open] .config-summary { visibility: hidden; }
-#aircraftDetails > .form-grid { margin-top: 12px; }
+/* aberto: chevron aponta para cima (recolher); fechado: para baixo (expandir) */
+.collapsible-panel > details[open] > summary .panel-toggle { transform: rotate(180deg); }
+.collapsible-panel > details[open] > summary .panel-summary-info { visibility: hidden; }
+
+.panel-body {
+  padding: 0 14px 14px;
+  margin-top: 2px;
+}
 
 .add-leg-btn { width: 100%; margin-top: 4px; }
 

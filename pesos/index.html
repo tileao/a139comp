@@ -59,13 +59,18 @@
   <div class="workspace">
     <section class="sidebar">
 
-      <section class="panel" id="aircraftPanel">
+      <section class="panel collapsible-panel" id="aircraftPanel">
         <details id="aircraftDetails">
-          <summary class="config-summary-row">
-            <span class="panel-title">Aeronave</span>
-            <span class="config-summary" id="aircraftSummary">—</span>
-            <span class="config-chevron" aria-hidden="true">▸</span>
+          <summary class="panel-summary">
+            <span class="panel-summary-main">
+              <span class="panel-title">Aeronave</span>
+              <span class="panel-summary-info" id="aircraftSummary">—</span>
+            </span>
+            <span class="panel-toggle" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
           </summary>
+          <div class="panel-body">
         <div class="form-grid form-grid-2">
           <label class="field">
             <span>Matrícula</span>
@@ -107,6 +112,7 @@
             <input type="text" inputmode="numeric" enterkeyhint="done" id="cargoArmMm" value="7700">
           </label>
         </div>
+          </div>
         </details>
       </section>
 
@@ -122,12 +128,22 @@
         <div class="route-legs-note" id="routeLegsNote">—</div>
       </section>
 
-      <section class="panel" id="manifestPanel">
-        <div class="panel-header-row">
-          <h2 class="panel-title">Manifesto (pax / bag / carga)</h2>
-        </div>
-        <div id="manifestRowsContainer"></div>
-        <button class="ghost-btn add-leg-btn" id="addManifestRowBtn" type="button">+ Adicionar linha</button>
+      <section class="panel collapsible-panel" id="manifestPanel">
+        <details id="manifestDetails" open>
+          <summary class="panel-summary">
+            <span class="panel-summary-main">
+              <span class="panel-title">Manifesto</span>
+              <span class="panel-summary-info" id="manifestSummary">—</span>
+            </span>
+            <span class="panel-toggle" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+          </summary>
+          <div class="panel-body">
+            <div id="manifestRowsContainer"></div>
+            <button class="ghost-btn add-leg-btn" id="addManifestRowBtn" type="button">+ Adicionar linha</button>
+          </div>
+        </details>
       </section>
 
       <section class="panel" id="fuelPanel">

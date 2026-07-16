@@ -7,6 +7,7 @@
   var CHART_MODE_KEY = 'aw139_pesos_chart_mode_v1';
   var CHART_VISIBLE_KEY = 'aw139_pesos_chart_visible_v1';
   var AIRCRAFT_OPEN_KEY = 'aw139_pesos_aircraft_open_v1';
+  var MANIFEST_OPEN_KEY = 'aw139_pesos_manifest_open_v1';
 
   // Envelopes de CG longitudinal — AW139 RFM 139G0290X002, Figuras 1-1
   // (E.A.S.A. Approved). Pontos [STA mm, peso kg]. Selecionado pela
@@ -771,6 +772,20 @@
     el.textContent = parts.join(' · ');
   }
 
+  function updateManifestSummary() {
+    var el = document.getElementById('manifestSummary');
+    if (!el) return;
+    var rows = readManifestRows();
+    var filled = rows.filter(function (r) { return r.paxKg || r.bagKg || r.cargoKg; });
+    if (!filled.length) { el.textContent = 'Sem carga'; return; }
+    var totalPax = 0, totalOther = 0;
+    filled.forEach(function (r) { totalPax += r.paxKg; totalOther += r.bagKg + r.cargoKg; });
+    var parts = [filled.length + (filled.length === 1 ? ' trecho' : ' trechos')];
+    if (totalPax) parts.push(fmt(totalPax) + ' kg pax');
+    if (totalOther) parts.push(fmt(totalOther) + ' kg bag/carga');
+    el.textContent = parts.join(' · ');
+  }
+
   function updateLegDerivedNotes(results) {
     $$('.leg-card', legsContainer).forEach(function (card, i) {
       var note = $('.leg-derived-note', card);
@@ -1195,6 +1210,7 @@
     var globalIssues = calcResult.globalIssues;
 
     updateAircraftSummary();
+    updateManifestSummary();
     updateLegDerivedNotes(results);
     updateRouteLegsNote(calcResult.stops);
 
@@ -1717,8 +1733,22 @@
     else if (storedOpen === '0') aircraftDetails.open = false;
     else aircraftDetails.open = document.getElementById('bewKg').value.trim() === '';
     aircraftDetails.addEventListener('toggle', function () {
+      updateAircraftSummary();
       try { localStorage.setItem(AIRCRAFT_OPEN_KEY, aircraftDetails.open ? '1' : '0'); } catch (e) { /* noop */ }
     });
+
+    var manifestDetails = document.getElementById('manifestDetails');
+    if (manifestDetails) {
+      var manifestOpen = null;
+      try { manifestOpen = localStorage.getItem(MANIFEST_OPEN_KEY); } catch (e) { manifestOpen = null; }
+      if (manifestOpen === '0') manifestDetails.open = false;
+      else manifestDetails.open = true;
+      manifestDetails.addEventListener('toggle', function () {
+        updateManifestSummary();
+        try { localStorage.setItem(MANIFEST_OPEN_KEY, manifestDetails.open ? '1' : '0'); } catch (e) { /* noop */ }
+      });
+      updateManifestSummary();
+    }
 
     document.getElementById('fullscreenBtn').addEventListener('click', function () {
       fullscreenOverlay.hidden = false;
