@@ -292,15 +292,15 @@
     var btn = $('.wx-btn', card);
     var has = !!getLegWeather(card);
     btn.classList.toggle('wx-filled', has);
-    btn.textContent = has ? 'WX ✓' : 'WX';
+    btn.textContent = has ? 'Pouso ✓' : 'Pouso';
     var originBtn = $('.wx-origin-btn', card);
     if (originBtn) {
       var hasOrigin = !!getLegWeather(card, 'weatherOrigem');
       originBtn.classList.toggle('wx-filled', hasOrigin);
-      originBtn.textContent = hasOrigin ? 'WX dec. ✓' : 'WX dec.';
+      originBtn.textContent = hasOrigin ? 'Dec. ✓' : 'Dec.';
     }
     // Resumo clicável do weather salvo: dá para conferir e editar sem
-    // reabrir o diálogo às cegas.
+    // reabrir o diálogo às cegas. Cada linha discrimina decolagem/pouso.
     var summaryBtn = $('.wx-summary', card);
     if (summaryBtn) {
       var routeParts = $('.leg-route-label', card).textContent.split('→');
@@ -309,8 +309,8 @@
       var origTxt = wxSummaryText(getLegWeather(card, 'weatherOrigem'));
       var destTxt = wxSummaryText(getLegWeather(card));
       var html = '';
-      if (origTxt) html += '<span><strong>' + escapeHtml(origName) + ' dec.</strong> ' + escapeHtml(origTxt) + '</span>';
-      if (destTxt) html += '<span><strong>' + escapeHtml(destName) + '</strong> ' + escapeHtml(destTxt) + '</span>';
+      if (origTxt) html += '<span><strong>Dec. ' + escapeHtml(origName) + '</strong> ' + escapeHtml(origTxt) + '</span>';
+      if (destTxt) html += '<span><strong>Pouso ' + escapeHtml(destName) + '</strong> ' + escapeHtml(destTxt) + '</span>';
       summaryBtn.innerHTML = html;
       summaryBtn.hidden = !html;
     }
@@ -334,7 +334,7 @@
     var place = (isOrigin ? parts[0] : parts[1] || '').trim();
     var legNum = $('.leg-number', card).textContent;
     document.getElementById('wxTitle').textContent =
-      'Weather — ' + place + (isOrigin ? ' (decolagem)' : ' (' + legNum + ')');
+      'Weather — ' + (isOrigin ? 'decolagem ' : 'pouso ') + place + ' · ' + legNum;
     var data = getLegWeather(card, wxKey) || {};
     document.getElementById('wxType').value = data.type || guessWxType(place);
     WX_FIELDS.forEach(function (f) {
@@ -1224,31 +1224,6 @@
     else if (anyError) setStatusChip('error', 'Fora de limites');
     else if (anyWarn) setStatusChip('warn', 'Alerta');
     else setStatusChip('ok', 'OK');
-
-    if (results.length) {
-      var maxTow = -Infinity, maxTowIdx = -1;
-      results.forEach(function (r, i) { if (r.tow > maxTow) { maxTow = r.tow; maxTowIdx = i; } });
-      document.getElementById('maxTowValue').textContent = fmt(maxTow) + ' kg';
-      document.getElementById('maxTowSub').textContent = 'Perna ' + (maxTowIdx + 1) + ' (' + results[maxTowIdx].originText + ' → ' + results[maxTowIdx].destText + ')';
-
-      var mtowMargin = computeMinMtowMargin(results);
-      document.getElementById('minMarginValue').textContent = fmt(mtowMargin.value) + ' kg';
-      document.getElementById('minMarginSub').textContent = 'Perna ' + (mtowMargin.index + 1) + ' (' + results[mtowMargin.index].originText + ' → ' + results[mtowMargin.index].destText + ')';
-
-      var finalFuel = results[results.length - 1].fuelAtLanding;
-      document.getElementById('finalFuelValue').textContent = fmt(finalFuel) + ' kg';
-      document.getElementById('finalFuelSub').textContent = 'Mínimo exigido: ' + fmt(aircraft.minLandingFuelKg) + ' kg';
-
-      document.getElementById('totalPaxValue').textContent = fmt(calcResult.totalPaxBoardKg) + ' kg';
-      document.getElementById('totalPaxSub').textContent = 'Somatório dos embarques do manifesto';
-    } else {
-      ['maxTowValue', 'minMarginValue', 'finalFuelValue', 'totalPaxValue'].forEach(function (id) {
-        document.getElementById(id).textContent = '—';
-      });
-      ['maxTowSub', 'minMarginSub', 'finalFuelSub', 'totalPaxSub'].forEach(function (id) {
-        document.getElementById(id).textContent = '—';
-      });
-    }
 
     renderAlerts(globalIssues, results);
     renderTable(results, criticalIndex, calcResult.watMax);
