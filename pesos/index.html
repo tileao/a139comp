@@ -112,6 +112,7 @@
             <input type="text" inputmode="numeric" enterkeyhint="done" id="cargoArmMm" value="7700">
           </label>
         </div>
+        <button class="ghost-btn aircraft-reset-btn" id="resetBtn" type="button">Reset tudo</button>
           </div>
         </details>
       </section>
@@ -119,7 +120,10 @@
       <section class="panel" id="flightPanel">
         <div class="panel-header-row">
           <h2 class="panel-title">Voo</h2>
-          <button class="ghost-btn small-btn" id="roundTripBtn" type="button">Voo de volta</button>
+          <div class="panel-header-actions">
+            <button class="ghost-btn small-btn" id="roundTripBtn" type="button">Voo de volta</button>
+            <button class="ghost-btn small-btn" id="flightResetBtn" type="button">Reset voo</button>
+          </div>
         </div>
         <label class="field route-field">
           <span>Rota (localidades em sequência)</span>
@@ -154,37 +158,12 @@
       <div class="action-row">
         <button class="run-btn" id="runBtn" type="button">Calcular pesos</button>
         <button class="ghost-btn" id="shareBtn" type="button">Compartilhar PDF</button>
-        <button class="ghost-btn" id="flightResetBtn" type="button">Reset voo</button>
-        <button class="ghost-btn" id="resetBtn" type="button">Reset tudo</button>
       </div>
 
       <section class="panel" id="resultPanel">
         <div class="result-header-row">
-          <h2 class="panel-title">Resultado</h2>
+          <h2 class="panel-title">Alertas e avisos</h2>
           <span class="status-chip" id="statusChip" data-state="idle">Aguardando</span>
-        </div>
-
-        <div class="result-grid" id="resultGrid">
-          <div class="result-box">
-            <div class="result-label">TOW máximo do voo</div>
-            <div class="result-value" id="maxTowValue">—</div>
-            <div class="result-sub" id="maxTowSub">—</div>
-          </div>
-          <div class="result-box">
-            <div class="result-label">Margem mínima p/ MTOW</div>
-            <div class="result-value" id="minMarginValue">—</div>
-            <div class="result-sub" id="minMarginSub">—</div>
-          </div>
-          <div class="result-box">
-            <div class="result-label">Combustível final</div>
-            <div class="result-value" id="finalFuelValue">—</div>
-            <div class="result-sub" id="finalFuelSub">—</div>
-          </div>
-          <div class="result-box">
-            <div class="result-label">Peso de pax embarcado</div>
-            <div class="result-value" id="totalPaxValue">—</div>
-            <div class="result-sub" id="totalPaxSub">—</div>
-          </div>
         </div>
 
         <div class="alerts-list" id="alertsList"></div>
@@ -300,8 +279,11 @@
     <div class="leg-header">
       <span class="leg-number"></span>
       <span class="leg-route-label"></span>
-      <button type="button" class="ghost-btn wx-origin-btn" hidden>WX dec.</button>
-      <button type="button" class="ghost-btn wx-btn">WX</button>
+      <span class="leg-wx-btns">
+        <span class="leg-wx-tag">WX</span>
+        <button type="button" class="ghost-btn wx-origin-btn" title="Weather na decolagem" hidden>Dec.</button>
+        <button type="button" class="ghost-btn wx-btn" title="Weather no pouso">Pouso</button>
+      </span>
     </div>
     <button type="button" class="wx-summary" hidden></button>
     <div class="form-grid form-grid-2">
