@@ -121,7 +121,6 @@
         <div class="panel-header-row">
           <h2 class="panel-title">Voo</h2>
           <div class="panel-header-actions">
-            <button class="ghost-btn small-btn" id="roundTripBtn" type="button">Voo de volta</button>
             <button class="ghost-btn small-btn" id="flightResetBtn" type="button">Reset voo</button>
           </div>
         </div>
@@ -157,7 +156,7 @@
 
       <div class="action-row">
         <button class="run-btn" id="runBtn" type="button">Calcular pesos</button>
-        <button class="ghost-btn" id="shareBtn" type="button">Compartilhar PDF</button>
+        <button class="ghost-btn" id="shareBtn" type="button">Gerar planejamento (PDF)</button>
       </div>
 
       <section class="panel" id="resultPanel">
@@ -178,10 +177,6 @@
       <div class="viewer-header">
         <h2 class="panel-title" id="chartTitle">Peso e balanceamento</h2>
         <div class="viewer-header-actions">
-          <select id="chartModeSelect" class="chart-mode-select">
-            <option value="cg" selected>Peso e balanceamento (CG)</option>
-            <option value="weight">Evolução do peso</option>
-          </select>
           <button class="ghost-btn small-btn" id="fullscreenBtn" type="button">Tela cheia</button>
         </div>
       </div>
@@ -204,6 +199,7 @@
       <h3 class="panel-title" id="wxTitle">Weather</h3>
       <button type="button" class="remove-manifest-row-btn" id="wxCloseBtn" aria-label="Fechar">✕</button>
     </div>
+    <p class="wx-note" id="wxInheritNote" hidden></p>
     <div class="form-grid form-grid-2">
       <label class="field">
         <span>Tipo de destino</span>

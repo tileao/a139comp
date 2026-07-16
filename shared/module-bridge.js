@@ -256,7 +256,9 @@
       const l=legs[i];
       if(cfg.unitId) setIf(cfg.unitId, 'kg');
       setIf(cfg.weightId, isArr ? l.lw : l.tow);
-      const wx=isArr ? l.weather : (i>0 ? legs[i-1].weather : (l.weatherOrigem || null));
+      // Decolagem: override do piloto (weatherOrigem) tem prioridade; senão
+      // herda o pouso da perna anterior (mesma localidade).
+      const wx=isArr ? l.weather : (l.weatherOrigem || (i>0 ? legs[i-1].weather : null));
       if(wx){
         if(cfg.oatId && wx.temperatura!=null && wx.temperatura!=='') setIf(cfg.oatId, num(wx.temperatura));
         if(cfg.qnhId && wx.qnh) setIf(cfg.qnhId, num(wx.qnh));
