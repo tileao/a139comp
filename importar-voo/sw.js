@@ -1,7 +1,14 @@
 'use strict';
 
-// Bump a versão a cada release para invalidar caches antigos.
-var CACHE_NAME = 'aw139-importar-voo-v3';
+// Service worker do módulo Importar Voo — cache IMUTÁVEL por versão.
+//
+// Bump BUILD a cada release em que qualquer arquivo do módulo muda. O mesmo
+// número tem que ser espelhado em app.js (IMPORTAR_BUILD) e no
+// data-importar-build do <body> em index.html — é assim que a guarda de
+// versão em runtime detecta e se recupera de um "skew" de cache.
+var BUILD = '4';
+var CACHE_NAME = 'aw139-importar-voo-v' + BUILD;
+
 var ASSETS = [
   './',
   './index.html',
@@ -18,6 +25,10 @@ var ASSETS = [
   '../shared/pwa.js'
 ];
 
+// Install: pré-cacheia TODOS os arquivos do módulo numa cache versionada,
+// de forma ATÔMICA. Se qualquer arquivo falhar (404 num deploy quebrado),
+// o addAll rejeita, o install falha e o SW anterior continua servindo a
+// versão anterior intacta — nunca uma versão pela metade.
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
@@ -36,9 +47,20 @@ self.addEventListener('activate', function (event) {
   );
 });
 
-// Stale-while-revalidate: responde do cache na hora (app instantâneo) e
-// atualiza o cache em segundo plano — a versão nova chega na abertura
-// seguinte.
+self.addEventListener('message', function (event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// Cache-first IMUTÁVEL. A causa raiz dos travamentos por "skew" (index.html
+// de uma geração servido junto de um app.js de outra) era o padrão anterior
+// (stale-while-revalidate) regravar cada arquivo baixado de volta na cache
+// versionada durante o fetch: os arquivos passavam a derivar de forma
+// independente, por timing de rede, sem nenhum bump de versão.
+//
+// Aqui NUNCA regravamos a cache versionada no fetch. Todo arquivo servido
+// numa sessão vem da MESMA geração (a que o install pré-cacheou). A única
+// forma de trocar de versão é um SW novo (BUILD novo) instalar e ativar,
+// trocando todos os arquivos de uma vez só — atômico e sem mistura.
 self.addEventListener('fetch', function (event) {
   var request = event.request;
   if (request.method !== 'GET') return;
@@ -47,22 +69,17 @@ self.addEventListener('fetch', function (event) {
 
   event.respondWith((async function () {
     var cached = await caches.match(request, { ignoreSearch: true });
-    var refresh = fetch(request).then(function (fresh) {
-      if (fresh && fresh.ok) {
-        caches.open(CACHE_NAME).then(function (cache) { cache.put(request, fresh.clone()); });
+    if (cached) return cached;
+    // Não estava no precache (algo pedido só em runtime): busca da rede,
+    // mas NÃO grava na cache versionada — gravar reintroduziria o skew.
+    try {
+      return await fetch(request);
+    } catch (e) {
+      if (request.mode === 'navigate') {
+        var shell = await caches.match('./index.html', { ignoreSearch: true });
+        if (shell) return shell;
       }
-      return fresh;
-    }).catch(function () { return null; });
-    if (cached) {
-      event.waitUntil(refresh);
-      return cached;
+      return Response.error();
     }
-    var fresh = await refresh;
-    if (fresh) return fresh;
-    if (request.mode === 'navigate') {
-      var offline = await caches.match('./index.html', { ignoreSearch: true });
-      if (offline) return offline;
-    }
-    return Response.error();
   })());
 });

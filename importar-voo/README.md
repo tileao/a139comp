@@ -86,6 +86,23 @@ Abra `http://localhost:8000/importar-voo/` e selecione um Flight Preview
 real (PDF do formulário F-OPR 184). PDFs incompletos ou fora do formato
 mostram uma mensagem de erro clara em vez de travar a tela.
 
+## Cache offline e versionamento (importante)
+
+O `sw.js` usa **cache imutável por versão**: no `install`, todos os
+arquivos do módulo são pré-cacheados de forma atômica sob uma cache
+versionada (`aw139-importar-voo-v<BUILD>`); no `fetch`, servimos
+**cache-first e nunca regravamos** a cache versionada. Assim, todo arquivo
+servido numa sessão vem da **mesma geração** — o que elimina o "skew" de
+cache (ex.: `index.html` de uma versão servido junto de um `app.js` de
+outra), que era a causa raiz de travamentos silenciosos.
+
+Para atualizar, **bump o número de build nos três lugares que precisam
+bater**: `BUILD` em `sw.js`, `IMPORTAR_BUILD` em `app.js` e o
+`data-importar-build` do `<body>` em `index.html`. Uma guarda em runtime
+compara o build do HTML com o do JS; se não baterem (skew residual de
+qualquer causa), o app se recupera sozinho (recarrega uma vez) em vez de
+estourar erro críptico.
+
 ## Integração com o AW139 Companion
 
 - `?embed=1` oculta a topbar; `?back=1&return=<url>` mostra um botão de
