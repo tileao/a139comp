@@ -37,15 +37,40 @@
       </section>
 
       <section class="panel" id="uploadPanel">
-        <h2 class="panel-title">Flight Preview (PDF)</h2>
-        <p class="panel-hint">O arquivo é lido inteiramente no seu dispositivo — nada é enviado pela rede. Aceita o Flight Preview do formulário F-OPR 184 (3–4 páginas).</p>
-        <label class="drop-zone" id="dropZone" for="fileInput">
-          <span class="drop-icon" aria-hidden="true">📄</span>
-          <span class="drop-title">Toque para escolher o PDF</span>
-          <span class="drop-sub">ou arraste e solte aqui</span>
-          <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
-        </label>
-        <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"></div>
+        <div class="mode-tabs" role="tablist" aria-label="Forma de importar">
+          <button type="button" class="mode-tab is-active" id="modeTabPdf" role="tab" aria-selected="true">PDF direto</button>
+          <button type="button" class="mode-tab" id="modeTabText" role="tab" aria-selected="false">Texto/IA (Copilot)</button>
+        </div>
+
+        <div id="modePanelPdf">
+          <h2 class="panel-title">Flight Preview (PDF)</h2>
+          <p class="panel-hint">O arquivo é lido inteiramente no seu dispositivo — nada é enviado pela rede. Aceita o Flight Preview do formulário F-OPR 184 (3–4 páginas).</p>
+          <label class="drop-zone" id="dropZone" for="fileInput">
+            <span class="drop-icon" aria-hidden="true">📄</span>
+            <span class="drop-title">Toque para escolher o PDF</span>
+            <span class="drop-sub">ou arraste e solte aqui</span>
+            <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
+          </label>
+          <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"></div>
+        </div>
+
+        <div id="modePanelText" hidden>
+          <h2 class="panel-title">Importar texto gerado por IA</h2>
+          <p class="panel-hint">Anexe o PDF do Flight Preview a uma conversa com o Microsoft 365 Copilot (ou outra IA com leitura de PDF), cole o prompt abaixo, copie a resposta e cole aqui. <strong>O documento sai do dispositivo e vai para o serviço de IA nesse fluxo</strong> — use só se sua organização já aprova isso para dados operacionais.</p>
+          <details class="prompt-details">
+            <summary>Ver / copiar o prompt para o Copilot</summary>
+            <pre class="prompt-box" id="copilotPromptBox"></pre>
+            <button type="button" class="ghost-btn small-btn" id="copyPromptBtn">Copiar prompt</button>
+          </details>
+          <label class="field text-import-field">
+            <span>Cole aqui a resposta do Copilot</span>
+            <textarea id="textImportArea" rows="8" placeholder="AW139-FLIGHT-PREVIEW-TEXT-V1&#10;&#10;### HEADER&#10;..."></textarea>
+          </label>
+          <div class="action-row">
+            <button type="button" class="run-btn" id="processTextBtn">Processar texto</button>
+          </div>
+          <div class="upload-status" id="textImportStatus" role="status" aria-live="polite"></div>
+        </div>
       </section>
 
       <section class="panel" id="errorPanel" hidden>
@@ -195,6 +220,7 @@
 </template>
 
 <script src="./parser.js"></script>
+<script src="./text-parser.js"></script>
 <script src="./app.js"></script>
 <script src="../shared/pwa.js"></script>
 </body>

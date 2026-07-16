@@ -1,10 +1,11 @@
-const CACHE_NAME = 'aw139-companion-root-v44-cata-runway';
+const CACHE_NAME = 'aw139-companion-root-v45-importar-voo-texto-ia';
 
 // Precache mínimo: só o shell dos módulos servidos pelo SW da raiz.
-// WAT, RTO, Pesos, SLO e NCL têm service workers próprios com escopo nas
-// suas pastas — pré-cachear o conteúdo deles aqui duplicava dezenas de MB
-// e re-baixava tudo a cada bump de versão. Assets pesados (cartas ADC,
-// PDFs, páginas do RFM) entram no cache em runtime, no primeiro uso.
+// WAT, RTO, Pesos, SLO, NCL e Importar Voo têm service workers próprios
+// com escopo nas suas pastas — pré-cachear o conteúdo deles aqui duplicava
+// dezenas de MB e re-baixava tudo a cada bump de versão. Assets pesados
+// (cartas ADC, PDFs, páginas do RFM, pdf.js do Importar Voo) entram no
+// cache em runtime, no primeiro uso, pelo SW próprio de cada módulo.
 const PRECACHE = [
   "./",
   "./index.html",
