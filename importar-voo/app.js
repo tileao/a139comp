@@ -17,6 +17,7 @@
   var parseStatusChip = document.getElementById('parseStatusChip');
   var confirmBtn = document.getElementById('confirmBtn');
   var discardBtn = document.getElementById('discardBtn');
+  var confirmStatus = document.getElementById('confirmStatus');
 
   var fieldTemplate = document.getElementById('fieldTemplate');
   var routeRowTemplate = document.getElementById('routeRowTemplate');
@@ -622,13 +623,28 @@
     }
   }
 
+  function setConfirmStatus(text, kind) {
+    confirmStatus.textContent = text || '';
+    confirmStatus.className = 'upload-status' + (kind === 'busy' ? ' is-busy' : kind === 'error' ? ' is-error' : '');
+  }
+
   confirmBtn.addEventListener('click', function () {
     if (!state.data) return;
-    var edited = collectEdited();
-    var ok = persistSharedContext(edited);
-    parseStatusChip.dataset.state = ok ? 'saved' : 'error';
-    parseStatusChip.textContent = ok ? 'Gravado no contexto compartilhado' : 'Falha ao gravar (armazenamento local indisponível)';
-    setUploadStatus(ok ? 'Voo gravado. Os demais módulos já podem ler estes dados.' : 'Não foi possível gravar — verifique o armazenamento do navegador.', ok ? 'ok' : 'error');
+    // Feedback logo abaixo do próprio botão — o status no topo da tela
+    // (chip da conferência, status do upload) fica fora da vista quando o
+    // piloto já rolou até o fim para clicar aqui, dando a impressão de que
+    // nada aconteceu.
+    setConfirmStatus('Gravando…', 'busy');
+    try {
+      var edited = collectEdited();
+      var ok = persistSharedContext(edited);
+      parseStatusChip.dataset.state = ok ? 'saved' : 'error';
+      parseStatusChip.textContent = ok ? 'Gravado no contexto compartilhado' : 'Falha ao gravar (armazenamento local indisponível)';
+      setConfirmStatus(ok ? 'Voo gravado. Os demais módulos já podem ler estes dados.' : 'Não foi possível gravar — verifique o armazenamento do navegador.', ok ? 'ok' : 'error');
+    } catch (err) {
+      console.error('[importar-voo] falha ao confirmar e gravar', err);
+      setConfirmStatus('Não foi possível gravar. Detalhe técnico: ' + (err && err.message ? err.message : err), 'error');
+    }
   });
 
   discardBtn.addEventListener('click', function () {
@@ -642,6 +658,7 @@
     setUploadStatus('', '');
     textImportArea.value = '';
     setTextImportStatus('', '');
+    setConfirmStatus('', '');
   });
 
   // ---------------------------------------------------------------------
