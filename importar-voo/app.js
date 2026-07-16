@@ -1,6 +1,52 @@
 'use strict';
 
 (function () {
+  // Precisa bater com o data-importar-build do <body> em index.html e com o
+  // BUILD em sw.js. Se o HTML carregado for de uma geração diferente deste
+  // app.js (skew de cache), a guarda abaixo se recupera sozinha em vez de
+  // deixar o app estourar erros crípticos com elementos que não existem.
+  var IMPORTAR_BUILD = '4';
+  var SKEW_RELOAD_FLAG = 'aw139_importar_skew_reload';
+
+  function recoverFromVersionSkew() {
+    var htmlBuild = (document.body && document.body.dataset) ? document.body.dataset.importarBuild : null;
+    if (htmlBuild === IMPORTAR_BUILD) {
+      // Em sincronia: limpa o flag para que um skew futuro tenha nova chance
+      // de auto-recarregar.
+      try { sessionStorage.removeItem(SKEW_RELOAD_FLAG); } catch (e) { /* noop */ }
+      return false;
+    }
+
+    var alreadyReloaded = false;
+    try { alreadyReloaded = sessionStorage.getItem(SKEW_RELOAD_FLAG) === '1'; } catch (e) { /* noop */ }
+
+    if (!alreadyReloaded) {
+      // Primeira detecção: força o SW a checar atualização e recarrega uma
+      // única vez (o flag evita loop). Com o cache imutável do sw.js, o
+      // reload deve trazer HTML e JS da mesma geração.
+      try { sessionStorage.setItem(SKEW_RELOAD_FLAG, '1'); } catch (e) { /* noop */ }
+      if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg && reg.update) { try { reg.update(); } catch (e) { /* noop */ } }
+        }).catch(function () { /* noop */ }).then(function () { location.reload(); });
+      } else {
+        location.reload();
+      }
+      return true;
+    }
+
+    // Já recarregou uma vez e ainda está inconsistente: não fica em loop —
+    // mostra um aviso pedindo para fechar/reabrir (ou reinstalar) o app.
+    var banner = document.createElement('div');
+    banner.setAttribute('role', 'alert');
+    banner.style.cssText = 'position:fixed;left:12px;right:12px;top:calc(12px + env(safe-area-inset-top));z-index:99999;background:rgba(224,97,90,.16);border:1px solid rgba(224,97,90,.5);color:#e5eef8;border-radius:12px;padding:12px 14px;font:600 13px/1.5 Inter,system-ui,sans-serif;box-shadow:0 18px 40px rgba(0,0,0,.35)';
+    banner.textContent = 'Detectamos uma versão desatualizada em cache. Feche o app completamente e reabra (ou remova e readicione o ícone da tela de início) para carregar a versão correta.';
+    if (document.body) document.body.appendChild(banner);
+    return true;
+  }
+
+  if (recoverFromVersionSkew()) return;
+
   var SHARED_KEY = 'aw139_companion_shared_context_v1';
   var FP_KEY = 'aw139_flight_preview_v1';
 
