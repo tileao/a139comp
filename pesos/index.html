@@ -59,13 +59,18 @@
   <div class="workspace">
     <section class="sidebar">
 
-      <section class="panel" id="aircraftPanel">
+      <section class="panel collapsible-panel" id="aircraftPanel">
         <details id="aircraftDetails">
-          <summary class="config-summary-row">
-            <span class="panel-title">Aeronave</span>
-            <span class="config-summary" id="aircraftSummary">—</span>
-            <span class="config-chevron" aria-hidden="true">▸</span>
+          <summary class="panel-summary">
+            <span class="panel-summary-main">
+              <span class="panel-title">Aeronave</span>
+              <span class="panel-summary-info" id="aircraftSummary">—</span>
+            </span>
+            <span class="panel-toggle" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
           </summary>
+          <div class="panel-body">
         <div class="form-grid form-grid-2">
           <label class="field">
             <span>Matrícula</span>
@@ -107,13 +112,17 @@
             <input type="text" inputmode="numeric" enterkeyhint="done" id="cargoArmMm" value="7700">
           </label>
         </div>
+        <button class="ghost-btn aircraft-reset-btn" id="resetBtn" type="button">Reset tudo</button>
+          </div>
         </details>
       </section>
 
       <section class="panel" id="flightPanel">
         <div class="panel-header-row">
           <h2 class="panel-title">Voo</h2>
-          <button class="ghost-btn small-btn" id="roundTripBtn" type="button">Voo de volta</button>
+          <div class="panel-header-actions">
+            <button class="ghost-btn small-btn" id="flightResetBtn" type="button">Reset voo</button>
+          </div>
         </div>
         <label class="field route-field">
           <span>Rota (localidades em sequência)</span>
@@ -122,12 +131,22 @@
         <div class="route-legs-note" id="routeLegsNote">—</div>
       </section>
 
-      <section class="panel" id="manifestPanel">
-        <div class="panel-header-row">
-          <h2 class="panel-title">Manifesto (pax / bag / carga)</h2>
-        </div>
-        <div id="manifestRowsContainer"></div>
-        <button class="ghost-btn add-leg-btn" id="addManifestRowBtn" type="button">+ Adicionar linha</button>
+      <section class="panel collapsible-panel" id="manifestPanel">
+        <details id="manifestDetails" open>
+          <summary class="panel-summary">
+            <span class="panel-summary-main">
+              <span class="panel-title">Manifesto</span>
+              <span class="panel-summary-info" id="manifestSummary">—</span>
+            </span>
+            <span class="panel-toggle" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </span>
+          </summary>
+          <div class="panel-body">
+            <div id="manifestRowsContainer"></div>
+            <button class="ghost-btn add-leg-btn" id="addManifestRowBtn" type="button">+ Adicionar linha</button>
+          </div>
+        </details>
       </section>
 
       <section class="panel" id="fuelPanel">
@@ -137,38 +156,13 @@
 
       <div class="action-row">
         <button class="run-btn" id="runBtn" type="button">Calcular pesos</button>
-        <button class="ghost-btn" id="shareBtn" type="button">Compartilhar PDF</button>
-        <button class="ghost-btn" id="flightResetBtn" type="button">Reset voo</button>
-        <button class="ghost-btn" id="resetBtn" type="button">Reset tudo</button>
+        <button class="ghost-btn" id="shareBtn" type="button">Gerar planejamento (PDF)</button>
       </div>
 
       <section class="panel" id="resultPanel">
         <div class="result-header-row">
-          <h2 class="panel-title">Resultado</h2>
+          <h2 class="panel-title">Alertas e avisos</h2>
           <span class="status-chip" id="statusChip" data-state="idle">Aguardando</span>
-        </div>
-
-        <div class="result-grid" id="resultGrid">
-          <div class="result-box">
-            <div class="result-label">TOW máximo do voo</div>
-            <div class="result-value" id="maxTowValue">—</div>
-            <div class="result-sub" id="maxTowSub">—</div>
-          </div>
-          <div class="result-box">
-            <div class="result-label">Margem mínima p/ MTOW</div>
-            <div class="result-value" id="minMarginValue">—</div>
-            <div class="result-sub" id="minMarginSub">—</div>
-          </div>
-          <div class="result-box">
-            <div class="result-label">Combustível final</div>
-            <div class="result-value" id="finalFuelValue">—</div>
-            <div class="result-sub" id="finalFuelSub">—</div>
-          </div>
-          <div class="result-box">
-            <div class="result-label">Peso de pax embarcado</div>
-            <div class="result-value" id="totalPaxValue">—</div>
-            <div class="result-sub" id="totalPaxSub">—</div>
-          </div>
         </div>
 
         <div class="alerts-list" id="alertsList"></div>
@@ -183,10 +177,6 @@
       <div class="viewer-header">
         <h2 class="panel-title" id="chartTitle">Peso e balanceamento</h2>
         <div class="viewer-header-actions">
-          <select id="chartModeSelect" class="chart-mode-select">
-            <option value="cg" selected>Peso e balanceamento (CG)</option>
-            <option value="weight">Evolução do peso</option>
-          </select>
           <button class="ghost-btn small-btn" id="fullscreenBtn" type="button">Tela cheia</button>
         </div>
       </div>
@@ -209,6 +199,7 @@
       <h3 class="panel-title" id="wxTitle">Weather</h3>
       <button type="button" class="remove-manifest-row-btn" id="wxCloseBtn" aria-label="Fechar">✕</button>
     </div>
+    <p class="wx-note" id="wxInheritNote" hidden></p>
     <div class="form-grid form-grid-2">
       <label class="field">
         <span>Tipo de destino</span>
@@ -233,27 +224,27 @@
       </label>
       <label class="field">
         <span>Temperatura (°C)</span>
-        <input type="text" inputmode="numeric" enterkeyhint="next" id="wxTemp" placeholder="ex.: 28">
+        <input type="text" inputmode="decimal" enterkeyhint="next" id="wxTemp" placeholder="ex.: 28">
       </label>
       <label class="field wx-um-only">
         <span>Pitch (°)</span>
-        <input type="text" inputmode="numeric" enterkeyhint="next" id="wxPitch" placeholder="ex.: 1,5">
+        <input type="text" inputmode="decimal" enterkeyhint="next" id="wxPitch" placeholder="ex.: 1,5">
       </label>
       <label class="field wx-um-only">
         <span>Roll (°)</span>
-        <input type="text" inputmode="numeric" enterkeyhint="next" id="wxRoll" placeholder="ex.: 2">
+        <input type="text" inputmode="decimal" enterkeyhint="next" id="wxRoll" placeholder="ex.: 2">
       </label>
       <label class="field wx-um-only">
         <span>Heave (m)</span>
-        <input type="text" inputmode="numeric" enterkeyhint="next" id="wxHeave" placeholder="ex.: 1,2">
+        <input type="text" inputmode="decimal" enterkeyhint="next" id="wxHeave" placeholder="ex.: 1,2">
       </label>
       <label class="field wx-um-only">
         <span>Heave rate (m/s)</span>
-        <input type="text" inputmode="numeric" enterkeyhint="next" id="wxHeaveRate" placeholder="ex.: 0,8">
+        <input type="text" inputmode="decimal" enterkeyhint="next" id="wxHeaveRate" placeholder="ex.: 0,8">
       </label>
       <label class="field wx-um-only">
         <span>Inclinação (°)</span>
-        <input type="text" inputmode="numeric" enterkeyhint="next" id="wxInclinacao" placeholder="ex.: 1">
+        <input type="text" inputmode="decimal" enterkeyhint="next" id="wxInclinacao" placeholder="ex.: 1">
       </label>
       <label class="field wx-um-only">
         <span>Status light</span>
@@ -284,8 +275,11 @@
     <div class="leg-header">
       <span class="leg-number"></span>
       <span class="leg-route-label"></span>
-      <button type="button" class="ghost-btn wx-origin-btn" hidden>WX dec.</button>
-      <button type="button" class="ghost-btn wx-btn">WX</button>
+      <span class="leg-wx-btns">
+        <span class="leg-wx-tag">WX</span>
+        <button type="button" class="ghost-btn wx-origin-btn" title="Weather na decolagem" hidden>Dec.</button>
+        <button type="button" class="ghost-btn wx-btn" title="Weather no pouso">Pouso</button>
+      </span>
     </div>
     <button type="button" class="wx-summary" hidden></button>
     <div class="form-grid form-grid-2">
@@ -340,15 +334,15 @@
     </label>
     <label class="field manifest-cell">
       <span>Pax</span>
-      <input type="text" inputmode="numeric" enterkeyhint="next" class="manifest-pax-input" placeholder="0">
+      <input type="text" inputmode="decimal" enterkeyhint="next" class="manifest-pax-input" placeholder="0">
     </label>
     <label class="field manifest-cell">
       <span>Bag</span>
-      <input type="text" inputmode="numeric" enterkeyhint="next" class="manifest-bag-input" placeholder="0">
+      <input type="text" inputmode="decimal" enterkeyhint="next" class="manifest-bag-input" placeholder="0">
     </label>
     <label class="field manifest-cell">
       <span>Carga</span>
-      <input type="text" inputmode="numeric" enterkeyhint="next" class="manifest-cargo-input" placeholder="0">
+      <input type="text" inputmode="decimal" enterkeyhint="next" class="manifest-cargo-input" placeholder="0">
     </label>
     <label class="field manifest-cell manifest-unit-cell">
       <span>Un.</span>

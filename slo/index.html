@@ -59,7 +59,6 @@
                 <option value="proa">Proa</option>
                 <option value="popa" selected>Popa</option>
                 <option value="meia-nau">Meia-nau</option>
-                <option value="deslocado">Deslocado</option>
               </select>
             </label>
             <label class="field"><span>Aproamento da UM (°)</span>
@@ -78,6 +77,9 @@
             </label>
           </div>
           <div class="form-grid form-grid-2">
+            <label class="field"><span>Proa de chegada na UM (°)</span>
+              <input id="arrivalHdg" type="number" inputmode="numeric" enterkeyhint="next" min="0" max="360" placeholder="da rota · sobrevoo">
+            </label>
             <label class="field"><span>Proa final manual (°)</span>
               <input id="finalManual" type="number" inputmode="numeric" enterkeyhint="next" min="0" max="360" placeholder="opcional">
             </label>
@@ -92,7 +94,7 @@
               <input id="windKt" type="number" inputmode="numeric" enterkeyhint="next" min="0" max="99" placeholder="0">
             </label>
             <label class="field"><span>Limite de través (kt)</span>
-              <input id="xwindLimit" type="number" inputmode="numeric" enterkeyhint="done" min="1" max="60" value="35">
+              <input id="xwindLimit" type="number" inputmode="numeric" enterkeyhint="done" min="1" max="60" value="20">
             </label>
           </div>
 

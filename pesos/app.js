@@ -7,6 +7,7 @@
   var CHART_MODE_KEY = 'aw139_pesos_chart_mode_v1';
   var CHART_VISIBLE_KEY = 'aw139_pesos_chart_visible_v1';
   var AIRCRAFT_OPEN_KEY = 'aw139_pesos_aircraft_open_v1';
+  var MANIFEST_OPEN_KEY = 'aw139_pesos_manifest_open_v1';
 
   // Envelopes de CG longitudinal — AW139 RFM 139G0290X002, Figuras 1-1
   // (E.A.S.A. Approved). Pontos [STA mm, peso kg]. Selecionado pela
@@ -234,11 +235,12 @@
     cards.forEach(function (card, i) {
       $('.leg-number', card).textContent = 'Perna ' + (i + 1);
       $('.leg-route-label', card).textContent = stops[i] + ' → ' + stops[i + 1];
-      // wx de decolagem só na 1ª perna: nas demais, a decolagem herda o wx
-      // registrado no pouso da perna anterior (mesma localidade)
-      $('.wx-origin-btn', card).hidden = i !== 0;
-      updateWxButton(card);
+      // Todas as pernas têm Dec. e Pouso. Na 1ª, Dec. é a decolagem da base;
+      // nas demais, Dec. herda o wx do pouso da perna anterior (mesma
+      // localidade) e pode ser editado se houver mudança.
+      $('.wx-origin-btn', card).hidden = false;
     });
+    refreshAllWxButtons();
     $('#fuelPanel').hidden = wanted === 0;
   }
 
@@ -261,7 +263,8 @@
   ];
 
   var wxCard = null;
-  var wxKey = 'weather'; // 'weather' = destino/pouso; 'weatherOrigem' = decolagem (só perna 1)
+  var wxKey = 'weather'; // 'weather' = destino/pouso; 'weatherOrigem' = decolagem (override)
+  var wxInheritedBaseline = null; // wx herdado exibido no diálogo de decolagem
 
   function getLegWeather(card, key) {
     try {
@@ -271,6 +274,31 @@
       return null;
     }
   }
+
+  function legCards() { return $$('.leg-card', legsContainer); }
+
+  // wx de decolagem herdado: o pouso da perna anterior (mesma localidade)
+  function inheritedDecWx(card) {
+    var cards = legCards();
+    var i = cards.indexOf(card);
+    if (i <= 0) return null;
+    return getLegWeather(cards[i - 1], 'weather');
+  }
+
+  // wx de decolagem efetivo: override próprio do piloto ou, na falta, o herdado
+  function effectiveDecWx(card) {
+    return getLegWeather(card, 'weatherOrigem') || inheritedDecWx(card);
+  }
+
+  function wxEquals(a, b) {
+    if (!a || !b) return false;
+    if (String(a.type || '') !== String(b.type || '')) return false;
+    return WX_FIELDS.every(function (f) {
+      return String(a[f[0]] || '').trim() === String(b[f[0]] || '').trim();
+    });
+  }
+
+  function refreshAllWxButtons() { legCards().forEach(updateWxButton); }
 
   function wxSummaryText(wx) {
     if (!wx) return '';
@@ -291,25 +319,31 @@
     var btn = $('.wx-btn', card);
     var has = !!getLegWeather(card);
     btn.classList.toggle('wx-filled', has);
-    btn.textContent = has ? 'WX ✓' : 'WX';
+    btn.textContent = has ? 'Pouso ✓' : 'Pouso';
     var originBtn = $('.wx-origin-btn', card);
     if (originBtn) {
-      var hasOrigin = !!getLegWeather(card, 'weatherOrigem');
-      originBtn.classList.toggle('wx-filled', hasOrigin);
-      originBtn.textContent = hasOrigin ? 'WX dec. ✓' : 'WX dec.';
+      var own = !!getLegWeather(card, 'weatherOrigem');   // editado pelo piloto
+      var eff = !!effectiveDecWx(card);                    // próprio ou herdado
+      originBtn.classList.toggle('wx-filled', own);
+      originBtn.classList.toggle('wx-inherited', !own && eff);
+      originBtn.textContent = own ? 'Dec. ✓' : (eff ? 'Dec. ↩' : 'Dec.');
+      originBtn.title = own ? 'Weather na decolagem (editado)'
+        : eff ? 'Weather na decolagem — herdado do pouso anterior' : 'Weather na decolagem';
     }
     // Resumo clicável do weather salvo: dá para conferir e editar sem
-    // reabrir o diálogo às cegas.
+    // reabrir o diálogo às cegas. Cada linha discrimina decolagem/pouso.
     var summaryBtn = $('.wx-summary', card);
     if (summaryBtn) {
       var routeParts = $('.leg-route-label', card).textContent.split('→');
       var origName = (routeParts[0] || '').trim();
       var destName = (routeParts[1] || '').trim();
-      var origTxt = wxSummaryText(getLegWeather(card, 'weatherOrigem'));
+      var decWx = effectiveDecWx(card);
+      var decInherited = decWx && !getLegWeather(card, 'weatherOrigem');
+      var origTxt = wxSummaryText(decWx);
       var destTxt = wxSummaryText(getLegWeather(card));
       var html = '';
-      if (origTxt) html += '<span><strong>' + escapeHtml(origName) + ' dec.</strong> ' + escapeHtml(origTxt) + '</span>';
-      if (destTxt) html += '<span><strong>' + escapeHtml(destName) + '</strong> ' + escapeHtml(destTxt) + '</span>';
+      if (origTxt) html += '<span><strong>Dec. ' + escapeHtml(origName) + (decInherited ? ' ↩' : '') + '</strong> ' + escapeHtml(origTxt) + '</span>';
+      if (destTxt) html += '<span><strong>Pouso ' + escapeHtml(destName) + '</strong> ' + escapeHtml(destTxt) + '</span>';
       summaryBtn.innerHTML = html;
       summaryBtn.hidden = !html;
     }
@@ -333,8 +367,27 @@
     var place = (isOrigin ? parts[0] : parts[1] || '').trim();
     var legNum = $('.leg-number', card).textContent;
     document.getElementById('wxTitle').textContent =
-      'Weather — ' + place + (isOrigin ? ' (decolagem)' : ' (' + legNum + ')');
-    var data = getLegWeather(card, wxKey) || {};
+      'Weather — ' + (isOrigin ? 'decolagem ' : 'pouso ') + place + ' · ' + legNum;
+
+    // Decolagem de perna > 1: herda o pouso anterior. Sem override próprio,
+    // pré-preenche com o herdado (o piloto edita só se mudou).
+    wxInheritedBaseline = isOrigin ? inheritedDecWx(card) : null;
+    var data = getLegWeather(card, wxKey);
+    if (isOrigin && !data && wxInheritedBaseline) data = wxInheritedBaseline;
+    data = data || {};
+
+    var note = document.getElementById('wxInheritNote');
+    if (note) {
+      if (isOrigin && wxInheritedBaseline) {
+        var prevDest = (legCards()[legCards().indexOf(card) - 1] &&
+          ($('.leg-route-label', legCards()[legCards().indexOf(card) - 1]).textContent.split('→')[1] || '').trim()) || 'perna anterior';
+        note.textContent = 'Herdado do pouso em ' + prevDest + '. Edite apenas se mudou.';
+        note.hidden = false;
+      } else {
+        note.hidden = true;
+      }
+    }
+
     document.getElementById('wxType').value = data.type || guessWxType(place);
     WX_FIELDS.forEach(function (f) {
       document.getElementById(f[1]).value = data[f[0]] !== undefined ? data[f[0]] : '';
@@ -352,9 +405,19 @@
       data[f[0]] = v;
       if (v !== '') hasAny = true;
     });
-    if (hasAny) wxCard.dataset[wxKey] = JSON.stringify(data);
-    else delete wxCard.dataset[wxKey];
-    updateWxButton(wxCard);
+    // Decolagem herdada: só grava override se o piloto realmente mudou algo
+    // em relação ao herdado. Se ficar igual (ou vazio), mantém a herança viva.
+    if (wxKey === 'weatherOrigem' && wxInheritedBaseline) {
+      if (hasAny && !wxEquals(data, wxInheritedBaseline)) wxCard.dataset.weatherOrigem = JSON.stringify(data);
+      else delete wxCard.dataset.weatherOrigem;
+    } else if (hasAny) {
+      wxCard.dataset[wxKey] = JSON.stringify(data);
+    } else {
+      delete wxCard.dataset[wxKey];
+    }
+    // Um pouso mudado altera a decolagem herdada da perna seguinte:
+    // atualiza todos os botões.
+    refreshAllWxButtons();
   }
 
   function closeWxDialog() {
@@ -362,6 +425,7 @@
     document.getElementById('wxOverlay').hidden = true;
     wxCard = null;
     wxKey = 'weather';
+    wxInheritedBaseline = null;
     scheduleRecalc();
   }
 
@@ -771,6 +835,20 @@
     el.textContent = parts.join(' · ');
   }
 
+  function updateManifestSummary() {
+    var el = document.getElementById('manifestSummary');
+    if (!el) return;
+    var rows = readManifestRows();
+    var filled = rows.filter(function (r) { return r.paxKg || r.bagKg || r.cargoKg; });
+    if (!filled.length) { el.textContent = 'Sem carga'; return; }
+    var totalPax = 0, totalOther = 0;
+    filled.forEach(function (r) { totalPax += r.paxKg; totalOther += r.bagKg + r.cargoKg; });
+    var parts = [filled.length + (filled.length === 1 ? ' trecho' : ' trechos')];
+    if (totalPax) parts.push(fmt(totalPax) + ' kg pax');
+    if (totalOther) parts.push(fmt(totalOther) + ' kg bag/carga');
+    el.textContent = parts.join(' · ');
+  }
+
   function updateLegDerivedNotes(results) {
     $$('.leg-card', legsContainer).forEach(function (card, i) {
       var note = $('.leg-derived-note', card);
@@ -844,10 +922,8 @@
     });
   }
 
-  function getChartMode() {
-    var sel = document.getElementById('chartModeSelect');
-    return sel ? sel.value : 'cg';
-  }
+  // Único gráfico: peso e balanceamento (CG), que já traz a evolução do peso.
+  function getChartMode() { return 'cg'; }
 
   function renderLegend(aircraft, watMax) {
     var legend = document.getElementById('chartLegend');
@@ -1169,19 +1245,13 @@
 
   function renderChartsByMode() {
     if (!lastCalcResult) return;
-    var mode = getChartMode();
     var results = lastCalcResult.results;
     var aircraft = lastCalcResult.aircraft;
     var canvases = [document.getElementById('weightChart')];
     if (!fullscreenOverlay.hidden) canvases.push(document.getElementById('weightChartFullscreen'));
-    if (mode === 'cg') {
-      canvases.forEach(function (cv) { drawCgChart(cv, results, aircraft); });
-    } else {
-      var criticalIndex = computeCriticalIndex(results, aircraft);
-      canvases.forEach(function (cv) { drawChart(cv, results, aircraft, lastCalcResult.watMax, criticalIndex); });
-    }
+    canvases.forEach(function (cv) { drawCgChart(cv, results, aircraft); });
     var title = document.getElementById('chartTitle');
-    if (title) title.textContent = mode === 'cg' ? 'Peso e balanceamento' : 'Evolução do peso';
+    if (title) title.textContent = 'Peso e balanceamento';
     renderLegend(aircraft, lastCalcResult.watMax);
   }
 
@@ -1195,6 +1265,7 @@
     var globalIssues = calcResult.globalIssues;
 
     updateAircraftSummary();
+    updateManifestSummary();
     updateLegDerivedNotes(results);
     updateRouteLegsNote(calcResult.stops);
 
@@ -1209,31 +1280,6 @@
     else if (anyWarn) setStatusChip('warn', 'Alerta');
     else setStatusChip('ok', 'OK');
 
-    if (results.length) {
-      var maxTow = -Infinity, maxTowIdx = -1;
-      results.forEach(function (r, i) { if (r.tow > maxTow) { maxTow = r.tow; maxTowIdx = i; } });
-      document.getElementById('maxTowValue').textContent = fmt(maxTow) + ' kg';
-      document.getElementById('maxTowSub').textContent = 'Perna ' + (maxTowIdx + 1) + ' (' + results[maxTowIdx].originText + ' → ' + results[maxTowIdx].destText + ')';
-
-      var mtowMargin = computeMinMtowMargin(results);
-      document.getElementById('minMarginValue').textContent = fmt(mtowMargin.value) + ' kg';
-      document.getElementById('minMarginSub').textContent = 'Perna ' + (mtowMargin.index + 1) + ' (' + results[mtowMargin.index].originText + ' → ' + results[mtowMargin.index].destText + ')';
-
-      var finalFuel = results[results.length - 1].fuelAtLanding;
-      document.getElementById('finalFuelValue').textContent = fmt(finalFuel) + ' kg';
-      document.getElementById('finalFuelSub').textContent = 'Mínimo exigido: ' + fmt(aircraft.minLandingFuelKg) + ' kg';
-
-      document.getElementById('totalPaxValue').textContent = fmt(calcResult.totalPaxBoardKg) + ' kg';
-      document.getElementById('totalPaxSub').textContent = 'Somatório dos embarques do manifesto';
-    } else {
-      ['maxTowValue', 'minMarginValue', 'finalFuelValue', 'totalPaxValue'].forEach(function (id) {
-        document.getElementById(id).textContent = '—';
-      });
-      ['maxTowSub', 'minMarginSub', 'finalFuelSub', 'totalPaxSub'].forEach(function (id) {
-        document.getElementById(id).textContent = '—';
-      });
-    }
-
     renderAlerts(globalIssues, results);
     renderTable(results, criticalIndex, calcResult.watMax);
     renderChartsByMode();
@@ -1246,6 +1292,194 @@
       render(lastCalcResult);
       saveForm();
     }, 60);
+  }
+
+  // ---------------------------------------------------------------------
+  // PDF de planejamento (documento no estilo de companhia aérea)
+  // ---------------------------------------------------------------------
+
+  // Renderiza o gráfico CG num canvas fora da tela e devolve como imagem PNG.
+  function renderCgChartImage(results, aircraft) {
+    var holder = document.createElement('div');
+    holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;height:560px';
+    var canvas = document.createElement('canvas');
+    holder.appendChild(canvas);
+    document.body.appendChild(holder);
+    try {
+      drawCgChart(canvas, results, aircraft);
+      return canvas.toDataURL('image/png');
+    } catch (e) {
+      return null;
+    } finally {
+      document.body.removeChild(holder);
+    }
+  }
+
+  function pdfWxCell(wx) {
+    if (!wx) return '<span class="pdf-dim">—</span>';
+    var t = wxSummaryText(wx);
+    var tipo = wx.type === 'um' ? 'UM' : 'AERO';
+    return '<span class="pdf-wx-tipo">' + tipo + '</span> ' + escapeHtml(t || '—');
+  }
+
+  function generatePlanningPdf() {
+    var calc = lastCalcResult || computeWithAutofill();
+    var results = calc.results || [];
+    var aircraft = calc.aircraft;
+    if (!results.length) { window.alert('Informe a rota e o manifesto antes de gerar o planejamento.'); return; }
+
+    var reg = document.getElementById('registrationInput').value.trim() || '—';
+    var route = document.getElementById('routeInput').value.trim().toUpperCase();
+    var now = new Date();
+    var dateStr = now.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    // Resumo do voo
+    var maxTow = -Infinity, maxTowIdx = 0;
+    results.forEach(function (r, i) { if (r.tow > maxTow) { maxTow = r.tow; maxTowIdx = i; } });
+    var mtowMargin = computeMinMtowMargin(results);
+    var finalFuel = results[results.length - 1].fuelAtLanding;
+    var anyError = (calc.globalIssues || []).some(function (x) { return x.level === 'error'; }) ||
+      results.some(function (r) { return r.status === 'error'; });
+    var anyWarn = results.some(function (r) { return r.status === 'warn'; });
+    var statusTxt = anyError ? 'FORA DE LIMITES' : anyWarn ? 'COM RESSALVAS' : 'DENTRO DOS LIMITES';
+    var statusCls = anyError ? 'bad' : anyWarn ? 'warn' : 'ok';
+    var showWat = calc.watMax !== null && calc.watMax !== undefined;
+
+    // Linhas da tabela de pesos
+    var weightRows = results.map(function (r, i) {
+      var wm = r.watMargin;
+      var watCell = showWat
+        ? '<td class="' + (wm != null && isFinite(wm) ? (wm < 0 ? 'pdf-bad' : 'pdf-ok') : '') + '">' + (wm != null && isFinite(wm) ? (wm >= 0 ? '+' : '') + fmt(wm) : '—') + '</td>'
+        : '';
+      var st = r.status === 'error' ? '<span class="pdf-pill bad">FORA</span>' : r.status === 'warn' ? '<span class="pdf-pill warn">ALERTA</span>' : '<span class="pdf-pill ok">OK</span>';
+      return '<tr>' +
+        '<td class="pdf-c">' + (i + 1) + '</td>' +
+        '<td>' + escapeHtml(r.originText) + ' → ' + escapeHtml(r.destText) + '</td>' +
+        '<td class="pdf-r">' + fmt(r.payloadKg) + '</td>' +
+        '<td class="pdf-r">' + fmt(r.fuelAtStart) + '</td>' +
+        '<td class="pdf-r pdf-b">' + fmt(r.tow) + '</td>' +
+        '<td class="pdf-r">' + fmt(r.lw) + '</td>' +
+        '<td class="pdf-r">' + fmt(r.fuelAtLanding) + '</td>' +
+        '<td class="pdf-r">' + fmt(r.paxOnBoard) + '</td>' +
+        '<td class="pdf-r ' + (r.marginToMtow < 0 ? 'pdf-bad' : '') + '">' + (r.marginToMtow >= 0 ? '+' : '') + fmt(r.marginToMtow) + '</td>' +
+        watCell +
+        '<td class="pdf-c">' + st + '</td>' +
+        '</tr>';
+    }).join('');
+
+    // Linhas de weather por perna (decolagem efetiva + pouso)
+    var wxRows = results.map(function (r, i) {
+      var decWx = r.weatherOrigem || (i > 0 ? results[i - 1].weather : null);
+      var decInh = decWx && !r.weatherOrigem;
+      return '<tr>' +
+        '<td class="pdf-c">' + (i + 1) + '</td>' +
+        '<td><strong>' + escapeHtml(r.originText) + '</strong>' + (decInh ? ' <span class="pdf-dim">(herdado)</span>' : '') + '<br>' + pdfWxCell(decWx) + '</td>' +
+        '<td><strong>' + escapeHtml(r.destText) + '</strong><br>' + pdfWxCell(r.weather) + '</td>' +
+        '</tr>';
+    }).join('');
+
+    // Alertas
+    var alertItems = [];
+    (calc.globalIssues || []).forEach(function (gi) { alertItems.push({ level: gi.level, message: gi.message }); });
+    results.forEach(function (r, i) {
+      (r.issues || []).forEach(function (iss) {
+        alertItems.push({ level: iss.level, message: 'Perna ' + (i + 1) + ' (' + r.originText + ' → ' + r.destText + '): ' + iss.message });
+      });
+    });
+    var alertsHtml = alertItems.length
+      ? alertItems.map(function (a) { return '<div class="pdf-alert ' + a.level + '">' + escapeHtml(a.message) + '</div>'; }).join('')
+      : '<div class="pdf-alert ok">Todas as pernas dentro dos limites (MTOW, peso de pouso, combustível' + (showWat ? ', WAT' : '') + ').</div>';
+
+    var chartImg = renderCgChartImage(results, aircraft);
+    var cgEnv = getCgEnvelope(aircraft);
+
+    var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">' +
+      '<title>Planejamento de Voo — ' + escapeHtml(reg) + ' — ' + escapeHtml(dateStr) + '</title>' +
+      '<style>' +
+      '*{box-sizing:border-box;margin:0;padding:0}' +
+      'body{font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;color:#111;background:#fff}' +
+      '.nop{padding:8px 14mm;background:#eef1f4;border-bottom:1px solid #ccc;display:flex;gap:8px}' +
+      '.nop button{padding:6px 14px;cursor:pointer;font-size:9pt;border:1px solid #888;background:#fff;border-radius:4px}' +
+      '.doc{padding:0 14mm 12mm}' +
+      '.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #12303a;padding:10mm 0 5mm}' +
+      '.htitle{font-size:17pt;font-weight:800;letter-spacing:.02em;color:#12303a}' +
+      '.hsub{font-size:8.5pt;color:#555;margin-top:2px;text-transform:uppercase;letter-spacing:.08em}' +
+      '.hmeta{text-align:right;font-size:9pt;line-height:1.5}' +
+      '.hmeta strong{font-size:12pt}' +
+      '.status{display:inline-block;margin-top:4px;padding:3px 10px;border-radius:4px;font-weight:800;font-size:9pt}' +
+      '.status.ok{background:#e2f5ea;color:#1a7a44;border:1px solid #1a7a44}' +
+      '.status.warn{background:#fdf3e0;color:#9a6a12;border:1px solid #cc9a3a}' +
+      '.status.bad{background:#fbe6e6;color:#a11;border:1px solid #a11}' +
+      'h2.sec{font-size:10pt;font-weight:800;color:#12303a;text-transform:uppercase;letter-spacing:.06em;margin:7mm 0 3mm;padding-bottom:2px;border-bottom:1px solid #cbd5dd}' +
+      '.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm 6mm}' +
+      '.kv{font-size:9pt}.kv .k{color:#666;font-size:7.5pt;text-transform:uppercase;letter-spacing:.04em}.kv .v{font-weight:700;font-size:10.5pt}' +
+      '.sumgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm}' +
+      '.sumbox{border:1px solid #cbd5dd;border-radius:6px;padding:7px 10px;background:#f7f9fb}' +
+      '.sumbox .k{font-size:7.5pt;color:#666;text-transform:uppercase;letter-spacing:.04em}.sumbox .v{font-size:14pt;font-weight:800;color:#12303a}.sumbox .s{font-size:7.5pt;color:#777}' +
+      'table{width:100%;border-collapse:collapse;font-size:8.5pt;margin-top:1mm}' +
+      'th{background:#12303a;color:#fff;font-size:7.5pt;text-transform:uppercase;letter-spacing:.03em;padding:5px 6px;text-align:right}' +
+      'th:nth-child(1),th:nth-child(2){text-align:left}' +
+      'td{padding:5px 6px;border-bottom:1px solid #e4e9ee;vertical-align:top}' +
+      '.pdf-r{text-align:right;font-variant-numeric:tabular-nums}.pdf-c{text-align:center}.pdf-b{font-weight:800}' +
+      '.pdf-ok{color:#1a7a44}.pdf-bad{color:#a11;font-weight:700}.pdf-dim{color:#999}' +
+      '.pdf-pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:7pt;font-weight:800}' +
+      '.pdf-pill.ok{background:#e2f5ea;color:#1a7a44}.pdf-pill.warn{background:#fdf3e0;color:#9a6a12}.pdf-pill.bad{background:#fbe6e6;color:#a11}' +
+      '.pdf-wx-tipo{display:inline-block;background:#12303a;color:#fff;font-size:6.5pt;font-weight:800;padding:1px 5px;border-radius:3px;vertical-align:middle}' +
+      '.wxtable td{font-size:8.5pt}' +
+      '.pdf-alert{font-size:8.5pt;padding:5px 9px;border-radius:4px;margin-bottom:4px;border-left:3px solid #999;background:#f4f6f8}' +
+      '.pdf-alert.error{border-color:#a11;background:#fbe6e6;color:#7a1010}.pdf-alert.warn{border-color:#cc9a3a;background:#fdf3e0;color:#7a5a12}.pdf-alert.ok{border-color:#1a7a44;background:#e2f5ea;color:#155f36}' +
+      '.chartwrap{border:1px solid #cbd5dd;border-radius:6px;padding:6px;margin-top:2mm;text-align:center}' +
+      '.chartwrap img{width:100%;max-width:170mm}' +
+      '.chartcap{font-size:7.5pt;color:#666;margin-top:3px}' +
+      '.foot{margin-top:8mm;padding-top:3mm;border-top:1px solid #cbd5dd;font-size:7.5pt;color:#777}' +
+      '.sign{display:grid;grid-template-columns:1fr 1fr;gap:12mm;margin-top:8mm}' +
+      '.sign .line{border-top:1px solid #333;padding-top:3px;font-size:8pt;color:#555;text-align:center}' +
+      '@page{margin:9mm 0;size:A4}' +
+      '@media print{.nop{display:none!important}}' +
+      '</style></head><body>' +
+      '<div class="nop"><button onclick="window.print()">🖨 Imprimir / Salvar PDF</button><button onclick="window.close()">✕ Fechar</button></div>' +
+      '<div class="doc">' +
+      '<div class="hdr"><div><div class="htitle">PLANEJAMENTO DE VOO</div><div class="hsub">AW139 · Peso, Balanceamento e Combustível por Perna</div></div>' +
+      '<div class="hmeta"><strong>' + escapeHtml(reg) + '</strong><br>' + escapeHtml(dateStr) + '<br><span class="status ' + statusCls + '">' + statusTxt + '</span></div></div>' +
+
+      '<h2 class="sec">Rota</h2><div style="font-size:11pt;font-weight:700;letter-spacing:.06em">' + escapeHtml(route || '—') + '</div>' +
+      '<div style="font-size:8.5pt;color:#666;margin-top:2px">' + results.length + (results.length === 1 ? ' perna' : ' pernas') + '</div>' +
+
+      '<h2 class="sec">Aeronave</h2><div class="grid">' +
+      '<div class="kv"><div class="k">Matrícula</div><div class="v">' + escapeHtml(reg) + '</div></div>' +
+      '<div class="kv"><div class="k">Peso básico (BEW)</div><div class="v">' + fmt(aircraft.bewKg) + ' kg</div></div>' +
+      '<div class="kv"><div class="k">Tripulação</div><div class="v">' + fmt(aircraft.crewKg) + ' kg</div></div>' +
+      '<div class="kv"><div class="k">Categoria (MTOW)</div><div class="v">' + fmt(aircraft.mtowCategory) + ' kg</div></div>' +
+      '<div class="kv"><div class="k">Peso máx. pouso</div><div class="v">' + fmt(aircraft.maxLandingKg) + ' kg</div></div>' +
+      '<div class="kv"><div class="k">Comb. mín. pouso</div><div class="v">' + fmt(aircraft.minLandingFuelKg) + ' kg</div></div>' +
+      '<div class="kv"><div class="k">CG vazio (STA)</div><div class="v">' + (isFinite(aircraft.bewArmMm) ? fmt(aircraft.bewArmMm) + ' mm' : '—') + '</div></div>' +
+      '<div class="kv"><div class="k">Braço pax / carga (STA)</div><div class="v">' + fmt(aircraft.paxArmMm) + ' / ' + fmt(aircraft.cargoArmMm) + ' mm</div></div>' +
+      '</div>' +
+
+      '<h2 class="sec">Resumo do voo</h2><div class="sumgrid">' +
+      '<div class="sumbox"><div class="k">TOW máximo</div><div class="v">' + fmt(maxTow) + ' kg</div><div class="s">Perna ' + (maxTowIdx + 1) + '</div></div>' +
+      '<div class="sumbox"><div class="k">Margem mín. p/ MTOW</div><div class="v">' + (mtowMargin.value >= 0 ? '+' : '') + fmt(mtowMargin.value) + ' kg</div><div class="s">Perna ' + (mtowMargin.index + 1) + '</div></div>' +
+      '<div class="sumbox"><div class="k">Combustível final</div><div class="v">' + fmt(finalFuel) + ' kg</div><div class="s">Mín.: ' + fmt(aircraft.minLandingFuelKg) + ' kg</div></div>' +
+      '<div class="sumbox"><div class="k">Pax embarcado</div><div class="v">' + fmt(calc.totalPaxBoardKg) + ' kg</div><div class="s">Manifesto</div></div>' +
+      '</div>' +
+
+      '<h2 class="sec">Peso e balanceamento por perna</h2>' +
+      '<table><thead><tr><th>#</th><th>Trecho</th><th>Payload</th><th>Comb. dec.</th><th>TOW</th><th>LW</th><th>Comb. pouso</th><th>Pax</th><th>Margem MTOW</th>' + (showWat ? '<th>Margem WAT</th>' : '') + '<th>Status</th></tr></thead><tbody>' + weightRows + '</tbody></table>' +
+
+      '<h2 class="sec">Weather por perna (decolagem / pouso)</h2>' +
+      '<table class="wxtable"><thead><tr><th>#</th><th>Decolagem</th><th>Pouso</th></tr></thead><tbody>' + wxRows + '</tbody></table>' +
+
+      (chartImg ? '<h2 class="sec">Envelope de peso e balanceamento</h2><div class="chartwrap"><img src="' + chartImg + '" alt="Envelope CG"><div class="chartcap">' + escapeHtml(cgEnv.label) + ' · TOW (●) → LW (○) por perna</div></div>' : '') +
+
+      '<h2 class="sec">Alertas e avisos</h2>' + alertsHtml +
+
+      '<div class="sign"><div class="line">Piloto em comando — assinatura</div><div class="line">Data / hora</div></div>' +
+      '<div class="foot">Ferramenta pessoal de estudo e planejamento — não substitui o manifesto de peso e balanceamento oficial nem os documentos operacionais vigentes (RFM, MGO, SOP). Gerado pelo AW139 Companion — Planejamento do Voo em ' + escapeHtml(dateStr) + '.</div>' +
+      '</div></body></html>';
+
+    var win = window.open('', '_blank');
+    if (win) { win.document.write(html); win.document.close(); }
+    else window.alert('Não foi possível abrir a janela do PDF. Verifique o bloqueador de pop-ups.');
   }
 
   // ---------------------------------------------------------------------
@@ -1428,7 +1662,8 @@
   function loadChartVisible() {
     var stored = null;
     try { stored = localStorage.getItem(CHART_VISIBLE_KEY); } catch (e) { stored = null; }
-    setChartVisible(stored !== '0');
+    // Default recolhido: só abre se o piloto tiver deixado explicitamente aberto.
+    setChartVisible(stored === '1');
   }
 
   // ---------------------------------------------------------------------
@@ -1505,19 +1740,19 @@
       if (btn) { openWxDialog(btn.closest('.leg-card')); return; }
       var summaryBtn = e.target.closest('.wx-summary');
       if (summaryBtn) {
-        var card = summaryBtn.closest('.leg-card');
-        // abre o wx do destino; se a perna só tem o wx de decolagem, abre esse
-        openWxDialog(card, !getLegWeather(card) && !!getLegWeather(card, 'weatherOrigem'));
+        // O resumo abre o wx do pouso (destino) da perna; a decolagem tem
+        // botão próprio (Dec.) ao lado do cabeçalho.
+        openWxDialog(summaryBtn.closest('.leg-card'), false);
       }
     });
 
     var wxOverlay = document.getElementById('wxOverlay');
 
     // Auto-avanço no diálogo WX: campos de comprimento fixo pulam para o
-    // próximo ao completar (QNH 4 dígitos, aproamento 3, temperatura 2) e o
-    // vento ganha a barra automática no formato dir/int (060/18). Enter
-    // também avança em qualquer campo.
-    var WX_AUTO_LEN = { wxQnh: 4, wxAproamento: 3, wxTemp: 2 };
+    // próximo ao completar (QNH 4 dígitos, aproamento 3) e o vento ganha a
+    // barra automática no formato dir/int (060/18). Enter também avança em
+    // qualquer campo. Temperatura fica de fora: aceita decimais (28,5).
+    var WX_AUTO_LEN = { wxQnh: 4, wxAproamento: 3 };
     function wxVisibleFields() {
       return WX_FIELDS.map(function (f) { return document.getElementById(f[1]); })
         .filter(function (el) { return el && !el.closest('label').hidden; });
@@ -1601,16 +1836,6 @@
       scheduleRecalc();
     });
 
-    document.getElementById('roundTripBtn').addEventListener('click', function () {
-      var stops = getStops();
-      if (stops.length < 2) return;
-      var back = stops.slice(0, stops.length - 1).reverse();
-      document.getElementById('routeInput').value = stops.concat(back).join(' ');
-      rebuildLegCards(getStops());
-      refreshManifestSelects();
-      scheduleRecalc();
-    });
-
     document.getElementById('runBtn').addEventListener('click', function () {
       lastCalcResult = computeWithAutofill();
       render(lastCalcResult);
@@ -1668,7 +1893,7 @@
       scheduleRecalc();
     });
 
-    document.getElementById('shareBtn').addEventListener('click', function () { window.print(); });
+    document.getElementById('shareBtn').addEventListener('click', generatePlanningPdf);
 
     document.getElementById('toggleTableBtn').addEventListener('click', function () {
       var container = document.getElementById('tableContainer');
@@ -1682,34 +1907,6 @@
     });
     loadChartVisible();
 
-    // O PDF compartilhado deve sempre incluir o gráfico: redesenha com o
-    // viewer visível antes de imprimir e restaura o estado depois.
-    var chartHiddenBeforePrint = false;
-    window.addEventListener('beforeprint', function () {
-      var pane = document.querySelector('.viewer-pane');
-      chartHiddenBeforePrint = pane.hidden;
-      if (chartHiddenBeforePrint) {
-        pane.hidden = false;
-        redrawCharts();
-      }
-    });
-    window.addEventListener('afterprint', function () {
-      if (chartHiddenBeforePrint) {
-        document.querySelector('.viewer-pane').hidden = true;
-        chartHiddenBeforePrint = false;
-      }
-    });
-
-    var chartModeSelect = document.getElementById('chartModeSelect');
-    try {
-      var storedMode = localStorage.getItem(CHART_MODE_KEY);
-      if (storedMode === 'cg' || storedMode === 'weight') chartModeSelect.value = storedMode;
-    } catch (e) { /* noop */ }
-    chartModeSelect.addEventListener('change', function () {
-      try { localStorage.setItem(CHART_MODE_KEY, chartModeSelect.value); } catch (e) { /* noop */ }
-      renderChartsByMode();
-    });
-
     var aircraftDetails = document.getElementById('aircraftDetails');
     var storedOpen = null;
     try { storedOpen = localStorage.getItem(AIRCRAFT_OPEN_KEY); } catch (e) { storedOpen = null; }
@@ -1717,8 +1914,22 @@
     else if (storedOpen === '0') aircraftDetails.open = false;
     else aircraftDetails.open = document.getElementById('bewKg').value.trim() === '';
     aircraftDetails.addEventListener('toggle', function () {
+      updateAircraftSummary();
       try { localStorage.setItem(AIRCRAFT_OPEN_KEY, aircraftDetails.open ? '1' : '0'); } catch (e) { /* noop */ }
     });
+
+    var manifestDetails = document.getElementById('manifestDetails');
+    if (manifestDetails) {
+      var manifestOpen = null;
+      try { manifestOpen = localStorage.getItem(MANIFEST_OPEN_KEY); } catch (e) { manifestOpen = null; }
+      if (manifestOpen === '0') manifestDetails.open = false;
+      else manifestDetails.open = true;
+      manifestDetails.addEventListener('toggle', function () {
+        updateManifestSummary();
+        try { localStorage.setItem(MANIFEST_OPEN_KEY, manifestDetails.open ? '1' : '0'); } catch (e) { /* noop */ }
+      });
+      updateManifestSummary();
+    }
 
     document.getElementById('fullscreenBtn').addEventListener('click', function () {
       fullscreenOverlay.hidden = false;

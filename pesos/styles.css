@@ -209,6 +209,18 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   margin: 0 0 10px;
   color: var(--text);
   letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Barra de acento teal — identidade visual consistente entre os quadros */
+.panel-title::before {
+  content: "";
+  width: 3px;
+  height: 15px;
+  border-radius: 2px;
+  background: var(--teal);
+  flex: none;
 }
 
 .panel-header-row, .result-header-row {
@@ -326,9 +338,8 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
 .leg-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
   margin-bottom: 8px;
 }
 
@@ -336,36 +347,75 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   font-weight: 700;
   font-size: 13px;
   color: var(--teal);
+  flex: none;
 }
 
 .leg-route-label {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--text);
-  letter-spacing: 0.04em;
-  flex: 1;
-  text-align: right;
-  margin-right: 8px;
+  letter-spacing: 0.02em;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Botões de weather: alvo de toque grande, fáceis de achar e editar.
-   Quebram para a linha de baixo do cabeçalho e dividem a largura
-   (perna 1 tem WX dec. + WX lado a lado; as demais, WX inteiro). */
+/* Grupo dos botões de weather: ficam juntos, um ao lado do outro, na mesma
+   linha do cabeçalho da perna. Na perna 1 são dois (Dec. + Pouso); nas demais,
+   só Pouso. O rótulo da rota encolhe (ellipsis) se faltar espaço. */
+.leg-wx-btns {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
+
+.leg-wx-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  flex: none;
+}
+
 .leg-header .wx-btn, .leg-header .wx-origin-btn {
-  flex: 1 1 40%;
-  min-height: 44px;
-  padding: 8px 14px;
-  font-size: 13px;
+  flex: none;
+  min-height: 38px;
+  padding: 6px 10px;
+  font-size: 12px;
   font-weight: 700;
-  border-radius: 12px;
+  border-radius: 10px;
+  white-space: nowrap;
 }
 
-.leg-header .leg-number, .leg-header .leg-route-label { white-space: nowrap; }
+.leg-header .leg-number { white-space: nowrap; }
 
 .leg-header .wx-btn.wx-filled, .leg-header .wx-origin-btn.wx-filled {
   border-color: var(--teal-border);
   color: var(--teal);
   background: var(--teal-dim);
+}
+
+/* Decolagem herdada do pouso anterior (não editada): tom mais suave que o
+   preenchido, borda tracejada para indicar "automático, editável". */
+.leg-header .wx-origin-btn.wx-inherited {
+  border-style: dashed;
+  border-color: var(--teal-border);
+  color: var(--teal);
+}
+
+/* Nota de herança no diálogo de weather */
+.wx-note {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--teal-dim);
+  border: 1px solid var(--teal-border);
+  color: #a9e6e2;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 /* Resumo do WX salvo, clicável para editar sem reabrir às cegas */
@@ -429,20 +479,36 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   color: var(--text-dim);
 }
 
-/* Painel Aeronave recolhível */
-#aircraftDetails summary { list-style: none; }
-#aircraftDetails summary::-webkit-details-marker { display: none; }
+/* Painéis recolhíveis (Aeronave, Manifesto) — cabeçalho tocável com botão
+   de minimizar bem visível. */
+.collapsible-panel { padding: 0; }
+.collapsible-panel > details > summary { list-style: none; }
+.collapsible-panel > details > summary::-webkit-details-marker { display: none; }
 
-.config-summary-row {
+.panel-summary {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
+  padding: 12px 14px;
+  min-height: 52px;
+  border-radius: 12px;
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.panel-summary:hover { background: rgba(70, 194, 186, 0.05); }
+
+.panel-summary-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
-.config-summary-row .panel-title { margin-bottom: 0; flex: none; }
+.panel-summary .panel-title { margin-bottom: 0; flex: none; }
 
-.config-summary {
+.panel-summary-info {
   font-size: 12px;
   color: var(--text-dim);
   flex: 1;
@@ -453,18 +519,41 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
   text-align: right;
 }
 
-.config-chevron {
-  color: var(--text-dim);
-  font-size: 11px;
+/* Botão de minimizar/expandir — destacado: círculo com borda teal e chevron */
+.panel-toggle {
   flex: none;
-  transition: transform 0.15s ease;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  border: 1px solid var(--teal-border);
+  background: var(--teal-dim);
+  color: var(--teal);
+  transition: transform 0.2s ease, background 0.15s ease;
+}
+.panel-summary:hover .panel-toggle { background: rgba(70, 194, 186, 0.28); }
+.panel-toggle svg { width: 20px; height: 20px; display: block; }
+
+/* aberto: chevron aponta para cima (recolher); fechado: para baixo (expandir) */
+.collapsible-panel > details[open] > summary .panel-toggle { transform: rotate(180deg); }
+.collapsible-panel > details[open] > summary .panel-summary-info { visibility: hidden; }
+
+.panel-body {
+  padding: 0 14px 14px;
+  margin-top: 2px;
 }
 
-#aircraftDetails[open] .config-chevron { transform: rotate(90deg); }
-#aircraftDetails[open] .config-summary { visibility: hidden; }
-#aircraftDetails > .form-grid { margin-top: 12px; }
-
 .add-leg-btn { width: 100%; margin-top: 4px; }
+
+/* Reset tudo: dentro do quadro Aeronave, discreto e com tom de alerta */
+.aircraft-reset-btn {
+  width: 100%;
+  margin-top: 12px;
+  color: var(--red);
+  border-color: rgba(224, 97, 90, 0.4);
+}
+.aircraft-reset-btn:hover { background: var(--red-bg); }
 
 .action-row {
   display: flex;
@@ -516,29 +605,10 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
 .status-chip[data-state="warn"] { background: var(--amber-bg); color: var(--amber); border-color: rgba(224,169,75,0.4); }
 .status-chip[data-state="error"] { background: var(--red-bg); color: var(--red); border-color: rgba(224,97,90,0.4); }
 
-.result-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.result-box {
-  background: var(--slate);
-  border: 1px solid var(--slate-border);
-  border-radius: 10px;
-  padding: 10px;
-}
-
-.result-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
-.result-value { font-size: 18px; font-weight: 700; }
-.result-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-
 .alerts-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 12px;
 }
 
 .alert-item {
@@ -692,7 +762,7 @@ body.has-back-btn .floating-table .table-header-row { padding-left: 44px; }
 @media print {
   .topbar, .action-row, .add-leg-btn, .remove-leg-btn, #fullscreenBtn, .back-btn, #toggleTableBtn, #toggleChartBtn { display: none !important; }
   body { background: #fff; color: #000; }
-  .panel, .leg-card, .result-box, .chart-wrap { border-color: #999; background: #fff; }
+  .panel, .leg-card, .chart-wrap { border-color: #999; background: #fff; }
   .viewer-pane { border-left: none; }
   .workspace { flex-direction: column; }
   .top-stack { position: static; background: #fff; border-bottom: none; }

@@ -35,7 +35,7 @@
   /* ---------- leitura do formulário ---------- */
   const $ = id => document.getElementById(id);
   const FIELDS = ['umIcao','deckClass','deckPos','shipHeading','sloAngle',
-                  'sloBisector','finalManual','windFrom','windKt','xwindLimit'];
+                  'sloBisector','arrivalHdg','finalManual','windFrom','windKt','xwindLimit'];
 
   function readState(){
     const bisIn = num($('sloBisector').value);
@@ -48,17 +48,22 @@
       if (deckPos === 'proa'){ sloBisector = norm(ship); bisAuto = true; }
       else if (deckPos === 'popa'){ sloBisector = norm(ship + 180); bisAuto = true; }
     }
+    // meia-nau sem aproamento manual: SLO dividido em dois setores nos través
+    // (NORMAM-223 / SOP 52) — obstáculos na proa e na popa
+    const sloSplit = deckPos === 'meia-nau' && sloBisector == null && ship != null;
     return {
+      sloSplit,
       umIcao: ($('umIcao').value || '').trim().toUpperCase(),
       deckClass: $('deckClass').value,
       deckPos,
       shipHeading: ship,
       sloAngle: Number($('sloAngle').value),
       sloBisector, bisAuto,
+      arrivalHdg: num($('arrivalHdg').value),
       finalManual: num($('finalManual').value),
       windFrom: num($('windFrom').value),
       windKt: num($('windKt').value) ?? 0,
-      xwindLimit: num($('xwindLimit').value) ?? 35
+      xwindLimit: num($('xwindLimit').value) ?? 20
     };
   }
 
@@ -82,7 +87,38 @@
                                 (= 45° da orientação do "H"), desde que o
                                 segmento pós-LDP fique dentro do SLO
      abaixo disso             → 'proibida': chegada pelo setor de obstáculos */
+  /* meia-nau: os dois setores do SLO (metade do setor em cada través) */
+  const splitBisectors = st => [norm(st.shipHeading + 90), norm(st.shipHeading - 90)];
+
+  /* bissetriz efetiva para uma proa: no meia-nau, o través por onde a
+     aeronave chega; nos demais, o aproamento do helideque */
+  function bisFor(h, st){
+    if (!st.sloSplit) return st.sloBisector;
+    const b = norm(h + 180);
+    const [b1, b2] = splitBisectors(st);
+    return Math.abs(angDiff(b, b1)) <= Math.abs(angDiff(b, b2)) ? b1 : b2;
+  }
+
+  /* defasagem da proa em relação ao eixo de aproximação de referência:
+     eixo do "H" (⊥ bissetriz) no setor único; través do navio no meia-nau */
+  function finalDev(h, st){
+    if (!st.sloSplit) return axisDev(h, st.sloBisector);
+    const [b1, b2] = splitBisectors(st);
+    const a = angDiff(h, b1), c = angDiff(h, b2);
+    return Math.abs(a) <= Math.abs(c) ? a : c;
+  }
+
   function sloBand(h, st){
+    if (st.sloSplit){
+      // chegada por dentro de um dos dois setores dos través
+      const b = norm(h + 180);
+      const [b1, b2] = splitBisectors(st);
+      const d = Math.min(Math.abs(angDiff(b, b1)), Math.abs(angDiff(b, b2)));
+      const hw = st.sloAngle / 4;
+      if (d <= hw) return 'dentro';
+      if (d <= hw + 30) return 'tolerada';
+      return 'proibida';
+    }
     const sea = Math.abs(angDiff(h, st.sloBisector));
     const inLim = 180 - st.sloAngle / 2;
     if (sea >= inLim) return 'dentro';
@@ -90,21 +126,31 @@
     return 'proibida';
   }
 
+  /* Limites de vento do AW139 na final: través máximo de 20 kt e, acima de
+     10 kt de través, exigência de pelo menos 5 kt de componente de proa. */
+  const XWIND_HEADWIND_RULE = { crossThresholdKt: 10, minHeadwindKt: 5 };
+
+  function violatesXwindRule(c){
+    return Math.abs(c.cross) > XWIND_HEADWIND_RULE.crossThresholdKt &&
+           c.head < XWIND_HEADWIND_RULE.minHeadwindKt;
+  }
+
   /* proa final sugerida:
      1) a princípio, aproada ao vento — se a chegada vier por dentro do SLO;
      2) fora disso, considerar as componentes: melhor proa por dentro do SLO
-        com través no limite e sem componente de cauda;
+        com través no limite (e proa mínima de 5 kt quando o través passa de
+        10 kt) e sem componente de cauda;
      3) em último caso, as tolerâncias (30° além dos limites) e, só então,
         proas com vento de cauda. Vento calmo → eixo do "H". */
   function suggestFinal(st){
-    const bis = st.sloBisector;
-    if (bis == null) return null;
+    if (st.sloBisector == null && !st.sloSplit) return null;
+    const calmHdg = st.sloSplit ? norm(st.shipHeading + 90) : norm(st.sloBisector + 90);
     if (st.windFrom == null || !st.windKt)
-      return { hdg: norm(bis + 90), dev: 0, head: 0, cross: 0, band: 'dentro', calm: true };
+      return { hdg: calmHdg, dev: 0, head: 0, cross: 0, band: 'dentro', calm: true };
     const hw = norm(st.windFrom);
     if (sloBand(hw, st) === 'dentro'){
       const c = windComp(st.windFrom, st.windKt, hw);
-      return { hdg: hw, dev: axisDev(hw, bis), head: c.head, cross: c.cross,
+      return { hdg: hw, dev: finalDev(hw, st), head: c.head, cross: c.cross,
                band: 'dentro', intoWind: true };
     }
     const tiers = [null, null, null, null];
@@ -113,9 +159,10 @@
       if (band === 'proibida') continue;
       const c = windComp(st.windFrom, st.windKt, h);
       if (Math.abs(c.cross) > st.xwindLimit) continue;
+      if (violatesXwindRule(c)) continue;
       const t = band === 'dentro' ? (c.head > -1 ? 0 : 2) : (c.head > -1 ? 1 : 3);
-      const dev = axisDev(h, bis);
-      const score = c.head - 0.05 * Math.abs(dev); // eixo do "H" só como desempate
+      const dev = finalDev(h, st);
+      const score = c.head - 0.05 * Math.abs(dev); // eixo de referência só como desempate
       if (!tiers[t] || score > tiers[t].score)
         tiers[t] = { hdg: norm(h), dev, head: c.head, cross: c.cross, band, score };
     }
@@ -136,7 +183,7 @@
   /* lado do PF: o deck fica sempre abeam, do lado da UM (recíproco da
      bissetriz); o sentido da final — escolhido pelo vento — define o assento */
   function autoPfSide(st, final){
-    const rel = angDiff(norm(st.sloBisector + 180), final.hdg);
+    const rel = angDiff(norm(bisFor(final.hdg, st) + 180), final.hdg);
     return { side: rel >= 0 ? 'dir' : 'esq' };
   }
 
@@ -161,10 +208,25 @@
     const gsDw = gs(dwHdg);
     // través -> início da base (~1,31 NM ao longo da perna p/ dist GPS 1,65 NM)
     const minAfterAbeam = gsDw > 0 ? ((1.31 / gsDw) * 60).toFixed(1).replace('.', ',') : null;
+    // sobrevoo de reconhecimento: passa AO LADO da UM, pelo bordo do helideque
+    // (lado da bissetriz — melhor visual do deck); identifica o piloto do lado
+    // da UM; após a passagem, proa perpendicular p/ interceptar a perna do
+    // vento a 90° e ingressar no circuito
+    const ovHdg = st.arrivalHdg != null ? norm(st.arrivalHdg) : finalHdg;
+    let arrival = null;
+    if (st.arrivalHdg != null){
+      // desloca a trilha p/ o lado do mar: perpendicular com componente na bissetriz
+      const toSea = Math.cos(rad(angDiff(norm(ovHdg + 90), bisFor(ovHdg, st))));
+      const passBear = norm(ovHdg + (toSea >= 0 ? 90 : -90));
+      const unitSide = toSea >= 0 ? 'esq' : 'dir'; // UM fica do lado oposto ao mar
+      const entryHdg = norm(finalHdg + (side === 'esq' ? -90 : 90));
+      arrival = { hdg: ovHdg, passBear, unitSide, entryHdg };
+    }
     return {
-      side,
+      side, arrival,
       legs: [
-        { name: 'Sobrevoo (identificação)', hdg: finalHdg, gs: gs(finalHdg), ref: 'Vertical da UM · ler código ICAO' },
+        { name: 'Sobrevoo (identificação)', hdg: ovHdg, gs: gs(ovHdg),
+          ref: arrival ? `UM à ${arrival.unitSide === 'dir' ? 'direita' : 'esquerda'}, pelo bordo do helideque · ler ICAO / cotejar` : 'Passagem abeam · ler código ICAO' },
         { name: 'Perna do vento',           hdg: dwHdg,    gs: gsDw,        ref: '1,0 NM de través · até 1,5–1,8 NM GPS' + (minAfterAbeam ? ` (~${minAfterAbeam} min após o través)` : '') },
         { name: 'Base',                     hdg: baseHdg,  gs: gs(baseHdg), ref: 'Curva 90° · bank ≤ 20° · compensar deriva' },
         { name: 'Final',                    hdg: finalHdg, gs: gs(finalHdg), ref: 'Deslocada — abeam o deck · no LDP, 45° p/ o pouso, trajetória contida no SLO e cauda livre' }
@@ -190,11 +252,11 @@
     let status = 'warn', statusText = 'Aguardando briefing';
     let final = null, circuit = null, pf = null, cls = effectiveClass(st);
 
-    const ready = st.sloBisector != null;
+    const ready = st.sloBisector != null || st.sloSplit;
     if (ready){
       if (st.finalManual != null){
         const h = norm(st.finalManual);
-        const dev = axisDev(h, st.sloBisector);
+        const dev = finalDev(h, st);
         const band = sloBand(h, st);
         const c = (st.windFrom != null && st.windKt)
           ? windComp(st.windFrom, st.windKt, h) : { head: 0, cross: 0 };
@@ -208,7 +270,7 @@
       } else {
         final = suggestFinal(st);
         if (!final)
-          alerts.push({ t: 'bad', m: `Nenhuma proa permitida pelo SLO mantém o través dentro de ${st.xwindLimit} kt. Aproximação inviável — reavaliar.` });
+          alerts.push({ t: 'bad', m: `Nenhuma proa permitida pelo SLO fecha os limites de vento (través ≤ ${st.xwindLimit} kt e, acima de 10 kt de través, proa mínima de 5 kt). Aproximação inviável — reavaliar.` });
       }
     }
 
@@ -219,6 +281,10 @@
         alerts.push({ t: 'warn', m: `Componente de vento de cauda na final (${Math.abs(final.head).toFixed(0)} kt). Reavaliar proa/perfil.` });
       if (Math.abs(final.cross) > 0.8 * st.xwindLimit && Math.abs(final.cross) <= st.xwindLimit)
         alerts.push({ t: 'warn', m: `Través de ${Math.abs(final.cross).toFixed(0)} kt — próximo do limite de ${st.xwindLimit} kt.` });
+      if (violatesXwindRule(final))
+        alerts.push({ t: 'bad', m: `Través de ${Math.abs(final.cross).toFixed(0)} kt (acima de 10 kt) exige pelo menos 5 kt de componente de proa — esta proa tem ${final.head.toFixed(0)} kt.` });
+      else if (Math.abs(final.cross) > XWIND_HEADWIND_RULE.crossThresholdKt)
+        alerts.push({ t: 'info', m: `Través de ${Math.abs(final.cross).toFixed(0)} kt (acima de 10 kt): exigência de ≥ 5 kt de proa atendida (${final.head.toFixed(0)} kt).` });
       if (final.band === 'tolerada' && !final.manual)
         alerts.push({ t: 'warn', m: `Final além dos limites laterais do SLO (tolerância de 30° = 45° do “H”) para manter o través nos limites — segmento pós-LDP integralmente dentro do SLO.` });
     }
@@ -244,7 +310,8 @@
 
     // mostra o aproamento derivado (proa → UM; popa → recíproca) no próprio campo
     $('sloBisector').placeholder = st.bisAuto
-      ? 'auto ' + fmtHdg(st.sloBisector) : 'auto (proa/popa da UM)';
+      ? 'auto ' + fmtHdg(st.sloBisector)
+      : st.sloSplit ? 'meia-nau: 2 setores no través' : 'auto (proa/popa da UM)';
 
     if (final){
       el.resFinal.textContent = fmtHdg(final.hdg);
@@ -262,7 +329,7 @@
         : 'Sem vento informado.';
     } else {
       el.resFinal.textContent = '—';
-      el.resFinalSub.textContent = st.sloBisector == null ? 'Informe o aproamento do helideque (ou aproamento da UM + posição proa/popa).' : 'Sem proa viável nos limites.';
+      el.resFinalSub.textContent = (st.sloBisector == null && !st.sloSplit) ? 'Informe o aproamento do helideque (ou aproamento da UM + posição proa/popa).' : 'Sem proa viável nos limites.';
       el.resWind.textContent = '—';
       el.resWindSub.textContent = 'Proa / través.';
     }
@@ -276,7 +343,10 @@
 
     if (circuit){
       el.resCircuit.textContent = circuit.side === 'esq' ? 'Curvas à esquerda' : 'Curvas à direita';
-      el.resCircuitSub.textContent = `PF no assento ${pf.side === 'esq' ? 'esquerdo' : 'direito'} — deck abeam pelo lado do PF; sentido da final escolhido pelo vento. Avaliar troca PF/PM após o sobrevoo.`;
+      el.resCircuitSub.textContent = circuit.arrival
+        ? `PF no assento ${pf.side === 'esq' ? 'esquerdo' : 'direito'} — passagem ${fmtHdg(circuit.arrival.hdg)} deixando a UM à ${circuit.arrival.unitSide === 'dir' ? 'direita' : 'esquerda'} (bordo do helideque): identificação pelo piloto do assento ${circuit.arrival.unitSide === 'dir' ? 'direito' : 'esquerdo'}. Após a passagem, proa ${fmtHdg(circuit.arrival.entryHdg)} para interceptar a perna do vento a 90°.` +
+          (circuit.arrival.unitSide !== pf.side ? ' Avaliar troca PF/PM.' : '')
+        : `PF no assento ${pf.side === 'esq' ? 'esquerdo' : 'direito'} — deck abeam pelo lado do PF; sentido da final escolhido pelo vento. Avaliar troca PF/PM após o sobrevoo.`;
       el.legsBody.innerHTML = circuit.legs.map(l =>
         `<tr><td>${l.name}</td><td class="hdg">${fmtHdg(l.hdg)}</td><td>${l.gs} kt</td><td class="dim">${l.ref}</td></tr>`).join('');
       el.gaText.textContent = 'Antes do LDP: RETO EM FRENTE, no prolongamento da final deslocada — escape livre dentro do SLO. No LDP: trajetória integralmente dentro do SLO, cauda livre de obstáculos — senão, descontinuar. Após o LDP: pousar.';
@@ -351,7 +421,7 @@
     ctx.beginPath(); ctx.moveTo(cssW - 28, 31); ctx.lineTo(cssW - 24, 25); ctx.lineTo(cssW - 20, 31); ctx.fill();
     ctx.restore();
 
-    if (!r || !r.st || r.st.sloBisector == null){
+    if (!r || !r.st || (r.st.sloBisector == null && !r.st.sloSplit)){
       ctx.fillStyle = 'rgba(157,176,196,.6)';
       ctx.font = '600 13px Inter, sans-serif';
       ctx.textAlign = 'center';
@@ -360,12 +430,22 @@
     }
 
     const st = r.st;
-    const finalHdg = r.final ? r.final.hdg : norm(st.sloBisector + 90);
+    const finalHdg = r.final ? r.final.hdg : norm((st.sloSplit ? st.shipHeading : st.sloBisector) + 90);
     const side = r.circuit ? r.circuit.side : 'dir';
     const P = circuitPoints(finalHdg, side);
 
     // enquadramento (inclui posições dos rótulos para nada ficar cortado)
+    // pontos do sobrevoo de reconhecimento (quando a proa de chegada é informada)
+    if (st.arrivalHdg != null && r.circuit && r.circuit.arrival){
+      const arr = r.circuit.arrival;
+      const av = vec(arr.hdg);
+      const ao = vec(arr.passBear); // deslocamento p/ o bordo do helideque (mar)
+      P.arrAbeam = pAdd(P.D, ao, 0.3);
+      P.arrStart = pAdd(P.arrAbeam, av, -2.0);
+      P.arrEnd = pAdd(P.arrAbeam, av, 1.1);
+    }
     const pts = [P.finalStart, P.abeam, P.ldp, P.escEnd, P.dwStart, P.dwTurn, P.c1, P.baseMid, P.c2, P.ovEnd, P.ovC, P.ovC2, P.D,
+                 ...(P.arrStart ? [P.arrStart, P.arrEnd, pAdd(P.arrStart, vec(norm(st.arrivalHdg)), -0.45)] : []),
                  pAdd(pAdd(P.D, P.o, 1.3), P.f, 0.4),
                  pAdd(pAdd(P.D, P.o, 0.5), P.f, -2.0),
                  pAdd(P.finalStart, P.f, -0.4),
@@ -389,46 +469,66 @@
     });
     ctx.setLineDash([]);
 
-    // SLO — setor livre a partir do helideque, aberto para o lado da aproximação
+    // SLO — setor(es) livre(s) a partir do helideque
     const bis = st.sloBisector;
     const half = st.sloAngle / 2;
-    const outBear = norm(bis); // SLO voltado para o mar — a aeronave vem deste lado
     const sloR = 0.62 * scale;
-    const a0 = rad(norm(outBear - half) - 90), a1 = rad(norm(outBear + half) - 90);
-    ctx.beginPath();
-    ctx.moveTo(X(P.D), Y(P.D));
-    ctx.arc(X(P.D), Y(P.D), sloR, a0, a1, false);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(90,209,154,.13)';
-    ctx.strokeStyle = 'rgba(90,209,154,.45)';
-    ctx.fill(); ctx.stroke();
-    // bissetriz
-    const bv = vec(outBear);
-    ctx.setLineDash([3, 5]);
-    ctx.strokeStyle = 'rgba(90,209,154,.5)';
-    ctx.beginPath();
-    ctx.moveTo(X(P.D), Y(P.D));
-    ctx.lineTo(X(P.D) + bv.e * sloR, Y(P.D) - bv.n * sloR);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(90,209,154,.8)';
+    const wedge = (b1, b2, fill, stroke) => {
+      ctx.beginPath();
+      ctx.moveTo(X(P.D), Y(P.D));
+      ctx.arc(X(P.D), Y(P.D), sloR, rad(norm(b1) - 90), rad(norm(b2) - 90), false);
+      ctx.closePath();
+      ctx.fillStyle = fill; ctx.strokeStyle = stroke;
+      ctx.fill(); ctx.stroke();
+    };
+    const gF = 'rgba(90,209,154,.13)', gS = 'rgba(90,209,154,.45)';
+    const bisectorLine = bb => {
+      const v = vec(bb);
+      ctx.setLineDash([3, 5]);
+      ctx.strokeStyle = 'rgba(90,209,154,.5)';
+      ctx.beginPath();
+      ctx.moveTo(X(P.D), Y(P.D));
+      ctx.lineTo(X(P.D) + v.e * sloR, Y(P.D) - v.n * sloR);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
     ctx.font = '700 10px Inter, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('SLO ' + st.sloAngle + '°', X(P.D) + bv.e * (sloR + 16), Y(P.D) - bv.n * (sloR + 16));
+    if (st.sloSplit){
+      // meia-nau: dois setores (metade do SLO em cada través), obstáculos na proa e na popa
+      const hw = st.sloAngle / 4;
+      splitBisectors(st).forEach(bb => { wedge(bb - hw, bb + hw, gF, gS); bisectorLine(bb); });
+      const lv = vec(splitBisectors(st)[0]);
+      ctx.fillStyle = 'rgba(90,209,154,.8)';
+      ctx.fillText('SLO 2×' + (st.sloAngle / 2) + '°', X(P.D) + lv.e * (sloR + 16), Y(P.D) - lv.n * (sloR + 16));
+    } else {
+      wedge(bis - half, bis + half, gF, gS);
+      bisectorLine(norm(bis));
+      const bv = vec(norm(bis));
+      ctx.fillStyle = 'rgba(90,209,154,.8)';
+      ctx.fillText('SLO ' + st.sloAngle + '°', X(P.D) + bv.e * (sloR + 16), Y(P.D) - bv.n * (sloR + 16));
+    }
 
     // faixas de tolerância (30° além dos limites) e setor proibido —
     // desenhadas somente quando a final as utiliza
     if (r.final && r.final.band !== 'dentro'){
-      const wedge = (b1, b2, fill, stroke) => {
-        ctx.beginPath();
-        ctx.moveTo(X(P.D), Y(P.D));
-        ctx.arc(X(P.D), Y(P.D), sloR, rad(norm(b1) - 90), rad(norm(b2) - 90), false);
-        ctx.closePath();
-        ctx.fillStyle = fill; ctx.strokeStyle = stroke;
-        ctx.fill(); ctx.stroke();
-      };
       const yF = 'rgba(232,184,75,.13)', yS = 'rgba(232,184,75,.45)';
-      if (r.final.band === 'tolerada'){
+      const rF = 'rgba(255,107,107,.15)', rS = 'rgba(255,107,107,.5)';
+      if (st.sloSplit){
+        // gap (proa ou popa) por onde a final chega
+        const b = norm(r.final.hdg + 180);
+        const gapC = Math.abs(angDiff(b, st.shipHeading)) <= 90 ? norm(st.shipHeading) : norm(st.shipHeading + 180);
+        const g = 90 - st.sloAngle / 4; // meia-abertura do gap de obstáculos
+        if (r.final.band === 'tolerada'){
+          const s = angDiff(b, gapC) >= 0 ? 1 : -1;
+          if (s > 0) wedge(gapC + g - 30, gapC + g, yF, yS);
+          else wedge(gapC - g, gapC - g + 30, yF, yS);
+        } else {
+          wedge(gapC - g, gapC - g + 30, yF, yS);
+          wedge(gapC + g - 30, gapC + g, yF, yS);
+          wedge(gapC - g + 30, gapC + g - 30, rF, rS);
+        }
+      } else if (r.final.band === 'tolerada'){
         // faixa amarela do lado por onde a final chega
         const s = angDiff(norm(r.final.hdg + 180), bis) >= 0 ? 1 : -1;
         if (s > 0) wedge(bis + half, bis + half + 30, yF, yS);
@@ -474,7 +574,7 @@
     ctx.lineWidth = 1;
     ctx.save();
     ctx.translate(X(P.D), Y(P.D));
-    ctx.rotate(rad(norm(st.sloBisector + 90))); // eixo do "H" perpendicular à bissetriz
+    ctx.rotate(rad(norm((st.sloSplit ? st.shipHeading + 90 : st.sloBisector) + 90))); // eixo do "H" ⊥ à bissetriz (meia-nau: pernas no través)
     ctx.fillStyle = '#fff';
     ctx.font = '800 ' + Math.max(10, 0.08 * scale) + 'px Inter, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -518,16 +618,50 @@
       ctx.fillStyle = '#e8b84b';
       ctx.fill();
 
-      // sobrevoo -> perna do vento (tracejado)
+      // sobrevoo de reconhecimento -> perna do vento (tracejado)
       ctx.setLineDash([5, 6]);
       ctx.strokeStyle = 'rgba(70,194,186,.5)';
       ctx.beginPath();
-      ctx.moveTo(X(pAdd(P.D, P.f, -0.35)), Y(pAdd(P.D, P.f, -0.35)));
-      ctx.lineTo(X(P.ovEnd), Y(P.ovEnd));
-      ctx.quadraticCurveTo(X(P.ovC), Y(P.ovC), X(pAdd(P.ovC2, P.f, -0.2)), Y(pAdd(P.ovC2, P.f, -0.2)));
-      ctx.lineTo(X(P.dwStart), Y(P.dwStart));
-      ctx.stroke();
-      ctx.setLineDash([]);
+      if (st.arrivalHdg != null && r.circuit.arrival){
+        // chegada pelo bordo do helideque; entrada perpendicular na perna do vento
+        const arr = r.circuit.arrival;
+        const ah = arr.hdg;
+        const av = vec(ah);
+        const ao = vec(arr.passBear);
+        const abeamId = P.arrAbeam; // través da UM — identificação
+        ctx.moveTo(X(P.arrStart), Y(P.arrStart));
+        ctx.lineTo(X(P.arrEnd), Y(P.arrEnd));
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // seta e rótulos da chegada
+        ctx.save();
+        ctx.translate(X(pAdd(abeamId, av, -1.0)), Y(pAdd(abeamId, av, -1.0)));
+        ctx.rotate(rad(ah));
+        ctx.fillStyle = 'rgba(70,194,186,.7)';
+        ctx.beginPath();
+        ctx.moveTo(0, -7); ctx.lineTo(5, 5); ctx.lineTo(-5, 5);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = 'rgba(229,238,248,.85)';
+        ctx.font = '700 11px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Chegada ' + fmtHdg(ah), X(pAdd(P.arrStart, av, -0.22)), Y(pAdd(P.arrStart, av, -0.22)));
+        ctx.beginPath();
+        ctx.arc(X(abeamId), Y(abeamId), 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(70,194,186,.9)';
+        ctx.fill();
+        ctx.fillStyle = 'rgba(70,194,186,.9)';
+        ctx.font = '700 10px Inter, sans-serif';
+        const idLbl = pAdd(pAdd(abeamId, ao, 0.3), av, -0.55);
+        ctx.fillText('ID — ' + (r.circuit.arrival.unitSide === 'dir' ? 'piloto dir.' : 'piloto esq.'), X(idLbl), Y(idLbl));
+      } else {
+        ctx.moveTo(X(pAdd(P.D, P.f, -0.35)), Y(pAdd(P.D, P.f, -0.35)));
+        ctx.lineTo(X(P.ovEnd), Y(P.ovEnd));
+        ctx.quadraticCurveTo(X(P.ovC), Y(P.ovC), X(pAdd(P.ovC2, P.f, -0.2)), Y(pAdd(P.ovC2, P.f, -0.2)));
+        ctx.lineTo(X(P.dwStart), Y(P.dwStart));
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
       ctx.lineWidth = 1;
 
       // setas de sentido
@@ -763,7 +897,12 @@
   function loadForm(){
     try {
       const data = JSON.parse(localStorage.getItem(SAVE_KEY) || '{}');
-      FIELDS.forEach(id => { if (data[id] != null && data[id] !== '') $(id).value = data[id]; });
+      FIELDS.forEach(id => {
+        if (data[id] == null || data[id] === '') return;
+        const node = $(id);
+        if (node.tagName === 'SELECT' && ![...node.options].some(o => o.value === data[id])) return;
+        node.value = data[id];
+      });
     } catch (e) {}
   }
 
@@ -780,7 +919,7 @@
     area.innerHTML = `
       <h1>Briefing — Circuito Offshore Diurno${st.umIcao ? ' · ' + st.umIcao : ''}</h1>
       <div class="p-sub">Classe efetiva ${r.cls.cls}${r.cls.changed ? ' (reclassificada)' : ''} ·
-        SLO ${st.sloAngle}° · Helideque ${fmtHdg(st.sloBisector)} · Vento ${st.windKt ? fmtHdg(st.windFrom) + ' / ' + st.windKt + ' kt' : 'calmo'}</div>
+        SLO ${st.sloAngle}° · Helideque ${st.sloSplit ? 'meia-nau (2 setores no través)' : fmtHdg(st.sloBisector)} · Vento ${st.windKt ? fmtHdg(st.windFrom) + ' / ' + st.windKt + ' kt' : 'calmo'}</div>
       <div class="p-flags">${r.statusText}${r.alerts.length ? ' — ' + r.alerts.map(a => a.m).join(' | ') : ''}</div>
       <table>
         <tr><th>Perna</th><th>Proa</th><th>GS est.</th><th>Referência</th></tr>
@@ -828,7 +967,7 @@
     FIELDS.forEach(id => {
       const node = $(id);
       if (node.tagName === 'SELECT') node.selectedIndex = id === 'deckPos' ? 1 : 0;
-      else node.value = id === 'xwindLimit' ? '35' : '';
+      else node.value = id === 'xwindLimit' ? '20' : '';
     });
     try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
     evaluate();
@@ -857,6 +996,8 @@
   }
 
   loadForm();
+  // migra o default antigo salvo (35 kt) para o limite real do AW139
+  if ($('xwindLimit').value === '35') $('xwindLimit').value = '20';
   importFromPesosOnce();
   evaluate();
 })();
