@@ -1,4 +1,6 @@
 'use strict';
+(function () {
+
 
 // Parser do Flight Preview (formulário F-OPR 184) do AW139 Companion.
 //
@@ -649,11 +651,13 @@ function parseFlightPreviewInner(pages) {
   return { meta: { valid: true, warnings, pageCount: pages.length }, data, debug };
 }
 
-const api = { parseFlightPreview, hmsToMinutes, hmToMinutes, dmsToDecimal, parseCoordText, toNum };
+const pdfParserApi = { parseFlightPreview, hmsToMinutes, hmToMinutes, dmsToDecimal, parseCoordText, toNum };
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = api;
+  module.exports = pdfParserApi;
 }
 if (typeof window !== 'undefined') {
-  window.AW139ImportarVooParser = api;
+  window.AW139ImportarVooParser = pdfParserApi;
 }
+
+})();

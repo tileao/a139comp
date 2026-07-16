@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v42-importar-voo';
+const CACHE_NAME = 'aw139-companion-root-v43-importar-voo-texto-ia';
 const PRECACHE = [
   "./",
   "./README.md",
@@ -66,6 +66,7 @@ const PRECACHE = [
   "./importar-voo/index.html",
   "./importar-voo/manifest.webmanifest",
   "./importar-voo/parser.js",
+  "./importar-voo/text-parser.js",
   "./importar-voo/styles.css",
   "./importar-voo/sw.js",
   "./importar-voo/vendor/pdf.min.mjs",

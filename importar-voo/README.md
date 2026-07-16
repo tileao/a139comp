@@ -1,16 +1,24 @@
 # AW139 Companion — Importar Voo
 
-Módulo web (HTML + CSS + JS puro, sem build, sem chamadas de rede em
-runtime) que lê o PDF do Flight Preview da operação (formulário F-OPR 184),
-extrai os dados do voo, mostra uma tela de conferência e grava tudo no
-contexto compartilhado da suíte AW139 Companion.
+Módulo web (HTML + CSS + JS puro, sem build) que lê o Flight Preview da
+operação (formulário F-OPR 184), mostra uma tela de conferência e grava os
+dados do voo no contexto compartilhado da suíte AW139 Companion. Duas formas
+de importar, lado a lado:
+
+- **PDF direto** — 100% local, sem rede, usando pdf.js.
+- **Texto/IA (Copilot)** — para quando o PDF direto não funciona no seu
+  aparelho, ou quando você prefere revisar os dados numa planilha antes de
+  importar. O PDF sai do dispositivo nesse caminho (veja abaixo).
 
 ## Como funciona
+
+### Caminho 1 — PDF direto
 
 1. **Upload**: escolha o PDF (toque na zona de upload) ou arraste e solte
    (desktop). O arquivo é lido inteiramente no dispositivo — nada é enviado
    pela rede. O parsing usa o [pdf.js](https://mozilla.github.io/pdf.js/) da
-   Mozilla, vendorizado em `vendor/` (sem CDN).
+   Mozilla, vendorizado em `vendor/` (build **legacy**, para compatibilidade
+   com versões mais antigas do Safari/iOS — sem CDN).
 2. **Parsing** (`parser.js`): extrai cabeçalho (voo, tripulação, aeronave),
    pernas da rota (rumo, distância, tempos, vento), waypoints (fixos,
    aeródromos e helideques — com coordenadas, combustível, pax e pesos) e
@@ -20,27 +28,50 @@ contexto compartilhado da suíte AW139 Companion.
    mais robusto do que depender só da ordem/linha do texto. O parser é
    tolerante: campos ausentes viram `null` (nunca lança exceção para PDF
    incompleto ou fora do formato) e cada campo extraído guarda a
-   página/posição de origem para depuração.
-3. **Conferência**: nada é gravado sem revisão. Todos os campos aparecem em
-   inputs editáveis, agrupados em Voo, Aeronave, Rota (tabela de pernas),
-   Paradas (pax e combustível), Helideques e Meteorologia. Campos que o
-   parser não encontrou ficam vazios e destacados em âmbar.
-4. **Gravação**: o botão "Confirmar e gravar" funde (merge, nunca
-   sobrescreve) os dados revisados na chave `localStorage`
-   `aw139_companion_shared_context_v1`, para uso pelos demais módulos da
-   suíte, e grava o objeto completo em `aw139_flight_preview_v1` para uso
-   futuro. "Descartar" limpa a tela sem gravar nada.
+   página/posição de origem para depuração. Falhas do próprio pdf.js ao
+   abrir o arquivo ou processar uma página específica também são isoladas e
+   relatadas, em vez de travar a importação inteira.
+
+### Caminho 2 — Texto/IA (Copilot)
+
+1. Na aba "Texto/IA (Copilot)", copie o prompt pronto (botão "Copiar
+   prompt" — texto completo em [`COPILOT_PROMPT.md`](./COPILOT_PROMPT.md)),
+   anexe o PDF do Flight Preview a uma conversa com o Microsoft 365 Copilot
+   (ou outra IA com leitura de PDF) e cole o prompt.
+2. Copie a resposta inteira do Copilot e cole na caixa de texto do módulo.
+   O botão "Processar texto" interpreta o formato `AW139-FLIGHT-PREVIEW-
+   TEXT-V1` (`text-parser.js`) — seções `### HEADER` (chave: valor) e
+   `### LEGS`/`### STOPS`/`### HELIDECKS`/`### METARS` (CSV simples),
+   mesma filosofia tolerante do parser de PDF: nunca lança exceção,
+   campos ausentes viram `null`.
+3. **Atenção**: o PDF sai do dispositivo nesse fluxo e vai para o serviço de
+   IA da Microsoft — diferente do caminho por PDF direto, que é 100% local.
+   Use só se sua organização já aprova esse tipo de uso para dados
+   operacionais.
+
+### Conferência e gravação (comum aos dois caminhos)
+
+Nada é gravado sem revisão. Todos os campos aparecem em inputs editáveis,
+agrupados em Voo, Aeronave, Rota (tabela de pernas), Paradas (pax e
+combustível), Helideques e Meteorologia. Campos ausentes ficam vazios e
+destacados em âmbar. O botão "Confirmar e gravar" funde (merge, nunca
+sobrescreve) os dados revisados na chave `localStorage`
+`aw139_companion_shared_context_v1`, para uso pelos demais módulos da
+suíte, e grava o objeto completo em `aw139_flight_preview_v1` para uso
+futuro. "Descartar" limpa a tela sem gravar nada.
 
 ## Estrutura
 
 ```
 importar-voo/
-├── index.html        tela de upload + conferência
-├── app.js            fluxo de UI, extração via pdf.js, gravação
-├── parser.js          extração posicional dos dados do Flight Preview
-├── styles.css          tema cockpit escuro, padrão da suíte
+├── index.html          tela de upload (PDF + texto/IA) + conferência
+├── app.js               fluxo de UI, extração via pdf.js, gravação
+├── parser.js             extração posicional dos dados do Flight Preview (PDF)
+├── text-parser.js         parser do formato de texto AW139-FLIGHT-PREVIEW-TEXT-V1
+├── COPILOT_PROMPT.md      prompt pronto para extrair via IA + spec do formato
+├── styles.css             tema cockpit escuro, padrão da suíte
 ├── manifest.webmanifest + sw.js   PWA offline (cache-first)
-└── vendor/            pdf.js vendorizado (pdf.min.mjs + pdf.worker.min.mjs)
+└── vendor/               pdf.js vendorizado, build legacy (pdf.min.mjs + pdf.worker.min.mjs)
 ```
 
 ## Como testar localmente

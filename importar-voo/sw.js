@@ -1,13 +1,14 @@
 'use strict';
 
 // Bump a versão a cada release para invalidar caches antigos.
-var CACHE_NAME = 'aw139-importar-voo-v2';
+var CACHE_NAME = 'aw139-importar-voo-v3';
 var ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './parser.js',
+  './text-parser.js',
   './manifest.webmanifest',
   './vendor/pdf.min.mjs',
   './vendor/pdf.worker.min.mjs',

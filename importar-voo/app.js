@@ -24,6 +24,128 @@
   var helideckCardTemplate = document.getElementById('helideckCardTemplate');
   var wxCardTemplate = document.getElementById('wxCardTemplate');
 
+  var modeTabPdf = document.getElementById('modeTabPdf');
+  var modeTabText = document.getElementById('modeTabText');
+  var modePanelPdf = document.getElementById('modePanelPdf');
+  var modePanelText = document.getElementById('modePanelText');
+  var copilotPromptBox = document.getElementById('copilotPromptBox');
+  var copyPromptBtn = document.getElementById('copyPromptBtn');
+  var textImportArea = document.getElementById('textImportArea');
+  var processTextBtn = document.getElementById('processTextBtn');
+  var textImportStatus = document.getElementById('textImportStatus');
+
+  // Mantido em sincronia com COPILOT_PROMPT.md (a documentação tem o mesmo
+  // texto com mais contexto ao redor).
+  var COPILOT_PROMPT = [
+    'Você vai ler um Flight Preview de helicóptero offshore (formulário F-OPR 184)',
+    'em PDF e devolver os dados em um formato de texto específico, EXATAMENTE como',
+    'especificado abaixo. Não adicione nenhum comentário, explicação ou markdown',
+    'extra antes ou depois — a resposta deve ser SOMENTE o texto no formato pedido,',
+    'sem cercas de código (```).',
+    '',
+    'Regras gerais:',
+    '- Se um campo não estiver legível ou não existir no documento, deixe o valor',
+    '  em branco (depois dos dois-pontos, ou a célula vazia no CSV). NUNCA invente',
+    '  ou estime um valor que não está no documento.',
+    '- Números: use ponto decimal (ex.: 17.2), sem separador de milhar.',
+    '- Datas/horas: mantenha o formato original do documento.',
+    '- Coordenadas: converta de graus/minutos/segundos para decimal (ex.:',
+    '  22°55\'05"S vira -22.918056).',
+    '- Nos blocos CSV, NÃO use vírgulas dentro de um campo de texto livre (troque',
+    '  por ponto e vírgula se precisar).',
+    '',
+    'Formato de saída (preencha com os dados reais do PDF anexado):',
+    '',
+    'AW139-FLIGHT-PREVIEW-TEXT-V1',
+    '',
+    '### HEADER',
+    'flightId: <Flight N°/ID>',
+    'dateRaw: <Date, formato dd/mm/aaaa hh:mm>',
+    'minimalReserveMin: <Minimal Reserve, só o número em minutos>',
+    'plKg: <PL, só o número em kg>',
+    'crew.p1.name: <nome do 1P>',
+    'crew.p1.weightKg: <peso do 1P em kg>',
+    'crew.p1.code: <código numérico ao lado do peso do 1P>',
+    'crew.p1.side: <RH ou LH do 1P>',
+    'crew.p2.name: <nome do 2P>',
+    'crew.p2.weightKg: <peso do 2P em kg>',
+    'crew.p2.code: <código numérico ao lado do peso do 2P>',
+    'crew.p2.side: <RH ou LH do 2P>',
+    'crew.fa.name: <nome do FA, ou vazio se [EMPTY]>',
+    'crew.fa.weightKg: <peso do FA em kg>',
+    'crew.fa.code: <código do FA, se houver>',
+    'crew.fa.side: <RH ou LH do FA, se houver>',
+    'aircraft.registration: <matrícula>',
+    'aircraft.model: <ex.: AW139 7T>',
+    'aircraft.cruiseKt: <Cruise, só o número>',
+    'aircraft.fuelFlowGndKgH: <FuelFlow(Gnd), só o número>',
+    'aircraft.fuelFlowFlightKgH: <FuelFlow(Flight), só o número>',
+    'aircraft.maxFuelKg: <MaxFuel, só o número>',
+    'aircraft.eewKg: <EEW, só o número>',
+    'aircraft.cg: <CG, só o número>',
+    'aircraft.oewKg: <OEW, só o número>',
+    'aircraft.minReqFuelKg: <MinReqFuel, só o número>',
+    'totals.rideNm: <Totals => Ride=, só o número em Nm>',
+    'totals.totalTimeHms: <Totals => Total Time=, formato hh:mm>',
+    'defaults.paxStdKg: <DEFAULTS Pax:, só o número em kg>',
+    'defaults.bagStdKg: <DEFAULTS Bag:, só o número em kg>',
+    '',
+    '### LEGS',
+    'idx,from,to,mcDeg,distNm,ftMin,ttMin,windDirDeg,windKt,fuelRemKg,paxIn,paxOut,mtowKg',
+    '<uma linha por perna numerada da rota, nessa ordem exata de colunas:',
+    'idx = número da perna',
+    'from = nome do ponto de origem da perna',
+    'to = nome do ponto de destino da perna',
+    'mcDeg = rumo magnético (MC), só o número',
+    'distNm = distância em Nm, só o número',
+    'ftMin = tempo de voo (FT) convertido para minutos decimais (ex.: 00:09:21 vira 9.35)',
+    'ttMin = tempo total (TT) convertido para minutos decimais',
+    'windDirDeg = direção do vento da perna em graus, se houver (em branco se não houver)',
+    'windKt = intensidade do vento da perna em nós, se houver',
+    'fuelRemKg = combustível remanescente (kg) na chegada ao ponto de destino',
+    'paxIn = pax de chegada no ponto de destino (só se for parada/aeródromo/helideque; em branco senão)',
+    'paxOut = pax de saída no ponto de destino (idem)',
+    'mtowKg = MTOW aplicável no ponto de destino (idem)>',
+    '',
+    '### STOPS',
+    'name,icao,freq,fuelArrKg,fuelDepKg,paxArr,paxDep,mtowKg,gndTimeMin',
+    '<uma linha para cada PARADA da rota (aeródromos e helideques, NÃO inclua',
+    'fixos/waypoints de sobrevoo sem parada), nessa ordem:',
+    'name = nome do aeródromo ou helideque',
+    'icao = código ICAO (aeródromos, ex. SBMI) ou código de 4 caracteres (helideques, ex. 9PWG)',
+    'freq = frequência (aeródromos; em branco para helideques se não houver)',
+    'fuelArrKg = combustível na chegada (kg)',
+    'fuelDepKg = combustível na saída (kg)',
+    'paxArr = pax na chegada',
+    'paxDep = pax na saída',
+    'mtowKg = MTOW aplicável',
+    'gndTimeMin = tempo de solo em minutos>',
+    '',
+    '### HELIDECKS',
+    'icao,nome,elevFt,dValueM,maxT,classe,lat,lon,freq',
+    '<uma linha por helideque citado na rota, nessa ordem:',
+    'icao = código de 4 caracteres',
+    'nome = nome do helideque/unidade marítima',
+    'elevFt = elevação em pés',
+    'dValueM = valor-D em metros',
+    'maxT = capacidade em toneladas',
+    'classe = classe do helideque (1, 2 ou 3)',
+    'lat = latitude decimal',
+    'lon = longitude decimal',
+    'freq = frequência, se houver>',
+    '',
+    '### METARS',
+    'icao,sr,ss,windDirDeg,windKt,raw,taf',
+    '<uma linha por aeródromo com METAR/TAF no documento, nessa ordem:',
+    'icao = código ICAO do aeródromo',
+    'sr = horário do nascer do sol (SR-hh:mm, só o hh:mm)',
+    'ss = horário do pôr do sol (SS-hh:mm, só o hh:mm)',
+    'windDirDeg = direção do vento extraída do METAR (formato dddffKT), em graus',
+    'windKt = intensidade do vento extraída do METAR, em nós',
+    'raw = o texto do METAR completo (sem vírgulas — troque por ponto e vírgula)',
+    'taf = o texto do TAF completo (sem vírgulas — troque por ponto e vírgula)>',
+  ].join('\n');
+
   // ---------------------------------------------------------------------
   // Query params: ?embed=1  ?back=1&return=<url>
   // ---------------------------------------------------------------------
@@ -185,21 +307,9 @@
       var pages = extracted.pages;
       var result = window.AW139ImportarVooParser.parseFlightPreview(pages);
       var pageErrorMsgs = extracted.pageErrors.map(function (e) { return 'Falha ao ler página ' + e + ' — os campos dela ficaram vazios.'; });
-      if (!result.meta.valid) {
-        var invalidMsgs = (result.meta.warnings || []).concat(pageErrorMsgs);
-        showError(invalidMsgs.join(' ') || 'Não foi possível interpretar este PDF como um Flight Preview.');
-        setUploadStatus('', '');
-        return;
-      }
-      if (pageErrorMsgs.length) {
-        result.meta.warnings = (result.meta.warnings || []).concat(pageErrorMsgs);
-      }
-      state.data = result.data;
-      state.debug = result.debug || {};
-      state.meta = result.meta;
-      state.inputs = [];
-      renderReview();
-      setUploadStatus('PDF "' + file.name + '" lido — ' + pages.length + ' página(s). Revise os dados abaixo antes de gravar.', 'ok');
+      result.meta.warnings = (result.meta.warnings || []).concat(pageErrorMsgs);
+      var ok = applyParseResult(result, setUploadStatus, 'este PDF como um Flight Preview');
+      if (ok) setUploadStatus('PDF "' + file.name + '" lido — ' + pages.length + ' página(s). Revise os dados abaixo antes de gravar.', 'ok');
     } catch (err) {
       console.error('[importar-voo] falha ao ler o Flight Preview', err);
       if (err && err.isLibraryLoadError) {
@@ -530,6 +640,69 @@
     errorPanel.hidden = true;
     fileInput.value = '';
     setUploadStatus('', '');
+    textImportArea.value = '';
+    setTextImportStatus('', '');
+  });
+
+  // ---------------------------------------------------------------------
+  // Modo alternativo: importar texto gerado por IA (Copilot etc.), sem
+  // depender do pdf.js no dispositivo. Reaproveita a mesma tela de
+  // conferência da importação por PDF.
+  // ---------------------------------------------------------------------
+  copilotPromptBox.textContent = COPILOT_PROMPT;
+
+  function setTextImportStatus(text, kind) {
+    textImportStatus.textContent = text || '';
+    textImportStatus.className = 'upload-status' + (kind === 'busy' ? ' is-busy' : kind === 'error' ? ' is-error' : '');
+  }
+
+  function setActiveMode(mode) {
+    var isPdf = mode === 'pdf';
+    modeTabPdf.classList.toggle('is-active', isPdf);
+    modeTabPdf.setAttribute('aria-selected', String(isPdf));
+    modeTabText.classList.toggle('is-active', !isPdf);
+    modeTabText.setAttribute('aria-selected', String(!isPdf));
+    modePanelPdf.hidden = !isPdf;
+    modePanelText.hidden = isPdf;
+  }
+  modeTabPdf.addEventListener('click', function () { setActiveMode('pdf'); });
+  modeTabText.addEventListener('click', function () { setActiveMode('text'); });
+
+  copyPromptBtn.addEventListener('click', async function () {
+    try {
+      await navigator.clipboard.writeText(COPILOT_PROMPT);
+      copyPromptBtn.textContent = 'Copiado!';
+    } catch (err) {
+      copyPromptBtn.textContent = 'Não foi possível copiar — selecione o texto manualmente';
+    }
+    window.setTimeout(function () { copyPromptBtn.textContent = 'Copiar prompt'; }, 2200);
+  });
+
+  function applyParseResult(result, statusSetter, sourceLabel) {
+    if (!result.meta.valid) {
+      showError((result.meta.warnings && result.meta.warnings.join(' ')) || 'Não foi possível interpretar ' + sourceLabel + '.');
+      statusSetter('', '');
+      return false;
+    }
+    errorPanel.hidden = true;
+    state.data = result.data;
+    state.debug = result.debug || {};
+    state.meta = result.meta;
+    state.inputs = [];
+    renderReview();
+    return true;
+  }
+
+  processTextBtn.addEventListener('click', function () {
+    var raw = textImportArea.value;
+    if (!raw || !raw.trim()) {
+      setTextImportStatus('Cole o texto gerado pelo Copilot antes de processar.', 'error');
+      return;
+    }
+    reviewRoot.hidden = true;
+    var result = window.AW139ImportarVooTextParser.parseFlightPreviewText(raw);
+    var ok = applyParseResult(result, setTextImportStatus, 'este texto');
+    if (ok) setTextImportStatus('Texto processado. Revise os dados abaixo antes de gravar.', 'ok');
   });
 
   function warnIfFileProtocol() {
