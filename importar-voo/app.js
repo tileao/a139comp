@@ -706,13 +706,25 @@
       statusSetter('', '');
       return false;
     }
-    errorPanel.hidden = true;
-    state.data = result.data;
-    state.debug = result.debug || {};
-    state.meta = result.meta;
-    state.inputs = [];
-    renderReview();
-    return true;
+    // A renderização é a parte mais arriscada deste caminho: dados reais
+    // (de PDF ou de IA) podem ter uma forma que nenhum dos exemplos usados
+    // em teste cobriu. Sem isso, uma exceção aqui deixava o botão de
+    // processar/importar parecendo não fazer nada — nem erro, nem
+    // resultado, só silêncio.
+    try {
+      errorPanel.hidden = true;
+      state.data = result.data;
+      state.debug = result.debug || {};
+      state.meta = result.meta;
+      state.inputs = [];
+      renderReview();
+      return true;
+    } catch (err) {
+      console.error('[importar-voo] falha ao renderizar a conferência', err);
+      showError('Os dados foram interpretados, mas não foi possível montar a tela de conferência. Detalhe técnico: ' + (err && err.message ? err.message : err));
+      statusSetter('', '');
+      return false;
+    }
   }
 
   processTextBtn.addEventListener('click', function () {
@@ -722,9 +734,15 @@
       return;
     }
     reviewRoot.hidden = true;
-    var result = window.AW139ImportarVooTextParser.parseFlightPreviewText(raw);
-    var ok = applyParseResult(result, setTextImportStatus, 'este texto');
-    if (ok) setTextImportStatus('Texto processado. Revise os dados abaixo antes de gravar.', 'ok');
+    try {
+      var result = window.AW139ImportarVooTextParser.parseFlightPreviewText(raw);
+      var ok = applyParseResult(result, setTextImportStatus, 'este texto');
+      if (ok) setTextImportStatus('Texto processado. Revise os dados abaixo antes de gravar.', 'ok');
+    } catch (err) {
+      console.error('[importar-voo] falha ao processar o texto', err);
+      showError('Não foi possível processar este texto. Detalhe técnico: ' + (err && err.message ? err.message : err));
+      setTextImportStatus('', '');
+    }
   });
 
   function warnIfFileProtocol() {
