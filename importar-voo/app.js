@@ -184,15 +184,15 @@
       var extracted = await extractPages(buffer);
       var pages = extracted.pages;
       var result = window.AW139ImportarVooParser.parseFlightPreview(pages);
+      var pageErrorMsgs = extracted.pageErrors.map(function (e) { return 'Falha ao ler página ' + e + ' — os campos dela ficaram vazios.'; });
       if (!result.meta.valid) {
-        showError((result.meta.warnings && result.meta.warnings.join(' ')) || 'Não foi possível interpretar este PDF como um Flight Preview.');
+        var invalidMsgs = (result.meta.warnings || []).concat(pageErrorMsgs);
+        showError(invalidMsgs.join(' ') || 'Não foi possível interpretar este PDF como um Flight Preview.');
         setUploadStatus('', '');
         return;
       }
-      if (extracted.pageErrors.length) {
-        result.meta.warnings = (result.meta.warnings || []).concat(
-          extracted.pageErrors.map(function (e) { return 'Falha ao ler página ' + e + ' — os campos dela ficaram vazios.'; })
-        );
+      if (pageErrorMsgs.length) {
+        result.meta.warnings = (result.meta.warnings || []).concat(pageErrorMsgs);
       }
       state.data = result.data;
       state.debug = result.debug || {};
