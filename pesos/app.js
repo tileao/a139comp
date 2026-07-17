@@ -1710,8 +1710,119 @@
     document.getElementById('maxLandingKg').placeholder = 'default: ' + cat + ' kg';
   }
 
+  // ---------------------------------------------------------------------
+  // Autopreenchimento a partir do voo importado (módulo Importar Voo).
+  // Ao abrir, se houver um voo importado NOVO (fpImportedAt mais recente do
+  // que o último já aplicado aqui), traduzimos os dados para o formato do
+  // formulário deste módulo e gravamos em FORM_KEY — o loadForm() logo
+  // abaixo restaura tudo normalmente (rota, aeronave e combustível por
+  // perna). Aplica só uma vez por importação: reabrir o módulo não
+  // sobrescreve edições manuais; um novo voo importado sim.
+  // ---------------------------------------------------------------------
+  var IMPORT_APPLIED_KEY = 'aw139_pesos_applied_import_at';
+
+  function importNum(v) {
+    if (v == null) return null;
+    var s = String(v).replace(',', '.').trim();
+    if (!s) return null;
+    var n = Number(s);
+    return isFinite(n) ? n : null;
+  }
+
+  function readImportedFlight() {
+    try {
+      var raw = localStorage.getItem('aw139_flight_preview_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function buildFormFromImport(fp) {
+    if (!fp || !Array.isArray(fp.fpRoute) || !fp.fpRoute.length) return null;
+    var legs = fp.fpRoute;
+
+    // Rota: primeiro "from" + todos os "to" em sequência. Cada ponto precisa
+    // virar UM token limpo: o parser de rota do módulo separa em qualquer
+    // caractere fora de [A-Z0-9], então nomes com espaço ("CABO FRIO") ou
+    // acento ("MARICÁ") criariam pernas fantasmas. Normalizamos (tira acento,
+    // remove não-alfanumérico) preservando a contagem exata de pontos — se um
+    // nome zerar, usamos um marcador para não desalinhar as pernas.
+    function routeToken(s, i) {
+      var t = String(s == null ? '' : s);
+      if (t.normalize) t = t.normalize('NFD').replace(/[̀-ͯ]/g, ''); // tira acentos
+      t = t.toUpperCase().replace(/[^A-Z0-9]/g, ''); // só alfanumérico → 1 token
+      return t || ('P' + (i + 1));
+    }
+    var seq = [];
+    seq.push(legs[0] && legs[0].from != null ? legs[0].from : '');
+    legs.forEach(function (l) { seq.push(l ? l.to : ''); });
+    var route = seq.map(routeToken).join(' ');
+    if (!route.trim()) return null;
+
+    var ac = fp.aircraft || {};
+    var eew = importNum(ac.eewKg);
+    var oew = importNum(ac.oewKg);
+    var crewKg = null;
+    if (eew != null && oew != null && oew - eew > 0) {
+      crewKg = Math.round(oew - eew);
+    } else if (fp.crew) {
+      var sum = ['p1', 'p2', 'fa'].reduce(function (acc, k) {
+        var w = importNum(fp.crew[k] && fp.crew[k].weightKg);
+        return acc + (w || 0);
+      }, 0);
+      if (sum > 0) crewKg = sum;
+    }
+
+    var mtows = legs.map(function (l) { return importNum(l.mtowKg); }).filter(function (v) { return v != null; });
+    var maxMtow = mtows.length ? Math.max.apply(Math, mtows) : null;
+    var mtowCategory = maxMtow == null ? null : (maxMtow <= 6800 ? '6800' : '7000');
+
+    var aircraft = {};
+    if (ac.registration) aircraft.registration = String(ac.registration);
+    if (eew != null) aircraft.bewKg = String(eew);
+    if (crewKg != null) aircraft.crewKg = String(crewKg);
+    if (mtowCategory) {
+      aircraft.mtowCategory = mtowCategory;
+      aircraft.maxLandingKg = mtowCategory; // AW139: peso máx. de pouso = MTOW
+    }
+
+    // Combustível: decolagem da 1ª perna = comb. de saída do ponto de
+    // partida; pouso de cada perna = comb. remanescente na chegada.
+    var depFuel = null;
+    if (Array.isArray(fp.waypoints) && fp.waypoints[0]) {
+      depFuel = importNum(fp.waypoints[0].fuelDepKg);
+      if (depFuel == null) depFuel = importNum(fp.waypoints[0].fuelArrKg);
+    }
+    var pesosLegs = legs.map(function (l, i) {
+      var landing = importNum(l.fuelRemKg);
+      var leg = { mode: 'actual', landingFuel: landing != null ? String(landing) : '' };
+      if (i === 0 && depFuel != null) { leg.takeoffFuel = String(depFuel); leg.takeoffManual = true; }
+      return leg;
+    });
+
+    // Manifesto (pax/bag/carga) fica em branco de propósito: é a entrada
+    // manual de peso e balanceamento, e a distribuição de embarque/desembarque
+    // do Flight Preview é ambígua demais para autopreencher com segurança.
+    return { aircraft: aircraft, route: route, manifest: [], legs: pesosLegs };
+  }
+
+  function maybeApplyImportedFlight() {
+    var ctx = readSharedContext() || {};
+    var importedAt = ctx.fpImportedAt;
+    if (!importedAt) return;
+    var applied = null;
+    try { applied = localStorage.getItem(IMPORT_APPLIED_KEY); } catch (e) { applied = null; }
+    if (applied && applied >= importedAt) return; // já aplicado este voo
+    var form = buildFormFromImport(readImportedFlight());
+    if (!form) return;
+    try {
+      localStorage.setItem(FORM_KEY, JSON.stringify(form));
+      localStorage.setItem(IMPORT_APPLIED_KEY, importedAt);
+    } catch (e) { /* localStorage indisponível */ }
+  }
+
   function init() {
     applyQueryParams();
+    maybeApplyImportedFlight();
     loadForm();
     updateMaxLandingPlaceholder();
 

@@ -110,8 +110,15 @@ estourar erro críptico.
 - Chaves gravadas em `aw139_companion_shared_context_v1`: `fpFlightId`,
   `fpDate`, `fpAircraft`, `fpOewKg`, `fpMaxFuelKg`, `fpFuelFlowFlightKgH`,
   `fpFuelFlowGndKgH`, `fpCruiseKt`, `fpMinReserveMin`, `fpPaxStdKg`,
-  `fpBagStdKg`, `fpRoute` (pernas), `fpHelidecks`, além de
-  `circuitoUmIcao`/`weightKg` para compatibilidade com módulos existentes.
+  `fpBagStdKg`, `fpRoute` (pernas), `fpHelidecks`, `fpImportedAt` (carimbo
+  da importação), além de `circuitoUmIcao`/`weightKg` para compatibilidade
+  com módulos existentes. O objeto completo vai em `aw139_flight_preview_v1`.
+- **Consumo no Planejamento do Voo (Pesos)**: ao abrir, o módulo Pesos
+  detecta um voo importado novo (via `fpImportedAt`) e autopreenche rota,
+  aeronave (matrícula, BEW=EEW, tripulação=OEW−EEW, categoria de MTOW) e
+  combustível por perna — uma vez por importação, sem sobrescrever edições
+  manuais em reaberturas. O manifesto (pax/bag) fica em branco de propósito,
+  por ser entrada manual de peso e balanceamento.
 
 ## Aviso
 
