@@ -107,6 +107,22 @@
           if (worker.state === 'installed' && navigator.serviceWorker.controller) notifyUpdate(reg);
         });
       });
+
+      // Checagem ATIVA de atualização. Sem isto, o navegador só descobre um
+      // service worker novo quando faz uma navegação — e o PWA instalado no
+      // iOS costuma ser restaurado do segundo plano SEM navegar, então uma
+      // versão nova podia ficar "presa" por muito tempo (a menos de apagar e
+      // reinstalar o ícone). reg.update() re-busca o sw.js (sempre da rede,
+      // fora do cache do SW) e, se mudou, instala/ativa a versão nova; os
+      // SWs dos módulos usam skipWaiting, então a troca é automática e o
+      // controllerchange abaixo recarrega a página já na versão certa.
+      const checkForUpdate = () => { try { reg.update(); } catch (e) { /* offline etc. */ } };
+      checkForUpdate();
+      // Quando o app volta ao primeiro plano (caso típico do iOS standalone).
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+      });
+      window.addEventListener('focus', checkForUpdate);
     } catch (err) {
       console.warn('SW registration failed', err);
     }
