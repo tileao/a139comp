@@ -5,7 +5,7 @@
   // BUILD em sw.js. Se o HTML carregado for de uma geração diferente deste
   // app.js (skew de cache), a guarda abaixo se recupera sozinha em vez de
   // deixar o app estourar erros crípticos com elementos que não existem.
-  var IMPORTAR_BUILD = '6';
+  var IMPORTAR_BUILD = '7';
   var SKEW_RELOAD_FLAG = 'aw139_importar_skew_reload';
 
   function recoverFromVersionSkew() {
@@ -644,6 +644,10 @@
       fpBagStdKg: edited.defaults ? edited.defaults.bagStdKg : null,
       fpRoute: edited.fpRoute || [],
       fpHelidecks: edited.fpHelidecks || [],
+      // Carimbo exclusivo da importação: os outros módulos usam isto para
+      // detectar um voo importado NOVO e se autopreencher uma única vez
+      // (updatedAt muda a cada gravação de qualquer módulo, então não serve).
+      fpImportedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       lastModule: 'importar',
     };
