@@ -1785,17 +1785,44 @@
       aircraft.maxLandingKg = mtowCategory; // AW139: peso máx. de pouso = MTOW
     }
 
-    // Combustível: decolagem da 1ª perna = comb. de saída do ponto de
-    // partida; pouso de cada perna = comb. remanescente na chegada.
-    var depFuel = null;
-    if (Array.isArray(fp.waypoints) && fp.waypoints[0]) {
-      depFuel = importNum(fp.waypoints[0].fuelDepKg);
-      if (depFuel == null) depFuel = importNum(fp.waypoints[0].fuelArrKg);
-    }
+    // Combustível de saída por posição da rota. Casa cada waypoint
+    // disponível (todos, no PDF; só as paradas, no texto) com sua posição na
+    // sequência, EM ORDEM — assim pontos repetidos (a base aparece no início
+    // e no fim, com combustíveis diferentes) não se confundem. Isso preserva
+    // a decolagem real de cada perna, inclusive quando uma parada
+    // reabasteceu ou teve queima de solo diferente dos 50 kg que o módulo
+    // assumiria sozinho.
+    var depFuelAt = {}, arrFuelAt = {};
+    (function mapFuelBySeq() {
+      var wps = Array.isArray(fp.waypoints) ? fp.waypoints : [];
+      var ptr = 0;
+      for (var k = 0; k < seq.length && ptr < wps.length; k++) {
+        var wp = wps[ptr];
+        if (!wp) { ptr++; continue; }
+        var seqTok = routeToken(seq[k], k);
+        var nameTok = routeToken(wp.name != null ? wp.name : wp.icao, k);
+        var icaoTok = wp.icao != null ? routeToken(wp.icao, k) : '';
+        if (seqTok && (seqTok === nameTok || seqTok === icaoTok)) {
+          depFuelAt[k] = importNum(wp.fuelDepKg);
+          arrFuelAt[k] = importNum(wp.fuelArrKg);
+          ptr++;
+        }
+      }
+    })();
+
     var pesosLegs = legs.map(function (l, i) {
+      // Pouso da perna = comb. remanescente na chegada ao destino.
       var landing = importNum(l.fuelRemKg);
+      if (landing == null && arrFuelAt[i + 1] != null) landing = arrFuelAt[i + 1];
       var leg = { mode: 'actual', landingFuel: landing != null ? String(landing) : '' };
-      if (i === 0 && depFuel != null) { leg.takeoffFuel = String(depFuel); leg.takeoffManual = true; }
+
+      // Decolagem = comb. de saída do ponto de origem (posição i). Se não
+      // houver dado de saída para esse ponto (fixo de sobrevoo no texto),
+      // usa-se a chegada da perna anterior — voo contínuo, sem queima de
+      // solo entre pontos sem parada.
+      var takeoff = depFuelAt[i];
+      if (takeoff == null && i >= 1) takeoff = importNum(legs[i - 1].fuelRemKg);
+      if (takeoff != null) { leg.takeoffFuel = String(takeoff); leg.takeoffManual = true; }
       return leg;
     });
 
