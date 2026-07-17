@@ -297,6 +297,8 @@ body.has-back-btn .topbar { padding-left: 44px; }
 .leg-idx-cell { font-weight: 700; color: var(--teal); }
 
 .disclaimer { font-size: 11px; color: var(--text-dim); text-align: center; padding: 6px 4px 14px; }
+.build-tag { display: inline-block; margin-left: 6px; opacity: 0.55; font-variant-numeric: tabular-nums; }
+.build-tag::before { content: "· "; }
 
 @media (max-width: 900px) {
   .workspace { flex-direction: column; }
