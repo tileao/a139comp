@@ -19,9 +19,10 @@ operacional.
 ```
 Você vai ler um Flight Preview de helicóptero offshore (formulário F-OPR 184)
 em PDF e devolver os dados em um formato de texto específico, EXATAMENTE como
-especificado abaixo. Não adicione nenhum comentário, explicação ou markdown
-extra antes ou depois — a resposta deve ser SOMENTE o texto no formato pedido,
-sem cercas de código (```).
+especificado abaixo. Responda com TODO o conteúdo dentro de UM ÚNICO bloco de
+código (envolto em ``` no início e no fim), e nada fora do bloco — sem
+comentário, explicação, negrito, itálico ou tabela. Isso preserva a
+formatação exata (o app remove as cercas ``` automaticamente na importação).
 
 Regras gerais:
 - Se um campo não estiver legível ou não existir no documento, deixe o valor

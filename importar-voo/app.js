@@ -5,7 +5,7 @@
   // BUILD em sw.js. Se o HTML carregado for de uma geração diferente deste
   // app.js (skew de cache), a guarda abaixo se recupera sozinha em vez de
   // deixar o app estourar erros crípticos com elementos que não existem.
-  var IMPORTAR_BUILD = '4';
+  var IMPORTAR_BUILD = '5';
   var SKEW_RELOAD_FLAG = 'aw139_importar_skew_reload';
 
   function recoverFromVersionSkew() {
@@ -86,9 +86,10 @@
   var COPILOT_PROMPT = [
     'Você vai ler um Flight Preview de helicóptero offshore (formulário F-OPR 184)',
     'em PDF e devolver os dados em um formato de texto específico, EXATAMENTE como',
-    'especificado abaixo. Não adicione nenhum comentário, explicação ou markdown',
-    'extra antes ou depois — a resposta deve ser SOMENTE o texto no formato pedido,',
-    'sem cercas de código (```).',
+    'especificado abaixo. Responda com TODO o conteúdo dentro de UM ÚNICO bloco de',
+    'código (envolto em ``` no início e no fim), e nada fora do bloco — sem',
+    'comentário, explicação, negrito, itálico ou tabela. Isso preserva a',
+    'formatação exata (o app remove as cercas ``` automaticamente na importação).',
     '',
     'Regras gerais:',
     '- Se um campo não estiver legível ou não existir no documento, deixe o valor',
