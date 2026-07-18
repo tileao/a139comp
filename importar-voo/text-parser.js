@@ -256,6 +256,10 @@ function parseFlightPreviewTextInner(rawText) {
     };
   }
   if (!header || !header.flightId) warnings.push('Flight N°/ID não encontrado no texto.');
+  // As paradas (seção STOPS) são o que o Planejamento do Voo usa para montar
+  // a rota. Se vierem vazias/truncadas, avisa aqui — senão o voo "importa"
+  // mas o planejamento não consegue se preencher.
+  if (waypoints.length < 2) warnings.push('Menos de duas paradas na seção "### STOPS" — o Planejamento do Voo precisa das paradas (aeródromos/helideques) para montar a rota. Gere o texto de novo incluindo a seção STOPS completa.');
 
   const base = header || {
     flightId: null, dateRaw: null, dateISO: null, minimalReserveMin: null,

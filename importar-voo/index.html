@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <title>AW139 Companion — Importar Voo</title>
-<meta name="description" content="Importa o Flight Preview (PDF) do voo, mostra uma tela de conferência e grava a rota, aeronave e helideques no contexto compartilhado do AW139 Companion.">
+<meta name="description" content="Importa o voo a partir do texto do Flight Preview (gerado pelo Copilot), mostra uma tela de conferência e grava rota, aeronave e helideques no contexto compartilhado do AW139 Companion.">
 <meta name="theme-color" content="#0b1220">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="./styles.css">
 <link rel="stylesheet" href="../shared/pwa.css">
 </head>
-<body data-importar-build="7">
+<body data-importar-build="9">
 <main class="cockpit-shell">
   <button class="back-btn" id="backBtn" hidden aria-label="Voltar">←</button>
   <div class="top-stack">
@@ -30,52 +30,27 @@
   <div class="workspace workspace-single">
     <section class="sidebar sidebar-wide">
 
-      <section class="panel" id="fileProtocolWarning" hidden>
-        <div class="alert-item error">
-          Esta página foi aberta diretamente do arquivo (file://) — o navegador bloqueia o carregamento do leitor de PDF nesse modo. Sirva a pasta por um servidor local, ex.: <code>python3 -m http.server</code>, e acesse por <code>http://localhost:8000/importar-voo/</code>, ou use a URL publicada do app.
-        </div>
-      </section>
-
       <section class="panel" id="uploadPanel">
-        <div class="mode-tabs" role="tablist" aria-label="Forma de importar">
-          <button type="button" class="mode-tab is-active" id="modeTabPdf" role="tab" aria-selected="true">PDF direto</button>
-          <button type="button" class="mode-tab" id="modeTabText" role="tab" aria-selected="false">Texto/IA (Copilot)</button>
+        <h2 class="panel-title">Importar voo (texto do Copilot)</h2>
+        <p class="panel-hint">Anexe o PDF do Flight Preview a uma conversa com o Microsoft 365 Copilot (ou outra IA com leitura de PDF), cole o prompt abaixo, copie a resposta e cole aqui. <strong>O documento sai do dispositivo e vai para o serviço de IA nesse fluxo</strong> — use só se sua organização já aprova isso para dados operacionais.</p>
+        <details class="prompt-details">
+          <summary>Ver / copiar o prompt para o Copilot</summary>
+          <pre class="prompt-box" id="copilotPromptBox"></pre>
+          <button type="button" class="ghost-btn small-btn" id="copyPromptBtn">Copiar prompt</button>
+        </details>
+        <label class="field text-import-field">
+          <span>Cole aqui a resposta do Copilot</span>
+          <textarea id="textImportArea" rows="8" placeholder="AW139-FLIGHT-PREVIEW-TEXT-V1&#10;&#10;### HEADER&#10;..."></textarea>
+        </label>
+        <div class="action-row">
+          <button type="button" class="run-btn" id="processTextBtn">Processar texto</button>
         </div>
-
-        <div id="modePanelPdf">
-          <h2 class="panel-title">Flight Preview (PDF)</h2>
-          <p class="panel-hint">O arquivo é lido inteiramente no seu dispositivo — nada é enviado pela rede. Aceita o Flight Preview do formulário F-OPR 184 (3–4 páginas).</p>
-          <label class="drop-zone" id="dropZone" for="fileInput">
-            <span class="drop-icon" aria-hidden="true">📄</span>
-            <span class="drop-title">Toque para escolher o PDF</span>
-            <span class="drop-sub">ou arraste e solte aqui</span>
-            <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden>
-          </label>
-          <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"></div>
-        </div>
-
-        <div id="modePanelText" hidden>
-          <h2 class="panel-title">Importar texto gerado por IA</h2>
-          <p class="panel-hint">Anexe o PDF do Flight Preview a uma conversa com o Microsoft 365 Copilot (ou outra IA com leitura de PDF), cole o prompt abaixo, copie a resposta e cole aqui. <strong>O documento sai do dispositivo e vai para o serviço de IA nesse fluxo</strong> — use só se sua organização já aprova isso para dados operacionais.</p>
-          <details class="prompt-details">
-            <summary>Ver / copiar o prompt para o Copilot</summary>
-            <pre class="prompt-box" id="copilotPromptBox"></pre>
-            <button type="button" class="ghost-btn small-btn" id="copyPromptBtn">Copiar prompt</button>
-          </details>
-          <label class="field text-import-field">
-            <span>Cole aqui a resposta do Copilot</span>
-            <textarea id="textImportArea" rows="8" placeholder="AW139-FLIGHT-PREVIEW-TEXT-V1&#10;&#10;### HEADER&#10;..."></textarea>
-          </label>
-          <div class="action-row">
-            <button type="button" class="run-btn" id="processTextBtn">Processar texto</button>
-          </div>
-          <div class="upload-status" id="textImportStatus" role="status" aria-live="polite"></div>
-        </div>
+        <div class="upload-status" id="textImportStatus" role="status" aria-live="polite"></div>
       </section>
 
       <section class="panel" id="errorPanel" hidden>
         <div class="alert-item error" id="errorMessage"></div>
-        <button class="ghost-btn" id="errorRetryBtn" type="button">Escolher outro arquivo</button>
+        <button class="ghost-btn" id="errorRetryBtn" type="button">Limpar e tentar de novo</button>
       </section>
 
       <section id="reviewRoot" hidden>
@@ -221,7 +196,6 @@
   </div>
 </template>
 
-<script src="./parser.js"></script>
 <script src="./text-parser.js"></script>
 <script src="./app.js"></script>
 <script src="../shared/pwa.js"></script>

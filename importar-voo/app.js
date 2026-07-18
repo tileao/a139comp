@@ -5,7 +5,7 @@
   // BUILD em sw.js. Se o HTML carregado for de uma geração diferente deste
   // app.js (skew de cache), a guarda abaixo se recupera sozinha em vez de
   // deixar o app estourar erros crípticos com elementos que não existem.
-  var IMPORTAR_BUILD = '7';
+  var IMPORTAR_BUILD = '9';
   var SKEW_RELOAD_FLAG = 'aw139_importar_skew_reload';
 
   function recoverFromVersionSkew() {
@@ -52,9 +52,6 @@
 
   var state = { data: null, debug: {}, meta: null, inputs: [] };
 
-  var dropZone = document.getElementById('dropZone');
-  var fileInput = document.getElementById('fileInput');
-  var uploadStatus = document.getElementById('uploadStatus');
   var errorPanel = document.getElementById('errorPanel');
   var errorMessage = document.getElementById('errorMessage');
   var errorRetryBtn = document.getElementById('errorRetryBtn');
@@ -71,10 +68,6 @@
   var helideckCardTemplate = document.getElementById('helideckCardTemplate');
   var wxCardTemplate = document.getElementById('wxCardTemplate');
 
-  var modeTabPdf = document.getElementById('modeTabPdf');
-  var modeTabText = document.getElementById('modeTabText');
-  var modePanelPdf = document.getElementById('modePanelPdf');
-  var modePanelText = document.getElementById('modePanelText');
   var copilotPromptBox = document.getElementById('copilotPromptBox');
   var copyPromptBtn = document.getElementById('copyPromptBtn');
   var textImportArea = document.getElementById('textImportArea');
@@ -253,155 +246,16 @@
     return str === '' ? null : str;
   }
 
-  // ---------------------------------------------------------------------
-  // pdf.js (vendorizado, sem CDN) — carregado sob demanda via import()
-  // dinâmico, que funciona mesmo fora de um <script type="module">.
-  // ---------------------------------------------------------------------
-  var pdfjsLibPromise = null;
-  function loadPdfJs() {
-    if (!pdfjsLibPromise) {
-      // URL absoluta: em alguns contextos (ex.: arquivo aberto via file://
-      // direto, sem servidor) o import() dinâmico não consegue resolver um
-      // especificador relativo a partir de um script clássico. Com URL
-      // absoluta pelo menos a resolução funciona — o fetch em si ainda falha
-      // sob file://, tratado abaixo com uma mensagem específica.
-      var vendorUrl = new URL('./vendor/pdf.min.mjs', document.baseURI).href;
-      var workerUrl = new URL('./vendor/pdf.worker.min.mjs', document.baseURI).href;
-      pdfjsLibPromise = import(vendorUrl).then(function (mod) {
-        mod.GlobalWorkerOptions.workerSrc = workerUrl;
-        return mod;
-      }).catch(function (err) {
-        pdfjsLibPromise = null; // permite tentar de novo (ex.: após servir por http)
-        var wrapped = new Error('Falha ao carregar o pdf.js (' + vendorUrl + '): ' + err.message);
-        wrapped.isLibraryLoadError = true;
-        throw wrapped;
-      });
-    }
-    return pdfjsLibPromise;
-  }
-
-  async function extractPages(arrayBuffer) {
-    var pdfjsLib = await loadPdfJs();
-    var doc;
-    try {
-      doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    } catch (err) {
-      var wrapped = new Error('O pdf.js não conseguiu abrir este PDF: ' + (err && err.message ? err.message : err));
-      wrapped.isPdfOpenError = true;
-      throw wrapped;
-    }
-    var pages = [];
-    var pageErrors = [];
-    for (var p = 1; p <= doc.numPages; p++) {
-      // Isola cada página: uma falha interna do pdf.js processando UMA
-      // página (fonte incomum, anotação, assinatura) não deve derrubar as
-      // demais — o parser já é tolerante a páginas ausentes/incompletas.
-      try {
-        var page = await doc.getPage(p);
-        var content = await page.getTextContent();
-        var items = [];
-        for (var i = 0; i < content.items.length; i++) {
-          var it = content.items[i];
-          if (!it.str || !it.str.trim()) continue;
-          var tr = it.transform;
-          items.push({ str: it.str, x: tr[4], y: tr[5], w: it.width, h: it.height, fontName: it.fontName });
-        }
-        pages.push({ pageNumber: p, items: items });
-      } catch (err) {
-        console.error('[importar-voo] falha ao extrair a página ' + p, err);
-        pageErrors.push(p + ': ' + (err && err.message ? err.message : err));
-        pages.push({ pageNumber: p, items: [] });
-      }
-    }
-    if (pageErrors.length) {
-      console.warn('[importar-voo] páginas com falha na extração:', pageErrors.join(' | '));
-    }
-    if (pageErrors.length === doc.numPages) {
-      var allFailedErr = new Error('Todas as ' + doc.numPages + ' página(s) falharam na extração: ' + pageErrors.join(' | '));
-      allFailedErr.isPdfOpenError = true;
-      throw allFailedErr;
-    }
-    return { pages: pages, pageErrors: pageErrors };
-  }
-
-  // ---------------------------------------------------------------------
-  // Upload: seleção de arquivo + arrastar-soltar
-  // ---------------------------------------------------------------------
-  function setUploadStatus(text, kind) {
-    if (!uploadStatus) return;
-    uploadStatus.textContent = text || '';
-    uploadStatus.className = 'upload-status' + (kind === 'busy' ? ' is-busy' : kind === 'error' ? ' is-error' : '');
-  }
-
   function showError(msg) {
     errorMessage.textContent = msg;
     errorPanel.hidden = false;
     reviewRoot.hidden = true;
   }
 
-  async function handleFile(file) {
-    if (!file) return;
-    var name = (file.name || '').toLowerCase();
-    var looksPdf = file.type === 'application/pdf' || name.endsWith('.pdf');
-    errorPanel.hidden = true;
-    if (!looksPdf) {
-      showError('Selecione um arquivo PDF (Flight Preview).');
-      return;
-    }
-    setUploadStatus('Lendo PDF localmente (nada é enviado pela rede)…', 'busy');
-    reviewRoot.hidden = true;
-    try {
-      var buffer = await file.arrayBuffer();
-      var extracted = await extractPages(buffer);
-      var pages = extracted.pages;
-      var result = window.AW139ImportarVooParser.parseFlightPreview(pages);
-      var pageErrorMsgs = extracted.pageErrors.map(function (e) { return 'Falha ao ler página ' + e + ' — os campos dela ficaram vazios.'; });
-      result.meta.warnings = (result.meta.warnings || []).concat(pageErrorMsgs);
-      var ok = applyParseResult(result, setUploadStatus, 'este PDF como um Flight Preview');
-      if (ok) setUploadStatus('PDF "' + file.name + '" lido — ' + pages.length + ' página(s). Revise os dados abaixo antes de gravar.', 'ok');
-    } catch (err) {
-      console.error('[importar-voo] falha ao ler o Flight Preview', err);
-      if (err && err.isLibraryLoadError) {
-        showError(
-          location.protocol === 'file:'
-            ? 'Não foi possível carregar o leitor de PDF (pdf.js) porque o módulo foi aberto diretamente do arquivo (file://). Sirva a pasta por um servidor local — ex.: "python3 -m http.server" — e acesse por http://localhost:8000/importar-voo/, ou instale/abra o app pela URL publicada.'
-            : 'Não foi possível carregar o leitor de PDF (pdf.js). Verifique se a pasta vendor/ foi publicada junto com o restante do módulo e recarregue a página.'
-        );
-      } else if (err && err.isPdfOpenError) {
-        var openDetail = (err && (err.message || String(err))) || 'erro desconhecido';
-        showError('O leitor de PDF (pdf.js) não conseguiu processar este arquivo — provavelmente por algum recurso interno do PDF (fonte, anotação, assinatura) que essa versão da biblioteca não suporta. Isso não é um problema com o app em si, mas sim com esse arquivo específico.\nDetalhe técnico: ' + openDetail);
-      } else {
-        var detail = (err && (err.message || String(err))) || 'erro desconhecido';
-        showError('Não foi possível ler este PDF. Verifique se o arquivo não está corrompido e tente novamente.\nDetalhe técnico: ' + detail);
-      }
-      setUploadStatus('', '');
-    }
-  }
-
-  fileInput.addEventListener('change', function () {
-    handleFile(fileInput.files && fileInput.files[0]);
-  });
-
-  ['dragenter', 'dragover'].forEach(function (evt) {
-    dropZone.addEventListener(evt, function (e) {
-      e.preventDefault();
-      dropZone.classList.add('drop-zone-active');
-    });
-  });
-  ['dragleave', 'dragend'].forEach(function (evt) {
-    dropZone.addEventListener(evt, function () { dropZone.classList.remove('drop-zone-active'); });
-  });
-  dropZone.addEventListener('drop', function (e) {
-    e.preventDefault();
-    dropZone.classList.remove('drop-zone-active');
-    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    handleFile(file);
-  });
-
   errorRetryBtn.addEventListener('click', function () {
     errorPanel.hidden = true;
-    fileInput.value = '';
-    fileInput.click();
+    if (textImportArea) { textImportArea.value = ''; textImportArea.focus(); }
+    setTextImportStatus('', '');
   });
 
   // ---------------------------------------------------------------------
@@ -409,7 +263,10 @@
   // ---------------------------------------------------------------------
   function debugTitle(path) {
     var dbg = state.debug[path];
-    return dbg ? ('Origem: página ' + dbg.page + ', posição (' + Math.round(dbg.x) + ', ' + Math.round(dbg.y) + ')') : 'Não encontrado no PDF — preencha manualmente.';
+    if (!dbg) return 'Não encontrado — preencha manualmente.';
+    if (dbg.source === 'text') return 'Importado do texto' + (dbg.raw ? (': "' + dbg.raw + '"') : '');
+    if (dbg.page != null) return 'Origem: página ' + dbg.page + ', posição (' + Math.round(dbg.x) + ', ' + Math.round(dbg.y) + ')';
+    return 'Importado';
   }
 
   function addField(container, path, label, type, placeholder) {
@@ -712,17 +569,14 @@
     state.inputs = [];
     reviewRoot.hidden = true;
     errorPanel.hidden = true;
-    fileInput.value = '';
-    setUploadStatus('', '');
     textImportArea.value = '';
     setTextImportStatus('', '');
     setConfirmStatus('', '');
   });
 
   // ---------------------------------------------------------------------
-  // Modo alternativo: importar texto gerado por IA (Copilot etc.), sem
-  // depender do pdf.js no dispositivo. Reaproveita a mesma tela de
-  // conferência da importação por PDF.
+  // Importar texto gerado por IA (Copilot etc.) — leitura do Flight Preview
+  // feita fora do app, sem depender de nenhuma biblioteca no dispositivo.
   // ---------------------------------------------------------------------
   copilotPromptBox.textContent = COPILOT_PROMPT;
 
@@ -731,18 +585,6 @@
     textImportStatus.textContent = text || '';
     textImportStatus.className = 'upload-status' + (kind === 'busy' ? ' is-busy' : kind === 'error' ? ' is-error' : '');
   }
-
-  function setActiveMode(mode) {
-    var isPdf = mode === 'pdf';
-    modeTabPdf.classList.toggle('is-active', isPdf);
-    modeTabPdf.setAttribute('aria-selected', String(isPdf));
-    modeTabText.classList.toggle('is-active', !isPdf);
-    modeTabText.setAttribute('aria-selected', String(!isPdf));
-    modePanelPdf.hidden = !isPdf;
-    modePanelText.hidden = isPdf;
-  }
-  modeTabPdf.addEventListener('click', function () { setActiveMode('pdf'); });
-  modeTabText.addEventListener('click', function () { setActiveMode('text'); });
 
   copyPromptBtn.addEventListener('click', async function () {
     try {
@@ -804,19 +646,11 @@
     }
   });
 
-  function warnIfFileProtocol() {
-    if (location.protocol === 'file:') {
-      var warning = document.getElementById('fileProtocolWarning');
-      if (warning) warning.hidden = false;
-    }
-  }
-
   function showBuildTag() {
     var tag = document.getElementById('buildTag');
     if (tag) tag.textContent = 'v' + IMPORTAR_BUILD;
   }
 
   applyQueryParams();
-  warnIfFileProtocol();
   showBuildTag();
 })();

@@ -1,7 +1,7 @@
 {
   "name": "AW139 Companion — Importar Voo",
   "short_name": "Importar Voo",
-  "description": "Lê o Flight Preview (PDF) do voo, mostra uma tela de conferência e grava rota, aeronave e helideques no contexto compartilhado do AW139 Companion.",
+  "description": "Importa o voo a partir do texto do Flight Preview (gerado pelo Copilot), mostra uma tela de conferência e grava rota, aeronave e helideques no contexto compartilhado do AW139 Companion.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

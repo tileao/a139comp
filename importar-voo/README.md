@@ -1,77 +1,45 @@
 # AW139 Companion — Importar Voo
 
-Módulo web (HTML + CSS + JS puro, sem build) que lê o Flight Preview da
-operação (formulário F-OPR 184), mostra uma tela de conferência e grava os
-dados do voo no contexto compartilhado da suíte AW139 Companion. Duas formas
-de importar, lado a lado:
+Módulo web (HTML + CSS + JS puro, sem build) que importa o voo a partir do
+**texto do Flight Preview** (formulário F-OPR 184) gerado por uma IA com
+leitura de PDF (Microsoft 365 Copilot etc.), mostra uma tela de conferência
+e grava os dados no contexto compartilhado da suíte AW139 Companion.
 
-- **PDF direto** — 100% local, sem rede, usando pdf.js.
-- **Texto/IA (Copilot)** — para quando o PDF direto não funciona no seu
-  aparelho, ou quando você prefere revisar os dados numa planilha antes de
-  importar. O PDF sai do dispositivo nesse caminho (veja abaixo).
+> O import direto de PDF (com pdf.js) foi removido: na prática não era
+> confiável nos aparelhos de uso (Safari/iOS) e o caminho por texto/IA
+> cobre melhor o cenário real.
 
 ## Como funciona
 
-### Caminho 1 — PDF direto
+1. Copie o prompt pronto (botão "Copiar prompt" — texto completo em
+   [`COPILOT_PROMPT.md`](./COPILOT_PROMPT.md)), anexe o PDF do Flight Preview
+   a uma conversa com o Copilot (ou outra IA com leitura de PDF) e cole o
+   prompt. A IA devolve os dados no formato `AW139-FLIGHT-PREVIEW-TEXT-V1`
+   (um bloco de código com seções `### HEADER` chave: valor e
+   `### LEGS`/`### STOPS`/`### HELIDECKS`/`### METARS` em CSV simples).
+2. Cole a resposta na caixa de texto e toque em "Processar texto". O
+   `text-parser.js` interpreta o formato de modo tolerante: nunca lança
+   exceção, campos ausentes viram `null`.
+3. **Conferência**: nada é gravado sem revisão. Todos os campos aparecem em
+   inputs editáveis (Voo, Aeronave, Rota, Paradas, Helideques, Meteorologia);
+   campos ausentes ficam vazios e destacados em âmbar. "Confirmar e gravar"
+   funde (merge, nunca sobrescreve) os dados na chave `localStorage`
+   `aw139_companion_shared_context_v1` e grava o objeto completo em
+   `aw139_flight_preview_v1`. "Descartar" limpa sem gravar.
 
-1. **Upload**: escolha o PDF (toque na zona de upload) ou arraste e solte
-   (desktop). O arquivo é lido inteiramente no dispositivo — nada é enviado
-   pela rede. O parsing usa o [pdf.js](https://mozilla.github.io/pdf.js/) da
-   Mozilla, vendorizado em `vendor/` (build **legacy**, para compatibilidade
-   com versões mais antigas do Safari/iOS — sem CDN).
-2. **Parsing** (`parser.js`): extrai cabeçalho (voo, tripulação, aeronave),
-   pernas da rota (rumo, distância, tempos, vento), waypoints (fixos,
-   aeródromos e helideques — com coordenadas, combustível, pax e pesos) e
-   METAR/TAF de cada aeródromo. O layout do formulário é tabular e gerado
-   por iText, então o parser usa as **posições (x/y)** dos itens de texto
-   extraídos pelo `getTextContent()` do pdf.js para desambiguar colunas —
-   mais robusto do que depender só da ordem/linha do texto. O parser é
-   tolerante: campos ausentes viram `null` (nunca lança exceção para PDF
-   incompleto ou fora do formato) e cada campo extraído guarda a
-   página/posição de origem para depuração. Falhas do próprio pdf.js ao
-   abrir o arquivo ou processar uma página específica também são isoladas e
-   relatadas, em vez de travar a importação inteira.
-
-### Caminho 2 — Texto/IA (Copilot)
-
-1. Na aba "Texto/IA (Copilot)", copie o prompt pronto (botão "Copiar
-   prompt" — texto completo em [`COPILOT_PROMPT.md`](./COPILOT_PROMPT.md)),
-   anexe o PDF do Flight Preview a uma conversa com o Microsoft 365 Copilot
-   (ou outra IA com leitura de PDF) e cole o prompt.
-2. Copie a resposta inteira do Copilot e cole na caixa de texto do módulo.
-   O botão "Processar texto" interpreta o formato `AW139-FLIGHT-PREVIEW-
-   TEXT-V1` (`text-parser.js`) — seções `### HEADER` (chave: valor) e
-   `### LEGS`/`### STOPS`/`### HELIDECKS`/`### METARS` (CSV simples),
-   mesma filosofia tolerante do parser de PDF: nunca lança exceção,
-   campos ausentes viram `null`.
-3. **Atenção**: o PDF sai do dispositivo nesse fluxo e vai para o serviço de
-   IA da Microsoft — diferente do caminho por PDF direto, que é 100% local.
-   Use só se sua organização já aprova esse tipo de uso para dados
-   operacionais.
-
-### Conferência e gravação (comum aos dois caminhos)
-
-Nada é gravado sem revisão. Todos os campos aparecem em inputs editáveis,
-agrupados em Voo, Aeronave, Rota (tabela de pernas), Paradas (pax e
-combustível), Helideques e Meteorologia. Campos ausentes ficam vazios e
-destacados em âmbar. O botão "Confirmar e gravar" funde (merge, nunca
-sobrescreve) os dados revisados na chave `localStorage`
-`aw139_companion_shared_context_v1`, para uso pelos demais módulos da
-suíte, e grava o objeto completo em `aw139_flight_preview_v1` para uso
-futuro. "Descartar" limpa a tela sem gravar nada.
+> **Privacidade**: neste fluxo o PDF sai do dispositivo e vai para o serviço
+> de IA. Use só se sua organização já aprova isso para dados operacionais.
 
 ## Estrutura
 
 ```
 importar-voo/
-├── index.html          tela de upload (PDF + texto/IA) + conferência
-├── app.js               fluxo de UI, extração via pdf.js, gravação
-├── parser.js             extração posicional dos dados do Flight Preview (PDF)
+├── index.html          tela de importação (texto) + conferência
+├── app.js               fluxo de UI, gravação no contexto compartilhado
 ├── text-parser.js         parser do formato de texto AW139-FLIGHT-PREVIEW-TEXT-V1
 ├── COPILOT_PROMPT.md      prompt pronto para extrair via IA + spec do formato
 ├── styles.css             tema cockpit escuro, padrão da suíte
-├── manifest.webmanifest + sw.js   PWA offline (cache-first)
-└── vendor/               pdf.js vendorizado, build legacy (pdf.min.mjs + pdf.worker.min.mjs)
+└── manifest.webmanifest + sw.js   PWA offline (cache imutável por versão)
 ```
 
 ## Como testar localmente
@@ -114,11 +82,15 @@ estourar erro críptico.
   da importação), além de `circuitoUmIcao`/`weightKg` para compatibilidade
   com módulos existentes. O objeto completo vai em `aw139_flight_preview_v1`.
 - **Consumo no Planejamento do Voo (Pesos)**: ao abrir, o módulo Pesos
-  detecta um voo importado novo (via `fpImportedAt`) e autopreenche rota,
-  aeronave (matrícula, BEW=EEW, tripulação=OEW−EEW, categoria de MTOW) e
-  combustível por perna — uma vez por importação, sem sobrescrever edições
-  manuais em reaberturas. O manifesto (pax/bag) fica em branco de propósito,
-  por ser entrada manual de peso e balanceamento.
+  detecta um voo importado novo (via `fpImportedAt`) e autopreenche a
+  **rota só com as paradas** (aeródromos e helideques — onde a aeronave
+  pousa; os fixos de sobrevoo ficam de fora), a aeronave (matrícula,
+  BEW=EEW, tripulação=OEW−EEW, categoria de MTOW) e o **combustível por
+  trecho parada→parada** (decolagem = comb. de saída da parada de origem,
+  já com a queima de solo real; pouso = comb. de chegada na de destino) —
+  uma vez por importação, sem sobrescrever edições manuais em reaberturas.
+  O manifesto (pax/bag) fica em branco de propósito, por ser entrada
+  manual de peso e balanceamento.
 
 ## Aviso
 
