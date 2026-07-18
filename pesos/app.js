@@ -1753,6 +1753,21 @@
     // onde a aeronave pousa e o peso/combustível muda), não os fixos de
     // sobrevoo. As paradas ficam em fp.waypoints, em ordem de voo.
     var stops = Array.isArray(fp.waypoints) ? fp.waypoints.filter(function (w) { return w; }) : [];
+
+    // Fallback: se o texto veio sem paradas utilizáveis (seção STOPS ausente
+    // ou truncada), deriva os pontos de fpRoute — inclui fixos, menos preciso,
+    // mas evita que o Pesos fique silenciosamente com o formulário antigo
+    // para um voo que o piloto acabou de importar. O aviso da tela de
+    // conferência já sinaliza que faltaram paradas.
+    if (stops.length < 2 && Array.isArray(fp.fpRoute) && fp.fpRoute.length) {
+      var r = fp.fpRoute;
+      stops = [{ name: r[0].from, icao: null, fuelDepKg: null, fuelArrKg: null, mtowKg: r[0].mtowKg }];
+      r.forEach(function (l) {
+        // Em voo contínuo entre pontos sem parada, chegada = saída daquele
+        // ponto (sem queima de solo): usamos fuelRemKg para os dois.
+        stops.push({ name: l.to, icao: null, fuelArrKg: l.fuelRemKg, fuelDepKg: l.fuelRemKg, mtowKg: l.mtowKg });
+      });
+    }
     if (stops.length < 2) return null;
 
     var route = stops.map(function (s, i) {

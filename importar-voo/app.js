@@ -5,7 +5,7 @@
   // BUILD em sw.js. Se o HTML carregado for de uma geração diferente deste
   // app.js (skew de cache), a guarda abaixo se recupera sozinha em vez de
   // deixar o app estourar erros crípticos com elementos que não existem.
-  var IMPORTAR_BUILD = '8';
+  var IMPORTAR_BUILD = '9';
   var SKEW_RELOAD_FLAG = 'aw139_importar_skew_reload';
 
   function recoverFromVersionSkew() {
