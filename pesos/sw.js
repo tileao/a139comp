@@ -1,7 +1,7 @@
 'use strict';
 
 // Bump a versão a cada release para invalidar caches antigos.
-var CACHE_NAME = 'aw139-pesos-v20';
+var CACHE_NAME = 'aw139-pesos-v21';
 var ASSETS = [
   './',
   './index.html',

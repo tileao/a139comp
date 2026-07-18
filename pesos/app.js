@@ -1736,26 +1736,29 @@
     } catch (e) { return null; }
   }
 
-  function buildFormFromImport(fp) {
-    if (!fp || !Array.isArray(fp.fpRoute) || !fp.fpRoute.length) return null;
-    var legs = fp.fpRoute;
+  // Cada ponto da rota precisa virar UM token limpo: o parser de rota do
+  // módulo separa em qualquer caractere fora de [A-Z0-9], então nomes com
+  // espaço ("CABO FRIO") ou acento ("MARICÁ") virariam pernas fantasmas.
+  function importRouteToken(s, i) {
+    var t = String(s == null ? '' : s);
+    if (t.normalize) t = t.normalize('NFD').replace(/[̀-ͯ]/g, ''); // tira acentos
+    t = t.toUpperCase().replace(/[^A-Z0-9]/g, ''); // só alfanumérico → 1 token
+    return t || ('P' + (i + 1));
+  }
 
-    // Rota: primeiro "from" + todos os "to" em sequência. Cada ponto precisa
-    // virar UM token limpo: o parser de rota do módulo separa em qualquer
-    // caractere fora de [A-Z0-9], então nomes com espaço ("CABO FRIO") ou
-    // acento ("MARICÁ") criariam pernas fantasmas. Normalizamos (tira acento,
-    // remove não-alfanumérico) preservando a contagem exata de pontos — se um
-    // nome zerar, usamos um marcador para não desalinhar as pernas.
-    function routeToken(s, i) {
-      var t = String(s == null ? '' : s);
-      if (t.normalize) t = t.normalize('NFD').replace(/[̀-ͯ]/g, ''); // tira acentos
-      t = t.toUpperCase().replace(/[^A-Z0-9]/g, ''); // só alfanumérico → 1 token
-      return t || ('P' + (i + 1));
-    }
-    var seq = [];
-    seq.push(legs[0] && legs[0].from != null ? legs[0].from : '');
-    legs.forEach(function (l) { seq.push(l ? l.to : ''); });
-    var route = seq.map(routeToken).join(' ');
+  function buildFormFromImport(fp) {
+    if (!fp) return null;
+
+    // A rota do planejamento usa só as PARADAS (aeródromos e helideques —
+    // onde a aeronave pousa e o peso/combustível muda), não os fixos de
+    // sobrevoo. As paradas ficam em fp.waypoints, em ordem de voo.
+    var stops = Array.isArray(fp.waypoints) ? fp.waypoints.filter(function (w) { return w; }) : [];
+    if (stops.length < 2) return null;
+
+    var route = stops.map(function (s, i) {
+      // Prefere o código ICAO/identificador; cai para o nome se faltar.
+      return importRouteToken(s.icao != null && String(s.icao).trim() !== '' ? s.icao : s.name, i);
+    }).join(' ');
     if (!route.trim()) return null;
 
     var ac = fp.aircraft || {};
@@ -1772,7 +1775,7 @@
       if (sum > 0) crewKg = sum;
     }
 
-    var mtows = legs.map(function (l) { return importNum(l.mtowKg); }).filter(function (v) { return v != null; });
+    var mtows = stops.map(function (s) { return importNum(s.mtowKg); }).filter(function (v) { return v != null; });
     var maxMtow = mtows.length ? Math.max.apply(Math, mtows) : null;
     var mtowCategory = maxMtow == null ? null : (maxMtow <= 6800 ? '6800' : '7000');
 
@@ -1785,46 +1788,19 @@
       aircraft.maxLandingKg = mtowCategory; // AW139: peso máx. de pouso = MTOW
     }
 
-    // Combustível de saída por posição da rota. Casa cada waypoint
-    // disponível (todos, no PDF; só as paradas, no texto) com sua posição na
-    // sequência, EM ORDEM — assim pontos repetidos (a base aparece no início
-    // e no fim, com combustíveis diferentes) não se confundem. Isso preserva
-    // a decolagem real de cada perna, inclusive quando uma parada
-    // reabasteceu ou teve queima de solo diferente dos 50 kg que o módulo
-    // assumiria sozinho.
-    var depFuelAt = {}, arrFuelAt = {};
-    (function mapFuelBySeq() {
-      var wps = Array.isArray(fp.waypoints) ? fp.waypoints : [];
-      var ptr = 0;
-      for (var k = 0; k < seq.length && ptr < wps.length; k++) {
-        var wp = wps[ptr];
-        if (!wp) { ptr++; continue; }
-        var seqTok = routeToken(seq[k], k);
-        var nameTok = routeToken(wp.name != null ? wp.name : wp.icao, k);
-        var icaoTok = wp.icao != null ? routeToken(wp.icao, k) : '';
-        if (seqTok && (seqTok === nameTok || seqTok === icaoTok)) {
-          depFuelAt[k] = importNum(wp.fuelDepKg);
-          arrFuelAt[k] = importNum(wp.fuelArrKg);
-          ptr++;
-        }
-      }
-    })();
-
-    var pesosLegs = legs.map(function (l, i) {
-      // Pouso da perna = comb. remanescente na chegada ao destino.
-      var landing = importNum(l.fuelRemKg);
-      if (landing == null && arrFuelAt[i + 1] != null) landing = arrFuelAt[i + 1];
+    // Uma perna por trecho entre paradas (parada_i → parada_{i+1}).
+    // Decolagem = comb. de SAÍDA da parada de origem (já desconta a queima de
+    // solo real); pouso = comb. de CHEGADA na parada de destino.
+    var pesosLegs = [];
+    for (var i = 0; i < stops.length - 1; i++) {
+      var takeoff = importNum(stops[i].fuelDepKg);
+      if (takeoff == null) takeoff = importNum(stops[i].fuelArrKg);
+      var landing = importNum(stops[i + 1].fuelArrKg);
+      if (landing == null) landing = importNum(stops[i + 1].fuelDepKg);
       var leg = { mode: 'actual', landingFuel: landing != null ? String(landing) : '' };
-
-      // Decolagem = comb. de saída do ponto de origem (posição i). Se não
-      // houver dado de saída para esse ponto (fixo de sobrevoo no texto),
-      // usa-se a chegada da perna anterior — voo contínuo, sem queima de
-      // solo entre pontos sem parada.
-      var takeoff = depFuelAt[i];
-      if (takeoff == null && i >= 1) takeoff = importNum(legs[i - 1].fuelRemKg);
       if (takeoff != null) { leg.takeoffFuel = String(takeoff); leg.takeoffManual = true; }
-      return leg;
-    });
+      pesosLegs.push(leg);
+    }
 
     // Manifesto (pax/bag/carga) fica em branco de propósito: é a entrada
     // manual de peso e balanceamento, e a distribuição de embarque/desembarque

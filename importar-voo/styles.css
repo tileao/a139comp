@@ -116,22 +116,6 @@ body.has-back-btn .topbar { padding-left: 44px; }
 }
 .panel-header-row .panel-title, .result-header-row .panel-title { margin-bottom: 0; }
 
-/* Alternância entre modo PDF direto e modo texto/IA */
-.mode-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
-.mode-tab {
-  flex: 1 1 auto;
-  min-height: 40px;
-  border-radius: 10px;
-  border: 1px solid var(--slate-border);
-  background: var(--slate);
-  color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 8px 10px;
-}
-.mode-tab.is-active { background: var(--teal-dim); color: var(--teal); border-color: var(--teal-border); }
-
 .prompt-details { margin: 4px 0 14px; }
 .prompt-details summary { cursor: pointer; color: var(--teal); font-size: 13px; font-weight: 700; padding: 4px 0; }
 .prompt-box {
@@ -161,28 +145,6 @@ body.has-back-btn .topbar { padding-left: 44px; }
   resize: vertical;
 }
 .text-import-field textarea:focus { outline: none; border-color: var(--teal-border); }
-
-/* Zona de upload: alvo de toque grande, amigável para iPhone/iPad */
-.drop-zone {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 180px;
-  border: 2px dashed var(--slate-border);
-  border-radius: 16px;
-  background: var(--panel-bg-alt);
-  cursor: pointer;
-  text-align: center;
-  padding: 24px 16px;
-  transition: border-color 0.15s ease, background 0.15s ease;
-}
-.drop-zone:hover, .drop-zone:focus-within { border-color: var(--teal-border); }
-.drop-zone.drop-zone-active { border-color: var(--teal); background: var(--teal-dim); }
-.drop-icon { font-size: 40px; line-height: 1; }
-.drop-title { font-size: 16px; font-weight: 700; }
-.drop-sub { font-size: 13px; color: var(--text-dim); }
 
 .upload-status { margin-top: 12px; font-size: 13px; color: var(--text-dim); min-height: 18px; }
 .upload-status.is-busy { color: var(--teal); }

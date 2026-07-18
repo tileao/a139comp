@@ -6,7 +6,7 @@
 // número tem que ser espelhado em app.js (IMPORTAR_BUILD) e no
 // data-importar-build do <body> em index.html — é assim que a guarda de
 // versão em runtime detecta e se recupera de um "skew" de cache.
-var BUILD = '7';
+var BUILD = '8';
 var CACHE_NAME = 'aw139-importar-voo-v' + BUILD;
 
 var ASSETS = [
@@ -14,11 +14,8 @@ var ASSETS = [
   './index.html',
   './styles.css',
   './app.js',
-  './parser.js',
   './text-parser.js',
   './manifest.webmanifest',
-  './vendor/pdf.min.mjs',
-  './vendor/pdf.worker.min.mjs',
   '../assets/icon-192.png',
   '../assets/icon-512.png',
   '../shared/pwa.css',
