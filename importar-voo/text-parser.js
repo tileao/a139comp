@@ -29,6 +29,67 @@ function toStr(str) {
   return s === '' ? null : s;
 }
 
+// Coordenada: aceita a forma como está no documento, sem exigir que a IA
+// faça conta (converter DMS para decimal na cabeça do modelo era uma fonte
+// silenciosa de erro). Entende grau decimal (-25.447778), grau/min/seg
+// (25°26'52"S, 25 26 52 S), grau/min decimal (25°26.87'S) e o compacto
+// DDMM.MM/DDDMM.MM (2526.87S, 04245.18W). Devolve sempre grau decimal.
+function parseCoord(raw, kind) {
+  if (raw == null) return null;
+  var s = String(raw).trim();
+  if (!s) return null;
+
+  // O hemisfério pode vir antes ou depois; S e W são negativos.
+  var hemi = null;
+  var m = /^([NSEWnsew])\s*/.exec(s);
+  if (m) {
+    hemi = m[1].toUpperCase();
+    s = s.slice(m[0].length);
+  } else {
+    m = /\s*([NSEWnsew])$/.exec(s);
+    if (m) {
+      hemi = m[1].toUpperCase();
+      s = s.slice(0, s.length - m[0].length);
+    }
+  }
+  s = s.trim();
+
+  var neg = /^-/.test(s);
+  if (neg) s = s.slice(1);
+
+  var parts = s.replace(/[^0-9.,]+/g, ' ').trim().split(/\s+/)
+    .filter(function (x) { return x !== ''; })
+    .map(function (x) { return Number(x.replace(',', '.')); });
+  if (!parts.length) return null;
+  for (var i = 0; i < parts.length; i++) {
+    if (!isFinite(parts[i])) return null;
+  }
+
+  var deg;
+  if (parts.length === 1) {
+    var only = parts[0];
+    var intDigits = String(Math.floor(only));
+    // Grau decimal nunca chega a 4 dígitos inteiros (máx. 90/180), então
+    // 4+ dígitos com hemisfério só pode ser o compacto DDMM.MM.
+    if (hemi && intDigits.length >= 4) {
+      var dd = Number(intDigits.slice(0, intDigits.length - 2));
+      var mm = Number(intDigits.slice(intDigits.length - 2)) + (only - Math.floor(only));
+      deg = dd + mm / 60;
+    } else {
+      deg = only;
+    }
+  } else if (parts.length === 2) {
+    deg = parts[0] + parts[1] / 60;
+  } else {
+    deg = parts[0] + parts[1] / 60 + parts[2] / 3600;
+  }
+
+  if (!isFinite(deg)) return null;
+  if (neg || hemi === 'S' || hemi === 'W') deg = -deg;
+  if (Math.abs(deg) > (kind === 'lat' ? 90 : 180)) return null;
+  return Number(deg.toFixed(6));
+}
+
 function pathTokens(path) {
   return path.split('.');
 }
@@ -134,7 +195,10 @@ function parseCsvSection(lines, columnTypes) {
     header.forEach((colName, colIdx) => {
       if (!Object.prototype.hasOwnProperty.call(columnTypes, colName)) return;
       const raw = cells[colIdx] != null ? cells[colIdx].trim() : '';
-      row[colName] = columnTypes[colName] === 'number' ? toNum(raw) : toStr(raw);
+      const type = columnTypes[colName];
+      row[colName] = type === 'number' ? toNum(raw)
+        : (type === 'lat' || type === 'lon') ? parseCoord(raw, type)
+          : toStr(raw);
     });
     rows.push(row);
   }
@@ -182,7 +246,7 @@ function parseStopsSection(lines) {
 function parseHelidecksSection(lines) {
   const types = {
     icao: 'string', nome: 'string', elevFt: 'number', dValueM: 'number', maxT: 'number',
-    classe: 'number', lat: 'number', lon: 'number', freq: 'string',
+    classe: 'number', lat: 'lat', lon: 'lon', freq: 'string',
   };
   return parseCsvSection(lines, types).map((row) => ({
     icao: row.icao ?? null, nome: row.nome ?? null, elevFt: row.elevFt ?? null,

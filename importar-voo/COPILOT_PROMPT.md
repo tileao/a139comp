@@ -30,8 +30,9 @@ Regras gerais:
   ou estime um valor que não está no documento.
 - Números: use ponto decimal (ex.: 17.2), sem separador de milhar.
 - Datas/horas: mantenha o formato original do documento.
-- Coordenadas: converta de graus/minutos/segundos para decimal (ex.:
-  22°55'05"S vira -22.918056).
+- Coordenadas: copie EXATAMENTE como aparecem no documento, sem converter
+  nem arredondar (ex.: 2526.87S, 25°26.87'S, 25°26'52"S). NÃO transforme em
+  grau decimal — o aplicativo faz a conversão.
 - Nos blocos CSV, NÃO use vírgulas dentro de um campo de texto livre (troque
   por ponto e vírgula se precisar).
 
@@ -111,8 +112,8 @@ elevFt = elevação em pés
 dValueM = valor-D em metros
 maxT = capacidade em toneladas
 classe = classe do helideque (1, 2 ou 3)
-lat = latitude decimal
-lon = longitude decimal
+lat = latitude como está no documento
+lon = longitude como está no documento
 freq = frequência, se houver>
 
 ### METARS
