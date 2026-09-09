@@ -5,7 +5,7 @@
   // BUILD em sw.js. Se o HTML carregado for de uma geração diferente deste
   // app.js (skew de cache), a guarda abaixo se recupera sozinha em vez de
   // deixar o app estourar erros crípticos com elementos que não existem.
-  var IMPORTAR_BUILD = '9';
+  var IMPORTAR_BUILD = '11';
   var SKEW_RELOAD_FLAG = 'aw139_importar_skew_reload';
 
   function recoverFromVersionSkew() {
@@ -90,8 +90,9 @@
     '  ou estime um valor que não está no documento.',
     '- Números: use ponto decimal (ex.: 17.2), sem separador de milhar.',
     '- Datas/horas: mantenha o formato original do documento.',
-    '- Coordenadas: converta de graus/minutos/segundos para decimal (ex.:',
-    '  22°55\'05"S vira -22.918056).',
+    '- Coordenadas: copie EXATAMENTE como aparecem no documento, sem converter',
+    '  nem arredondar (ex.: 2526.87S, 25°26.87\'S, 25°26\'52"S). NÃO transforme em',
+    '  grau decimal — o aplicativo faz a conversão.',
     '- Nos blocos CSV, NÃO use vírgulas dentro de um campo de texto livre (troque',
     '  por ponto e vírgula se precisar).',
     '',
@@ -150,8 +151,18 @@
     '',
     '### STOPS',
     'name,icao,freq,fuelArrKg,fuelDepKg,paxArr,paxDep,mtowKg,gndTimeMin',
-    '<uma linha para cada PARADA da rota (aeródromos e helideques, NÃO inclua',
-    'fixos/waypoints de sobrevoo sem parada), nessa ordem:',
+    '<uma linha para cada PARADA da rota, na ordem em que aparecem no documento.',
+    '',
+    'COMO SABER SE UM PONTO É PARADA: cada ponto da rota tem os campos Estimate,',
+    'Land, Shutdown, Start e Takeoff. Onde há pouso previsto, esses campos estão',
+    'EM BRANCO — ficam vazios para a tripulação anotar os horários à mão. Nos',
+    'pontos de sobrevoo, esses mesmos campos aparecem em CINZA/sombreados.',
+    'Inclua APENAS os pontos com esses campos em branco e ignore todos os',
+    'sombreados, mesmo que tenham nome de plataforma ou de helideque.',
+    '',
+    'Não pule nenhuma parada: o primeiro e o último ponto costumam ser o mesmo',
+    'aeródromo (saída e retorno) e os dois devem aparecer, em linhas separadas.',
+    '',
     'name = nome do aeródromo ou helideque',
     'icao = código ICAO (aeródromos, ex. SBMI) ou código de 4 caracteres (helideques, ex. 9PWG)',
     'freq = frequência (aeródromos; em branco para helideques se não houver)',
@@ -171,8 +182,8 @@
     'dValueM = valor-D em metros',
     'maxT = capacidade em toneladas',
     'classe = classe do helideque (1, 2 ou 3)',
-    'lat = latitude decimal',
-    'lon = longitude decimal',
+    'lat = latitude como está no documento',
+    'lon = longitude como está no documento',
     'freq = frequência, se houver>',
     '',
     '### METARS',

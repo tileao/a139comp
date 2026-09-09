@@ -52,9 +52,9 @@
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
-  // O import guarda coordenada em grau decimal (é o que o prompt pede ao
-  // Copilot, por não ter ambiguidade), mas o padrão de uso é grau + minuto
-  // decimal — ex.: -22.4025 vira 22°24.15'S.
+  // A IA copia a coordenada como está no documento e o parser do import a
+  // normaliza para grau decimal; aqui ela volta ao padrão de uso em voo,
+  // grau + minuto decimal — ex.: -22.4025 vira 22°24.15'S.
   function toDegMin(value, kind) {
     if (value == null || value === '' || !Number.isFinite(Number(value))) return null;
     var v = Number(value);
@@ -102,24 +102,37 @@
     return (acc == null ? 0 : acc) + Number(v);
   }
 
-  // Fallback: sem paradas (ou sem casamento entre pernas e paradas) não dá
-  // para consolidar — mostra as pernas do Flight Preview como vieram.
-  function legsAsSegments(legs) {
-    return legs.map(function (leg, i) {
-      return {
-        seq: i + 1, from: leg.from, to: leg.to, via: [],
-        ftMin: leg.ftMin, ftApprox: false, distNm: leg.distNm,
-        fuelDepKg: null, fuelArrKg: null, burnKg: null, pax: leg.paxIn
-      };
+  // Um ponto de pouso é um helideque do próprio voo ou um aeródromo (ICAO de
+  // 4 letras começando com S). Os fixos de sobrevoo da rota offshore são
+  // designadores de 5 letras (PMARA, CS021, BS086...), então não casam.
+  function landingMatcher(helidecks) {
+    var decks = {};
+    (helidecks || []).forEach(function (h) {
+      var t = routeToken(h && h.icao);
+      if (t) decks[t] = true;
     });
+    return function (point) {
+      var t = routeToken(point);
+      if (!t) return false;
+      return decks[t] === true || /^S[A-Z]{3}$/.test(t);
+    };
   }
 
-  function buildSegments(stops, legs) {
-    if (!legs || !legs.length) return { rows: [], derived: false, partial: false };
-    if (!stops || stops.length < 2) {
-      return { rows: legsAsSegments(legs), derived: false, partial: false };
-    }
+  // Deduz os pontos de pouso a partir das próprias pernas — para quando o
+  // import veio sem a seção STOPS (ou com paradas que não casam com a rota).
+  function derivedStopsFromLegs(legs, helidecks) {
+    var isLanding = landingMatcher(helidecks);
+    var out = [];
+    var first = legs[0] ? legs[0].from : null;
+    if (isLanding(first)) out.push({ icao: first, name: first });
+    legs.forEach(function (leg) {
+      if (leg && isLanding(leg.to)) out.push({ icao: leg.to, name: leg.to });
+    });
+    return out;
+  }
 
+  // Percorre as pernas somando até fechar em cada parada seguinte.
+  function segmentsFromStops(stops, legs) {
     var rows = [];
     var stopIdx = 0;
     var acc = { ftMin: null, ftMissing: 0, distNm: null, via: [] };
@@ -138,9 +151,10 @@
           seq: rows.length + 1,
           from: stopLabel(from), to: stopLabel(next), via: acc.via,
           ftMin: acc.ftMin, ftApprox: acc.ftMissing > 0, distNm: acc.distNm,
-          fuelDepKg: dep, fuelArrKg: arr,
+          fuelDepKg: dep == null ? null : dep,
+          fuelArrKg: arr == null ? null : arr,
           burnKg: (dep != null && arr != null) ? Number(dep) - Number(arr) : null,
-          pax: from.paxDep
+          pax: from.paxDep == null ? null : from.paxDep
         });
         stopIdx++;
         acc = { ftMin: null, ftMissing: 0, distNm: null, via: [] };
@@ -148,9 +162,32 @@
         acc.via.push(leg.to);
       }
     }
+    return rows;
+  }
 
-    if (!rows.length) return { rows: legsAsSegments(legs), derived: false, partial: false };
-    return { rows: rows, derived: true, partial: rows.length < stops.length - 1 };
+  // "Trecho" é sempre decolagem → pouso. Nunca cai para "uma linha por
+  // perna": isso só repetiria a tabela Rota e esconderia os fixos dentro do
+  // que deveria ser um voo entre dois pousos.
+  function buildSegments(stops, legs, helidecks) {
+    if (!legs || !legs.length) return { rows: [], mode: 'none' };
+
+    if (stops && stops.length >= 2) {
+      var fromStops = segmentsFromStops(stops, legs);
+      if (fromStops.length) {
+        return {
+          rows: fromStops, mode: 'stops',
+          partial: fromStops.length < stops.length - 1
+        };
+      }
+    }
+
+    var derived = derivedStopsFromLegs(legs, helidecks);
+    if (derived.length >= 2) {
+      var fromDerived = segmentsFromStops(derived, legs);
+      if (fromDerived.length) return { rows: fromDerived, mode: 'derived' };
+    }
+
+    return { rows: [], mode: 'unknown' };
   }
 
   function el(tag, className, html) {
@@ -320,11 +357,12 @@
 
     var legs = (fp.legs && fp.legs.length ? fp.legs : fp.fpRoute) || [];
     var stops = fp.waypoints || [];
+    var helidecks = fp.fpHelidecks || fp.helidecks || [];
 
     // 4) Trechos: decolagem → pouso. É o tempo que interessa em voo — as
     // pernas do Flight Preview quebram no sobrevoo dos fixos, então aqui
     // elas são somadas entre uma parada e a seguinte.
-    var segInfo = buildSegments(stops, legs);
+    var segInfo = buildSegments(stops, legs, helidecks);
     var segRows = segInfo.rows.map(function (s) {
       return {
         seq: s.seq,
@@ -348,10 +386,13 @@
       { key: 'fuelArrKg', label: 'Comb. cheg.', numeric: true },
       { key: 'burnKg', label: 'Queima', numeric: true },
       { key: 'pax', label: 'Pax', numeric: true }
-    ], segRows, 'Sem trechos para mostrar.');
-    if (segRows.length && !segInfo.derived) {
+    ], segRows, segInfo.mode === 'unknown'
+      ? 'Não deu para identificar os pontos de pouso nesta rota. Reimporte o voo incluindo a seção STOPS.'
+      : 'Sem rota importada.');
+    if (segInfo.mode === 'derived') {
       segPanel.appendChild(el('p', 'fp-panel-note',
-        'Sem paradas para consolidar — estas são as pernas do Flight Preview como vieram, não os trechos entre pousos.'));
+        'O import veio sem as paradas: os pontos de pouso foram deduzidos dos helideques e aeródromos da rota, ' +
+        'então combustível e pax por trecho não aparecem. Reimporte o voo com a seção STOPS para ter tudo.'));
     } else if (segInfo.partial) {
       segPanel.appendChild(el('p', 'fp-panel-note',
         'Nem todas as paradas casaram com as pernas importadas — confira os trechos com o documento oficial.'));
@@ -415,7 +456,6 @@
     ], stopRows, 'Sem paradas importadas.'));
 
     // 7) Helideques.
-    var helidecks = fp.fpHelidecks || fp.helidecks || [];
     var deckRows = helidecks.map(function (h) {
       return {
         icao: txt(h.icao),

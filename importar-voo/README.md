@@ -19,7 +19,10 @@ e grava os dados no contexto compartilhado da suíte AW139 Companion.
    `### LEGS`/`### STOPS`/`### HELIDECKS`/`### METARS` em CSV simples).
 2. Cole a resposta na caixa de texto e toque em "Processar texto". O
    `text-parser.js` interpreta o formato de modo tolerante: nunca lança
-   exceção, campos ausentes viram `null`.
+   exceção, campos ausentes viram `null`. As **coordenadas** vêm copiadas
+   como estão no documento (`2526.87S`, `25°26.87'S`, `25°26'52"S` ou grau
+   decimal) e é o parser que normaliza para grau decimal — converter DMS
+   de cabeça era uma fonte silenciosa de erro na extração por IA.
 3. **Conferência**: nada é gravado sem revisão. Todos os campos aparecem em
    inputs editáveis (Voo, Aeronave, Rota, Paradas, Helideques, Meteorologia);
    campos ausentes ficam vazios e destacados em âmbar. "Confirmar e gravar"
