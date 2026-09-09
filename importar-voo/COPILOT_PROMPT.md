@@ -91,8 +91,18 @@ mtowKg = MTOW aplicável no ponto de destino (idem)>
 
 ### STOPS
 name,icao,freq,fuelArrKg,fuelDepKg,paxArr,paxDep,mtowKg,gndTimeMin
-<uma linha para cada PARADA da rota (aeródromos e helideques, NÃO inclua
-fixos/waypoints de sobrevoo sem parada), nessa ordem:
+<uma linha para cada PARADA da rota, na ordem em que aparecem no documento.
+
+COMO SABER SE UM PONTO É PARADA: cada ponto da rota tem os campos Estimate,
+Land, Shutdown, Start e Takeoff. Onde há pouso previsto, esses campos estão
+EM BRANCO — ficam vazios para a tripulação anotar os horários à mão. Nos
+pontos de sobrevoo, esses mesmos campos aparecem em CINZA/sombreados.
+Inclua APENAS os pontos com esses campos em branco e ignore todos os
+sombreados, mesmo que tenham nome de plataforma ou de helideque.
+
+Não pule nenhuma parada: o primeiro e o último ponto costumam ser o mesmo
+aeródromo (saída e retorno) e os dois devem aparecer, em linhas separadas.
+
 name = nome do aeródromo ou helideque
 icao = código ICAO (aeródromos, ex. SBMI) ou código de 4 caracteres (helideques, ex. 9PWG)
 freq = frequência (aeródromos; em branco para helideques se não houver)
