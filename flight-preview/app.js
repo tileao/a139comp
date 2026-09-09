@@ -52,6 +52,86 @@
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
+  // ---- Consolidação de trechos (decolagem → pouso) -------------------------
+
+  // O Flight Preview quebra a rota em pernas que incluem os fixos de
+  // sobrevoo. O que interessa em voo é o tempo entre a decolagem e o pouso
+  // seguinte — então somamos as pernas entre duas paradas consecutivas.
+
+  function routeToken(s) {
+    if (s == null) return null;
+    var t = String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return t === '' ? null : t;
+  }
+
+  function matchesStop(point, stop) {
+    var p = routeToken(point);
+    if (!p || !stop) return false;
+    return p === routeToken(stop.icao) || p === routeToken(stop.name);
+  }
+
+  function stopLabel(stop) {
+    if (!stop) return null;
+    return stop.icao || stop.name || null;
+  }
+
+  function sumNum(acc, v) {
+    if (v == null || !Number.isFinite(Number(v))) return acc;
+    return (acc == null ? 0 : acc) + Number(v);
+  }
+
+  // Fallback: sem paradas (ou sem casamento entre pernas e paradas) não dá
+  // para consolidar — mostra as pernas do Flight Preview como vieram.
+  function legsAsSegments(legs) {
+    return legs.map(function (leg, i) {
+      return {
+        seq: i + 1, from: leg.from, to: leg.to, via: [],
+        ftMin: leg.ftMin, ftApprox: false, distNm: leg.distNm,
+        fuelDepKg: null, fuelArrKg: null, burnKg: null, pax: leg.paxIn
+      };
+    });
+  }
+
+  function buildSegments(stops, legs) {
+    if (!legs || !legs.length) return { rows: [], derived: false, partial: false };
+    if (!stops || stops.length < 2) {
+      return { rows: legsAsSegments(legs), derived: false, partial: false };
+    }
+
+    var rows = [];
+    var stopIdx = 0;
+    var acc = { ftMin: null, ftMissing: 0, distNm: null, via: [] };
+
+    for (var i = 0; i < legs.length && stopIdx < stops.length - 1; i++) {
+      var leg = legs[i] || {};
+      acc.ftMin = sumNum(acc.ftMin, leg.ftMin);
+      if (leg.ftMin == null) acc.ftMissing++;
+      acc.distNm = sumNum(acc.distNm, leg.distNm);
+
+      var next = stops[stopIdx + 1];
+      if (matchesStop(leg.to, next)) {
+        var from = stops[stopIdx] || {};
+        var dep = from.fuelDepKg, arr = next.fuelArrKg;
+        rows.push({
+          seq: rows.length + 1,
+          from: stopLabel(from), to: stopLabel(next), via: acc.via,
+          ftMin: acc.ftMin, ftApprox: acc.ftMissing > 0, distNm: acc.distNm,
+          fuelDepKg: dep, fuelArrKg: arr,
+          burnKg: (dep != null && arr != null) ? Number(dep) - Number(arr) : null,
+          pax: from.paxDep
+        });
+        stopIdx++;
+        acc = { ftMin: null, ftMissing: 0, distNm: null, via: [] };
+      } else if (leg.to != null) {
+        acc.via.push(leg.to);
+      }
+    }
+
+    if (!rows.length) return { rows: legsAsSegments(legs), derived: false, partial: false };
+    return { rows: rows, derived: true, partial: rows.length < stops.length - 1 };
+  }
+
   function el(tag, className, html) {
     var node = document.createElement(tag);
     if (className) node.className = className;
@@ -217,8 +297,47 @@
       { key: 'weightKg', label: 'Peso', numeric: true }
     ], crewRows, 'Sem tripulação informada.'));
 
-    // 4) Rota (pernas).
     var legs = (fp.legs && fp.legs.length ? fp.legs : fp.fpRoute) || [];
+    var stops = fp.waypoints || [];
+
+    // 4) Trechos: decolagem → pouso. É o tempo que interessa em voo — as
+    // pernas do Flight Preview quebram no sobrevoo dos fixos, então aqui
+    // elas são somadas entre uma parada e a seguinte.
+    var segInfo = buildSegments(stops, legs);
+    var segRows = segInfo.rows.map(function (s) {
+      return {
+        seq: s.seq,
+        seg: txt(s.from) + ' → ' + txt(s.to),
+        ftMin: s.ftMin == null ? '—' : ((s.ftApprox ? '≈ ' : '') + minutesToHm(s.ftMin)),
+        distNm: s.distNm == null ? '—' : num(s.distNm, { digits: 1, suffix: ' nm' }),
+        via: (s.via && s.via.length) ? s.via.join(' · ') : 'direto',
+        fuelDepKg: s.fuelDepKg == null ? '—' : num(s.fuelDepKg, { suffix: ' kg' }),
+        fuelArrKg: s.fuelArrKg == null ? '—' : num(s.fuelArrKg, { suffix: ' kg' }),
+        burnKg: s.burnKg == null ? '—' : num(s.burnKg, { suffix: ' kg' }),
+        pax: s.pax == null ? '—' : num(s.pax)
+      };
+    });
+    var segPanel = tablePanel('Trechos', 'Decolagem → pouso', [
+      { key: 'seq', label: '#', numeric: true },
+      { key: 'seg', label: 'Trecho' },
+      { key: 'ftMin', label: 'FT', numeric: true },
+      { key: 'distNm', label: 'Dist', numeric: true },
+      { key: 'via', label: 'Via' },
+      { key: 'fuelDepKg', label: 'Comb. saída', numeric: true },
+      { key: 'fuelArrKg', label: 'Comb. cheg.', numeric: true },
+      { key: 'burnKg', label: 'Queima', numeric: true },
+      { key: 'pax', label: 'Pax', numeric: true }
+    ], segRows, 'Sem trechos para mostrar.');
+    if (segRows.length && !segInfo.derived) {
+      segPanel.appendChild(el('p', 'fp-panel-note',
+        'Sem paradas para consolidar — estas são as pernas do Flight Preview como vieram, não os trechos entre pousos.'));
+    } else if (segInfo.partial) {
+      segPanel.appendChild(el('p', 'fp-panel-note',
+        'Nem todas as paradas casaram com as pernas importadas — confira os trechos com o documento oficial.'));
+    }
+    content.appendChild(segPanel);
+
+    // 5) Rota — detalhe perna a perna, já incluindo os fixos de sobrevoo.
     var legRows = legs.map(function (leg) {
       return {
         idx: leg.idx == null ? '—' : leg.idx,
@@ -235,7 +354,7 @@
         mtowKg: leg.mtowKg == null ? '—' : num(leg.mtowKg, { suffix: ' kg' })
       };
     });
-    content.appendChild(tablePanel('Rota', 'Pernas do voo', [
+    content.appendChild(tablePanel('Rota', 'Detalhe perna a perna (com fixos)', [
       { key: 'idx', label: '#', numeric: true },
       { key: 'seg', label: 'Trecho' },
       { key: 'mcDeg', label: 'MC', numeric: true },
@@ -248,9 +367,8 @@
       { key: 'mtowKg', label: 'MTOW', numeric: true }
     ], legRows, 'Sem pernas de rota importadas.'));
 
-    // 5) Paradas.
+    // 6) Paradas.
     var kindLabel = { aerodromo: 'Aeródromo', helideque: 'Helideque', fixo: 'Fixo' };
-    var stops = fp.waypoints || [];
     var stopRows = stops.map(function (s) {
       return {
         name: txt(s.name) + (s.icao ? ' (' + s.icao + ')' : ''),
@@ -275,7 +393,7 @@
       { key: 'mtowKg', label: 'MTOW', numeric: true }
     ], stopRows, 'Sem paradas importadas.'));
 
-    // 6) Helideques.
+    // 7) Helideques.
     var helidecks = fp.fpHelidecks || fp.helidecks || [];
     var deckRows = helidecks.map(function (h) {
       return {
@@ -301,7 +419,7 @@
       { key: 'freq', label: 'Freq' }
     ], deckRows, 'Sem helideques importados.'));
 
-    // 7) Meteorologia.
+    // 8) Meteorologia.
     var metars = fp.metars || [];
     if (metars.length) {
       var wx = el('section', 'fp-panel');
