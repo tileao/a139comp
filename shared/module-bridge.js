@@ -221,25 +221,110 @@
       clearInterval(timer);
     },200);
   }
+  // ---- Faixa da rota: estado persistido -----------------------------------
+  // A perna escolhida e os valores que a faixa aplicou ficam guardados por
+  // módulo. Assim a escolha sobrevive à navegação, e dá para saber se o
+  // piloto editou um campo à mão depois (nesse caso não sobrescrevemos).
+  const SEL_KEY='aw139_strip_sel_v1_'+mod;
+  const APPLIED_KEY='aw139_strip_applied_v1_'+mod;
+  function loadJson(k){ try{ return JSON.parse(localStorage.getItem(k)||'null'); }catch(e){ return null; } }
+  function saveJson(k,v){ try{ v==null?localStorage.removeItem(k):localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+  // Muda quando o voo é reimportado ou o Planejamento recalcula a rota.
+  function ctxSignature(ctx){
+    return [ctx.updatedAt||'', ctx.fpImportedAt||'', (ctx.pesoPernas||[]).length].join('|');
+  }
+  function stripFieldIds(cfg){
+    return [cfg.weightId,cfg.oatId,cfg.qnhId,cfg.windId,cfg.windDirId,cfg.windSpeedId].filter(Boolean);
+  }
+  function readFields(cfg){
+    const out={};
+    stripFieldIds(cfg).forEach(id=>{ const el=document.getElementById(id); if(el) out[id]=String(el.value==null?'':el.value); });
+    return out;
+  }
+  // "Intocado" = os campos ainda estão exatamente como a faixa os deixou.
+  function fieldsUntouched(cfg,applied){
+    if(!applied || !applied.values) return false;
+    const now=readFields(cfg);
+    return Object.keys(applied.values).every(id=>now[id]===applied.values[id]);
+  }
+  function applyLeg(cfg,legs,i,sig){
+    const l=legs[i];
+    if(!l) return;
+    const isArr=cfg.kind==='arr';
+    if(cfg.unitId) setIf(cfg.unitId,'kg');
+    setIf(cfg.weightId, isArr ? l.lw : l.tow);
+    // Decolagem: override do piloto (weatherOrigem) tem prioridade; senão
+    // herda o pouso da perna anterior (mesma localidade).
+    const wx=isArr ? l.weather : (l.weatherOrigem || (i>0 ? legs[i-1].weather : null));
+    if(wx){
+      if(cfg.oatId && wx.temperatura!=null && wx.temperatura!=='') setIf(cfg.oatId, num(wx.temperatura));
+      if(cfg.qnhId && wx.qnh) setIf(cfg.qnhId, num(wx.qnh));
+      if(wx.vento){
+        const parts=String(wx.vento).split('/');
+        const dir=num(parts[0]), kt=num(parts[1]);
+        if(cfg.windId && kt!=null) setIf(cfg.windId, kt);
+        if(cfg.windDirId && dir!=null) setIf(cfg.windDirId, dir);
+        if(cfg.windSpeedId && kt!=null) setIf(cfg.windSpeedId, kt);
+      }
+    }
+    if(mod==='cata') importCataBaseRunway(l.origem, wx);
+    saveJson(SEL_KEY,{perna:l.perna, loc:isArr?l.destino:l.origem});
+    saveJson(APPLIED_KEY,{sig:sig, values:readFields(cfg)});
+  }
+  // Reencontra a perna escolhida depois que a rota mudou: casa pelo número
+  // da perna + localidade e, se a rota encolheu/mudou, cai fora em vez de
+  // aplicar valores de outra localidade.
+  function findSelected(cfg,legs){
+    const sel=loadJson(SEL_KEY);
+    if(!sel || !Array.isArray(legs)) return -1;
+    const isArr=cfg.kind==='arr';
+    const locOf=l=>isArr?l.destino:l.origem;
+    let i=legs.findIndex(l=>l.perna===sel.perna && locOf(l)===sel.loc);
+    if(i<0) i=legs.findIndex(l=>locOf(l)===sel.loc);
+    return i;
+  }
+  let stripEl=null;
+  function renderStrip(){
+    const cfg=STRIP_CONFIG[mod];
+    if(!cfg || !stripEl) return;
+    const ctx=loadCtx();
+    const legs=ctx.pesoPernas;
+    const hasLegs=Array.isArray(legs) && legs.length>0;
+    const isArr=cfg.kind==='arr';
+    const sig=ctxSignature(ctx);
+    const selIdx=hasLegs?findSelected(cfg,legs):-1;
+
+    // Sem voo publicado, a faixa vira um aviso com atalho — assim dá para
+    // ver que a integração está ativa mesmo antes do primeiro cálculo.
+    stripEl.innerHTML=`<span class="strip-label">${isArr?'Pouso':'Decolagem'} (Voo)</span>`
+      +`<div class="strip-legs">`+(hasLegs
+        ? legs.map((l,i)=>
+            `<button type="button" data-leg="${i}" class="${i===selIdx?'active':''}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${isArr?l.destino:l.origem}<small>${Math.round(isArr?l.lw:l.tow).toLocaleString('pt-BR')} kg</small></button>`
+          ).join('')
+        : '<span class="strip-hint">Sem voo publicado — calcule a rota no Planejamento do Voo.</span><a class="strip-open" href="../pesos/?embed=1&back=1">Abrir Planejamento</a>')
+      +`</div>`
+      +`<button type="button" class="strip-refresh" data-act="refresh" title="Atualizar com os dados do voo" aria-label="Atualizar com os dados do voo">↻</button>`;
+
+    if(selIdx<0) return;
+    const applied=loadJson(APPLIED_KEY);
+    if(fieldsUntouched(cfg,applied)){
+      // Campos ainda são os que a faixa pôs: pode atualizar sozinho.
+      if(!applied || applied.sig!==sig) applyLeg(cfg,legs,selIdx,sig);
+    } else if(!applied || applied.sig!==sig){
+      // O piloto mexeu à mão E o voo mudou: não sobrescreve na marra —
+      // acende o botão para ele decidir.
+      const btn=stripEl.querySelector('.strip-refresh');
+      if(btn){ btn.classList.add('has-update'); btn.title='Os dados do voo mudaram — tocar para atualizar'; }
+    }
+  }
   function addRouteStrip(){
     const cfg=STRIP_CONFIG[mod];
     if(!cfg) return;
-    const legs=loadCtx().pesoPernas;
-    const hasLegs=Array.isArray(legs) && legs.length>0;
-    const isArr=cfg.kind==='arr';
-    const strip=document.createElement('div');
-    strip.id='pesoRouteStrip';
-    // Sem voo publicado, a faixa vira um aviso com atalho — assim dá para
-    // ver que a integração está ativa mesmo antes do primeiro cálculo.
-    strip.innerHTML=`<span class="strip-label">${isArr?'Pouso':'Decolagem'} (Voo)</span>`+(hasLegs
-      ? legs.map((l,i)=>
-          `<button type="button" data-leg="${i}" title="Perna ${l.perna}: ${l.origem} → ${l.destino}">${isArr?l.destino:l.origem}<small>${Math.round(isArr?l.lw:l.tow).toLocaleString('pt-BR')} kg</small></button>`
-        ).join('')
-      : '<span class="strip-hint">Sem voo publicado — calcule a rota no Planejamento do Voo.</span><a class="strip-open" href="../pesos/?embed=1&back=1">Abrir Planejamento</a>');
     const style=document.createElement('style');
     style.textContent=`
-      #pesoRouteStrip{display:flex;align-items:center;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:calc(8px + env(safe-area-inset-top, 0px)) 12px 0;padding:8px 12px;background:rgba(15,23,42,.94);border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.24);backdrop-filter:blur(12px)}
-      #pesoRouteStrip::-webkit-scrollbar{display:none}
+      #pesoRouteStrip{display:flex;align-items:center;gap:8px;margin:calc(8px + env(safe-area-inset-top, 0px)) 12px 0;padding:8px 12px;background:rgba(15,23,42,.94);border:1px solid rgba(255,255,255,.12);border-radius:16px;box-shadow:0 12px 32px rgba(0,0,0,.24);backdrop-filter:blur(12px)}
+      #pesoRouteStrip .strip-legs{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+      #pesoRouteStrip .strip-legs::-webkit-scrollbar{display:none}
       #pesoRouteStrip .strip-label{flex:none;font:800 10px Inter,-apple-system,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#9db0c4}
       #pesoRouteStrip button{flex:none;width:auto;min-height:40px;display:grid;justify-items:center;align-content:center;gap:1px;border:1px solid rgba(148,163,184,.22);background:#1b2836;color:#e5eef8;border-radius:12px;padding:5px 14px;font:700 13px Inter,-apple-system,sans-serif;cursor:pointer;line-height:1.15}
       #pesoRouteStrip button small{font-size:10px;font-weight:600;color:#9db0c4}
@@ -247,37 +332,52 @@
       #pesoRouteStrip button.active small{color:#46c2ba}
       #pesoRouteStrip .strip-hint{flex:none;font:600 12px Inter,-apple-system,sans-serif;color:#9db0c4}
       #pesoRouteStrip .strip-open{flex:none;min-height:40px;display:grid;place-items:center;border:1px solid rgba(70,194,186,.45);background:rgba(70,194,186,.12);color:#a9e6e2;text-decoration:none;border-radius:12px;padding:5px 14px;font:700 13px Inter,-apple-system,sans-serif}
+      #pesoRouteStrip .strip-refresh{flex:none;width:40px;padding:0;font-size:17px;color:#9db0c4}
+      #pesoRouteStrip .strip-refresh.has-update{border-color:rgba(240,178,58,.6);background:rgba(240,178,58,.14);color:#f0b23a}
     `;
     document.head.appendChild(style);
-    strip.addEventListener('click',(e)=>{
-      const btn=e.target.closest('button[data-leg]');
-      if(!btn) return;
-      const i=Number(btn.dataset.leg);
-      const l=legs[i];
-      if(cfg.unitId) setIf(cfg.unitId, 'kg');
-      setIf(cfg.weightId, isArr ? l.lw : l.tow);
-      // Decolagem: override do piloto (weatherOrigem) tem prioridade; senão
-      // herda o pouso da perna anterior (mesma localidade).
-      const wx=isArr ? l.weather : (l.weatherOrigem || (i>0 ? legs[i-1].weather : null));
-      if(wx){
-        if(cfg.oatId && wx.temperatura!=null && wx.temperatura!=='') setIf(cfg.oatId, num(wx.temperatura));
-        if(cfg.qnhId && wx.qnh) setIf(cfg.qnhId, num(wx.qnh));
-        if(wx.vento){
-          const parts=String(wx.vento).split('/');
-          const dir=num(parts[0]), kt=num(parts[1]);
-          if(cfg.windId && kt!=null) setIf(cfg.windId, kt);
-          if(cfg.windDirId && dir!=null) setIf(cfg.windDirId, dir);
-          if(cfg.windSpeedId && kt!=null) setIf(cfg.windSpeedId, kt);
+    stripEl=document.createElement('div');
+    stripEl.id='pesoRouteStrip';
+    stripEl.addEventListener('click',(e)=>{
+      const ctx=loadCtx();
+      const legs=ctx.pesoPernas;
+      const sig=ctxSignature(ctx);
+      if(e.target.closest('.strip-refresh')){
+        // Botão atualizar: relê o contexto e reaplica a perna escolhida,
+        // mesmo que os campos tenham sido editados à mão.
+        renderStrip();
+        if(Array.isArray(legs) && legs.length){
+          const i=findSelected(cfg,legs);
+          if(i>=0){ applyLeg(cfg,legs,i,sig); renderStrip(); }
         }
+        return;
       }
-      if(mod==='cata') importCataBaseRunway(l.origem, wx);
-      strip.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b===btn));
+      const btn=e.target.closest('button[data-leg]');
+      if(!btn || !Array.isArray(legs)) return;
+      applyLeg(cfg,legs,Number(btn.dataset.leg),sig);
+      renderStrip();
     });
     // No topo do body, antes do shell: os shells são grids com
     // grid-template-areas, e um filho extra cairia numa linha implícita
     // lá no fim da página.
-    document.body.insertBefore(strip, document.body.firstChild);
+    document.body.insertBefore(stripEl, document.body.firstChild);
+    renderStrip();
   }
+  // A faixa era montada só no DOMContentLoaded. No PWA do iOS, voltar para
+  // uma página já visitada a restaura do bfcache — o evento não dispara de
+  // novo e a faixa ficava com os pesos do voo anterior até "furar" o cache
+  // navegando várias vezes. Estes gatilhos cobrem os caminhos reais de volta
+  // ao módulo: bfcache (pageshow), app voltando ao primeiro plano
+  // (visibilitychange/focus) e gravação vinda de outra aba (storage).
+  // Só a faixa. O applyContext() continua rodando uma vez, no carregamento:
+  // ele escreve direto nos campos do WAT/RTO/ADC sem checar se o piloto
+  // editou algo à mão, então repeti-lo a cada volta ao primeiro plano
+  // apagaria valores digitados. A faixa tem essa proteção; o applyContext não.
+  function refreshFromContext(){ renderStrip(); }
+  window.addEventListener('pageshow',(e)=>{ if(e.persisted) refreshFromContext(); });
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') refreshFromContext(); });
+  window.addEventListener('focus',refreshFromContext);
+  window.addEventListener('storage',(e)=>{ if(e.key===KEY) refreshFromContext(); });
   // Grava automaticamente no contexto compartilhado sempre que o WAT/RTO
   // terminam um cálculo (sem exigir clique manual em "salvar"), para que o
   // watMaxWeightKg apareça na tabela do módulo Pesos assim que disponível.
