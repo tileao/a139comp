@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111b26">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <title>AW139 Companion — Flight Preview</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="../assets/icon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="../assets/icon-180.png">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="../shared/pwa.css">
+</head>
+<body>
+  <main class="fp-shell">
+    <header class="topbar slim-topbar">
+      <div class="topbar-left">
+        <a class="nav-btn" href="../index.html" aria-label="Voltar">⥢</a>
+        <div class="product-tag no-sep">
+          <div class="product-icon"><img src="../assets/icon-192.png" alt=""></div>
+          <div>
+            <div class="product-line">AW139 Companion</div>
+            <div class="product-sub">Flight Preview</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="fp-workspace">
+      <div class="fp-head">
+        <div>
+          <div class="fp-kicker">Visão geral do voo</div>
+          <h1 id="fpTitle">Flight Preview</h1>
+        </div>
+        <span id="fpImportedChip" class="fp-chip" hidden></span>
+      </div>
+
+      <div id="fpEmpty" class="fp-empty" hidden>
+        <div class="fp-empty-icon">🗒️</div>
+        <h2>Nenhum voo importado ainda</h2>
+        <p>Esta é uma tela só de consulta. Importe um Flight Preview para ver aqui a rota, as paradas, os helideques e a meteorologia num lugar só.</p>
+        <a class="fp-btn" href="../importar-voo/?back=1&return=../flight-preview/index.html">Importar voo</a>
+      </div>
+
+      <div id="fpContent" class="fp-content" hidden></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script src="../shared/pwa.js"></script>
+</body>
+</html>

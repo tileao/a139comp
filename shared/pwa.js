@@ -77,7 +77,7 @@
     if (path.includes('/importar-voo/')) return { url: 'sw.js', scope: './' };
     if (path.includes('/ncl/')) return { url: 'service-worker.js', scope: './' };
     // Módulos sem service worker próprio ficam sob o SW da raiz.
-    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/pouso-offshore/') || path.includes('/decolagem-offshore/') || path.includes('/dropdown/')) return { url: '../sw.js', scope: '../' };
+    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/pouso-offshore/') || path.includes('/decolagem-offshore/') || path.includes('/dropdown/') || path.includes('/flight-preview/')) return { url: '../sw.js', scope: '../' };
     return { url: 'sw.js', scope: './' };
   }
 
@@ -179,7 +179,7 @@
     if (path.includes('/pesos/')) return 'icon.png';
     if (path.includes('/slo/')) return 'assets/icon-192.png';
     if (path.includes('/ncl/')) return 'assets/icon-192.svg';
-    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/') || path.includes('/pouso-offshore/') || path.includes('/decolagem-offshore/') || path.includes('/dropdown/') || path.includes('/importar-voo/')) return '../assets/icon-192.png';
+    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/') || path.includes('/pouso-offshore/') || path.includes('/decolagem-offshore/') || path.includes('/dropdown/') || path.includes('/importar-voo/') || path.includes('/flight-preview/')) return '../assets/icon-192.png';
     return 'assets/icon-192.png';
   }
 
@@ -238,7 +238,7 @@
 
   function basePrefix(){
     const path = pagePath();
-    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/') || path.includes('/dropdown/') || path.includes('/pouso-offshore/') || path.includes('/decolagem-offshore/') || path.includes('/pesos/') || path.includes('/slo/') || path.includes('/ncl/') || path.includes('/importar-voo/')) return '../';
+    if (path.includes('/cata/') || path.includes('/adc/') || path.includes('/wat/') || path.includes('/rto/') || path.includes('/dropdown/') || path.includes('/pouso-offshore/') || path.includes('/decolagem-offshore/') || path.includes('/pesos/') || path.includes('/slo/') || path.includes('/ncl/') || path.includes('/importar-voo/') || path.includes('/flight-preview/')) return '../';
     return './';
   }
 
