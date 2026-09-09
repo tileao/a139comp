@@ -52,6 +52,27 @@
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
   }
 
+  // O import guarda coordenada em grau decimal (é o que o prompt pede ao
+  // Copilot, por não ter ambiguidade), mas o padrão de uso é grau + minuto
+  // decimal — ex.: -22.4025 vira 22°24.15'S.
+  function toDegMin(value, kind) {
+    if (value == null || value === '' || !Number.isFinite(Number(value))) return null;
+    var v = Number(value);
+    var isLat = kind === 'lat';
+    if (Math.abs(v) > (isLat ? 90 : 180)) return null;
+    var hemi = isLat ? (v < 0 ? 'S' : 'N') : (v < 0 ? 'W' : 'E');
+    var abs = Math.abs(v);
+    var deg = Math.floor(abs);
+    var min = (abs - deg) * 60;
+    // O arredondamento pode estourar 60.00' (ex.: 22.9999997) — sobe o grau.
+    if (Number(min.toFixed(2)) >= 60) { deg += 1; min = 0; }
+    var degStr = String(deg);
+    while (degStr.length < (isLat ? 2 : 3)) degStr = '0' + degStr;
+    var minStr = min.toFixed(2);
+    if (min < 10) minStr = '0' + minStr;
+    return degStr + '°' + minStr + "'" + hemi;
+  }
+
   // ---- Consolidação de trechos (decolagem → pouso) -------------------------
 
   // O Flight Preview quebra a rota em pernas que incluem os fixos de
@@ -401,10 +422,14 @@
         nome: txt(h.nome),
         elevFt: h.elevFt == null ? '—' : num(h.elevFt, { suffix: ' ft' }),
         dValueM: h.dValueM == null ? '—' : num(h.dValueM, { digits: 1, suffix: ' m' }),
-        maxT: h.maxT == null ? '—' : num(h.maxT, { suffix: ' kg' }),
+        // maxT vem em toneladas pelo formato do import; se a extração
+        // devolver kg (valor grande demais para toneladas), mostra em kg.
+        maxT: h.maxT == null ? '—'
+          : (Number(h.maxT) >= 100 ? num(h.maxT, { suffix: ' kg' })
+            : num(h.maxT, { digits: 1, suffix: ' t' })),
         classe: h.classe == null ? '—' : num(h.classe),
-        coord: (h.lat == null && h.lon == null) ? '—'
-          : (num(h.lat, { digits: 4 }) + ', ' + num(h.lon, { digits: 4 })),
+        lat: toDegMin(h.lat, 'lat') || '—',
+        lon: toDegMin(h.lon, 'lon') || '—',
         freq: txt(h.freq)
       };
     });
@@ -415,7 +440,8 @@
       { key: 'dValueM', label: 'D-value', numeric: true },
       { key: 'maxT', label: 'Peso máx.', numeric: true },
       { key: 'classe', label: 'Classe', numeric: true },
-      { key: 'coord', label: 'Coord. (lat, lon)', numeric: true },
+      { key: 'lat', label: 'Latitude', numeric: true },
+      { key: 'lon', label: 'Longitude', numeric: true },
       { key: 'freq', label: 'Freq' }
     ], deckRows, 'Sem helideques importados.'));
 
