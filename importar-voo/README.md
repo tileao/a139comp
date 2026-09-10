@@ -88,7 +88,10 @@ estourar erro críptico.
   detecta um voo importado novo (via `fpImportedAt`) e autopreenche a
   **rota só com as paradas** (aeródromos e helideques — onde a aeronave
   pousa; os fixos de sobrevoo ficam de fora), a aeronave (matrícula,
-  BEW=EEW, tripulação=OEW−EEW, categoria de MTOW) e o **combustível por
+  BEW=EEW, **CG do peso vazio em STA mm** (o `cg` do documento, que pareia
+  com o EEW — sem ele o gráfico de CG não tem envelope; valor fora de
+  2000–10000 mm é descartado como erro de unidade da extração),
+  tripulação=OEW−EEW, categoria de MTOW) e o **combustível por
   trecho parada→parada** (decolagem = comb. de saída da parada de origem,
   já com a queima de solo real; pouso = comb. de chegada na de destino) —
   uma vez por importação, sem sobrescrever edições manuais em reaberturas.

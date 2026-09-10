@@ -1797,6 +1797,14 @@
     var aircraft = {};
     if (ac.registration) aircraft.registration = String(ac.registration);
     if (eew != null) aircraft.bewKg = String(eew);
+    // O CG do Flight Preview vem na mesma linha do EEW e é o braço do peso
+    // vazio em STA mm — exatamente o bewArmMm daqui (que pareia com bewKg,
+    // preenchido acima com o EEW). Sem ele o gráfico de CG fica sem envelope.
+    // A faixa descarta erro de unidade da extração (5.391 m, 539, 53910):
+    // fora dela o campo fica em branco para preenchimento manual, como antes,
+    // em vez de entrar um valor que falsearia o CG calculado.
+    var cgMm = importNum(ac.cg);
+    if (cgMm != null && cgMm >= 2000 && cgMm <= 10000) aircraft.bewArmMm = String(cgMm);
     if (crewKg != null) aircraft.crewKg = String(crewKg);
     if (mtowCategory) {
       aircraft.mtowCategory = mtowCategory;

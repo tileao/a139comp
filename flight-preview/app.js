@@ -319,7 +319,7 @@
     content.appendChild(statPanel('Aeronave e combustível', 'Pesos e performance', [
       { label: 'EEW (vazio equipado)', value: num(aircraft.eewKg, { suffix: ' kg' }) },
       { label: 'OEW (operacional)', value: num(aircraft.oewKg, { suffix: ' kg' }) },
-      { label: 'CG', value: txt(aircraft.cg) },
+      { label: 'CG (STA)', value: Number.isFinite(Number(aircraft.cg)) ? num(aircraft.cg, { suffix: ' mm' }) : txt(aircraft.cg) },
       { label: 'Combustível máximo', value: num(aircraft.maxFuelKg, { suffix: ' kg' }) },
       { label: 'Comb. mín. requerido', value: num(aircraft.minReqFuelKg, { suffix: ' kg' }) },
       { label: 'Cruzeiro', value: num(aircraft.cruiseKt, { suffix: ' kt' }) },
