@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aw139-companion-root-v49-cg-import';
+const CACHE_NAME = 'aw139-companion-root-v50-pl-manifesto';
 
 // Precache mínimo: só o shell dos módulos servidos pelo SW da raiz.
 // WAT, RTO, Pesos, SLO, NCL e Importar Voo têm service workers próprios

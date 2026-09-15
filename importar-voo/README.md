@@ -95,8 +95,12 @@ estourar erro críptico.
   trecho parada→parada** (decolagem = comb. de saída da parada de origem,
   já com a queima de solo real; pouso = comb. de chegada na de destino) —
   uma vez por importação, sem sobrescrever edições manuais em reaberturas.
-  O manifesto (pax/bag) fica em branco de propósito, por ser entrada
-  manual de peso e balanceamento.
+  O **PL do documento** entra no manifesto como uma linha do **primeiro
+  trecho** (parada 1 → parada 2), na coluna de pax — o PL do Flight Preview
+  é o payload dessa primeira perna. A coluna de pax usa o braço da cabine,
+  onde fica o grosso do payload offshore; a distribuição fina entre
+  pax/bag/carga e o payload dos demais trechos continuam manuais, porque o
+  documento não traz o payload perna a perna.
 
 ## Aviso
 

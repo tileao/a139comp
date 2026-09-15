@@ -1770,10 +1770,11 @@
     }
     if (stops.length < 2) return null;
 
-    var route = stops.map(function (s, i) {
+    var tokens = stops.map(function (s, i) {
       // Prefere o código ICAO/identificador; cai para o nome se faltar.
       return importRouteToken(s.icao != null && String(s.icao).trim() !== '' ? s.icao : s.name, i);
-    }).join(' ');
+    });
+    var route = tokens.join(' ');
     if (!route.trim()) return null;
 
     var ac = fp.aircraft || {};
@@ -1825,10 +1826,27 @@
       pesosLegs.push(leg);
     }
 
-    // Manifesto (pax/bag/carga) fica em branco de propósito: é a entrada
-    // manual de peso e balanceamento, e a distribuição de embarque/desembarque
-    // do Flight Preview é ambígua demais para autopreencher com segurança.
-    return { aircraft: aircraft, route: route, manifest: [], legs: pesosLegs };
+    // Manifesto: o PL do Flight Preview é o payload do PRIMEIRO trecho, então
+    // entra como uma linha parada_1 → parada_2, na coluna de pax (braço da
+    // cabine — o grosso do payload offshore; jogar tudo em carga levaria o CG
+    // para o braço do bagageiro e falsearia o gráfico). A distribuição real
+    // entre pax/bag/carga e os demais trechos continua sendo entrada manual:
+    // o documento não traz o payload perna a perna. Fora da faixa plausível
+    // (erro de unidade na extração) o manifesto fica em branco como antes.
+    var manifest = [];
+    var plKg = importNum(fp.plKg);
+    if (plKg != null && plKg > 0 && plKg <= 4000 && tokens[0] !== tokens[1]) {
+      manifest.push({
+        from: tokens[0],
+        to: tokens[1],
+        pax: String(Math.round(plKg)),
+        bag: '',
+        cargo: '',
+        unit: 'kg'
+      });
+    }
+
+    return { aircraft: aircraft, route: route, manifest: manifest, legs: pesosLegs };
   }
 
   function maybeApplyImportedFlight() {
