@@ -22,6 +22,10 @@ de cada perna.
    O app aloca cada linha às pernas certas: um trecho SBMI→P74 permanece a
    bordo durante a parada em FPAB. Ex.: `SBMI-FPAB 650/90/15`,
    `SBMI-P74 105/19/0`, `FPAB-P74 90/15/0`, `FPAB-SBMI 85/5/0`.
+   Num voo vindo do **Importar Voo**, a primeira linha já vem preenchida com
+   o **PL do Flight Preview** no primeiro trecho (coluna de pax) — o PL do
+   documento é o payload dessa perna; ajuste a distribuição entre
+   pax/bag/carga e as demais pernas à mão.
 4. **Combustível por perna** (default: combustível real): informe o
    combustível na decolagem da 1ª perna e o combustível no pouso de cada
    perna — a decolagem das pernas seguintes já vem sugerida no quadro da
